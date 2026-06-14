@@ -1,0 +1,85 @@
+---
+title: CLI reference
+description: Every plnt subcommand, its arguments, and what it does.
+---
+
+The CLI is the surface-of-least-friction. It speaks to the same backend whether you
+run it inline (no server) or pointed at the server over HTTP.
+
+## Top-level
+
+```bash
+plnt --help
+```
+
+| Command | Description |
+|---|---|
+| `plnt up [--host HOST --port PORT]` | Start the surface server (foreground). Default `127.0.0.1:7777`. |
+| `plnt status` | Show surface status. |
+| `plnt submit INTENT [--remote\|--local]` | Submit an intent. Default `--local` (inline, no server). |
+| `plnt runs` | List recent runs with `run_id`, mtime, event count. |
+| `plnt tail RUN_ID [--follow]` | `cat` or `tail -f` a run's `events.jsonl`. |
+| `plnt monitor [--remote\|--local]` | Snapshot: live agents, sandbox rungs in use, recent runs. |
+| `plnt skills list` | List installed skills from `$PLNT_HOME/skills/`. |
+| `plnt skills show ROLE` | Show full prompt and manifest for a skill. |
+| `plnt skills install SOURCE [--dry-run]` | Install from a public library. See [shorthands](#install-shorthands). |
+
+## Submit
+
+```bash
+plnt submit "find anything on agent memory in my Documents"
+plnt submit --remote "catch me up on the latest"
+plnt submit "summarize $HOME/Downloads/paper.pdf"
+```
+
+- **`--local`** (default) runs the orchestrator inline in the same process. Useful for scripting and for the offline echo backend.
+- **`--remote`** posts to `/v1/intents` on the running surface. Returns the `run_id` immediately; the swarm runs in the background.
+
+## Runs
+
+```bash
+plnt runs                        # list
+plnt tail r-2a5c42e150            # cat the JSONL
+plnt tail r-2a5c42e150 --follow   # stream
+```
+
+## Monitor
+
+```bash
+plnt monitor
+```
+
+Returns a snapshot of:
+
+- Live agents (across all running runs)
+- Sandbox rungs currently in use
+- Recent runs and their statuses
+
+## Skills
+
+```bash
+plnt skills list
+plnt skills show research-librarian
+plnt skills install anthropic
+plnt skills install https://github.com/owner/skills --dry-run
+```
+
+### Install shorthands
+
+The installer recognises these names as well-known GitHub catalogs:
+
+- `anthropic` → `anthropic/skills`
+- `addyosmani` → `addyosmani/skills`
+- `scientific` → `scientific-skills/catalog`
+- `antigravity` → `antigravity/skills`
+- `claude-skills-collection`
+- `the-library`
+
+Any full GitHub URL is accepted as well.
+
+Skills land in `$PLNT_HOME/skills/<role>/` and the directory is auto-`git init`'d
+on first install so you can audit and revert.
+
+## Environment
+
+The CLI honours every variable documented in [Environment variables](/docs/reference/env-vars/).

@@ -1,0 +1,390 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SpawnTree from '../components/SpawnTree.astro';
+import CreamCard from '../components/CreamCard.astro';
+import MetaRow from '../components/MetaRow.astro';
+import SectionRule from '../components/SectionRule.astro';
+import KeyChoice from '../components/KeyChoice.astro';
+
+const title = 'plnt — personal local native twin';
+const description = 'A local-first agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your own hardware. Memory is plain files. Apache-2.0.';
+
+const choices = [
+  {
+    choice: 'Resident planner + named specialists + ephemeral spawns',
+    why: 'Long-lived specialists with shared state outperform many-ephemeral (HearthNet).',
+  },
+  {
+    choice: 'Filesystem memory: JSONL + markdown + FAISS sidecar',
+    why: 'No schema before the data has shape. <code>cat</code> / <code>grep</code> / <code>jq</code> / <code>git</code> is the admin UI.',
+  },
+  {
+    choice: 'Two tools only: <code>search</code>, <code>execute</code>',
+    why: 'RLM pattern. Context lives in the filesystem; anything else is reachable through these.',
+  },
+  {
+    choice: 'Sandbox ladder: process → gVisor → µVM → wasm',
+    why: 'Climb only when the threat model demands. Docker is not enough for LLM-emitted code.',
+  },
+  {
+    choice: 'Compute federated, agents not (exo style)',
+    why: 'Multi-device inference is solved; multi-device agent state is a debugging hellscape.',
+  },
+  {
+    choice: 'No MCP · no Claude skill · no SaaS',
+    why: 'The framework owns memory + skills + sandbox. The model is a swappable backend.',
+  },
+];
+---
+
+<Layout title={title} description={description} path="/">
+
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-left">
+        <div class="status-strip">
+          <span class="dot"></span>
+          <span class="mono-caps">v0 · pre-alpha · apache-2.0</span>
+        </div>
+
+        <div class="wordmark">
+          <span class="wm-sprout" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square">
+              <rect x="5" y="16" width="14" height="5"/>
+              <line x1="12" y1="16" x2="12" y2="7"/>
+              <path d="M12 12 Q7.5 11 6.5 6 Q11 7 12 12 Z"/>
+              <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z"/>
+            </svg>
+          </span>
+          <span class="wm-text">plnt<span class="wm-tail">/</span></span>
+        </div>
+
+        <p class="subline">personal · local · native · twin</p>
+
+        <div class="hero-claim">
+          <h1>
+            An agent runtime<br/>
+            that <span class="brand-mark">grows on your hardware</span>.
+          </h1>
+          <p class="lead">
+            One resident planner spawns a swarm of sandboxed micro-agents.
+            Memory is plain files in <code>$PLNT_HOME</code>. <code>cat</code>,
+            <code>grep</code>, <code>jq</code>, <code>git</code> are the admin tools.
+            Nothing leaves your machine unless you wire a cloud backend yourself.
+          </p>
+          <div class="cta-row">
+            <a class="btn primary" href="/docs/getting-started/install/">Install plnt →</a>
+            <a class="btn" href="/architecture">Read the architecture</a>
+            <a class="btn ghost" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="tree-frame">
+          <div class="tree-header">
+            <span class="dim">~/.plnt/runs/r-2a5c42e150 ▸ spawn tree</span>
+            <span class="dot-row">
+              <span class="d r"></span><span class="d a"></span><span class="d g"></span>
+            </span>
+          </div>
+          <SpawnTree />
+          <div class="tree-footer">
+            <span class="dim">soil = your filesystem</span>
+            <span class="brand-text">leaves = ephemeral agents</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-banner container">
+      <p class="tag">a worker that runs while you sleep. an audit trail you can <code>cat</code>.</p>
+      <a class="btn primary" href="/docs/getting-started/install/">Install plnt →</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="01" title="Three lines" />
+      <div class="three-lines">
+        <p><span class="num-tag">§ 01</span> <strong>No cloud lock-in.</strong> The default backend is local Ollama. Cloud is a fallback when the external SSD with the models isn't mounted. Every router decision lands in <code>events.jsonl</code> so <code>grep</code> is a real audit query.</p>
+        <p><span class="num-tag">§ 02</span> <strong>No database.</strong> Memory is JSONL + markdown + (later) a FAISS sidecar. Every observable event is one line. If <code>cat</code> can't see it, it doesn't exist as state.</p>
+        <p><span class="num-tag">§ 03</span> <strong>No vendor lock-in.</strong> Skills are markdown files the framework owns. The model is a swappable backend. No MCP. No SDK in the middle.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="02" title="Key choices · why" />
+      <div class="row-table">
+        {choices.map((c) => <KeyChoice choice={c.choice} why={c.why} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="03" title="One intent, end to end" />
+      <p class="dim" style="max-width: 64ch; margin-bottom: 1.5rem;">
+        A single intent traverses the system. Nothing leaves the user's hardware.
+        Red annotations are the <code>ACC</code> monitor and the budget governor watching the streams.
+      </p>
+
+      <pre class="flow-diagram">
+<span class="anno">user intent</span>          <span class="dim">"catch me up on agent memory papers by 7am"</span>
+        <span class="pipe">│</span>
+     <span class="step">Surface</span>          <span class="dim">record run_id · open event stream</span>
+        <span class="pipe">│</span>
+   <span class="step">Planner LLM</span>        <span class="dim">route to owner specialist</span>
+        <span class="pipe">│</span>
+ <span class="step">research-librarian</span>   <span class="dim">(resident) decide work plan</span>
+        <span class="pipe">│</span>
+<span class="step">AgentSpec[ literature-scout ]</span>     <span class="dim">search ~/Documents · arXiv → 12 candidates</span>
+        <span class="pipe">│</span>
+   <span class="pipe">┌────┼────┐</span>
+<span class="step">paper-reader</span>  <span class="step">paper-reader</span>  <span class="step">paper-reader</span>      <span class="dim">(4 papers each)</span>
+   <span class="pipe">└────┼────┘</span>
+        <span class="pipe">│</span>
+<span class="step">AgentSpec[ summarizer · model_hint=deep ]</span>   <span class="dim">exo cluster handles the heavy call</span>
+        <span class="pipe">│</span>                                <span class="red">↑ ACC monitor — watching streams</span>
+<span class="step">~/Desktop/agent-memory-2026-06-13.md</span>      <span class="dim">+ episodic log entry</span>
+        <span class="pipe">│</span>                                <span class="red">↑ Budget governor — meter spend</span>
+   <span class="step">▸ phone notification</span>   <span class="dim">"summary ready · 12 papers · 12 min · $0"</span>
+      </pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container narrow">
+      <SectionRule num="04" title="What we achieve" />
+      <p class="lead" style="font-size: 1.125rem; line-height: 1.65;">
+        A personal agent that survives sessions and stays on your hardware.
+        A worker that runs while you sleep. An audit trail you can <code>cat</code>.
+        A skills ecosystem that is just <code>git</code>. An architecture immune to vendor cycles.
+      </p>
+      <p class="dim" style="margin-top: 1.5rem;">
+        Roughly <span class="brand-text">$1/month in electricity</span> vs the
+        $50–200/month a cloud-hosted equivalent would cost. No vendor watching.
+        No SaaS that disappears when funding does.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container narrow">
+      <SectionRule num="05" title="Install" />
+      <pre><code><span class="dim"># clone + install</span>
+git clone https://github.com/devdattatalele/plnt
+cd plnt && pip install -e .
+
+<span class="dim"># submit an intent (offline echo backend works with no LLM)</span>
+plnt submit <span class="brand-text">"list five interesting things in $PWD"</span>
+
+<span class="dim"># or run the server + the Bubble Tea TUI</span>
+plnt up &
+./plnt-tui-bin</code></pre>
+
+      <div style="display:flex; gap:0.75rem; flex-wrap: wrap; margin-top: 2rem;">
+        <a class="btn primary" href="/docs/getting-started/quickstart/">Read the quickstart →</a>
+        <a class="btn" href="/architecture">Read the architecture</a>
+        <a class="btn ghost" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub →</a>
+      </div>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  .hero {
+    position: relative;
+    border-bottom: 1px solid var(--rule);
+    overflow: hidden;
+  }
+  .hero::before {
+    /* faint background JSONL drift — a stylized log "rain" */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 80% 15%, var(--brand-soft) 0%, transparent 45%),
+      radial-gradient(circle at 5% 90%, var(--brand-soft) 0%, transparent 55%);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    padding: clamp(3rem, 6vw, 5.5rem) 0 clamp(2.5rem, 5vw, 4rem);
+    align-items: start;
+  }
+  @media (min-width: 1020px) {
+    .hero-inner {
+      grid-template-columns: 1.05fr 1fr;
+      gap: 4rem;
+    }
+  }
+
+  .status-strip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  .status-strip .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--brand);
+    box-shadow: 0 0 0 3px rgba(125, 211, 160, 0.16);
+  }
+  .status-strip .mono-caps { color: var(--brand); }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 800;
+    font-size: clamp(2.5rem, 8vw, 5.5rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+  .wordmark .wm-sprout {
+    width: 0.85em;
+    height: 0.85em;
+    color: var(--brand);
+    display: inline-flex;
+  }
+  .wordmark .wm-sprout svg { width: 100%; height: 100%; }
+  .wordmark .wm-tail { color: var(--brand); }
+  .subline {
+    margin: 0.75rem 0 0;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    color: var(--ink-dim);
+  }
+
+  .hero-claim { margin-top: clamp(2rem, 4vw, 3rem); max-width: 38rem; }
+  .hero-claim h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); letter-spacing: -0.02em; line-height: 1.1; }
+  .hero-claim h1 .brand-mark {
+    background: linear-gradient(to right, var(--brand) 0%, var(--brand) 100%);
+    background-position: 0 92%;
+    background-repeat: no-repeat;
+    background-size: 100% 3px;
+    padding-bottom: 0.05em;
+    color: var(--ink);
+  }
+  .hero-claim .lead {
+    margin-top: 1.5rem;
+    color: var(--ink);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  .cta-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+
+  /* "terminal frame" around the spawn tree */
+  .tree-frame {
+    background: #060606;
+    border: 1px solid var(--rule-strong);
+    box-shadow: 0 0 0 1px rgba(125, 211, 160, 0.06);
+  }
+  .tree-header,
+  .tree-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+  }
+  .tree-footer { border-bottom: 0; border-top: 1px solid var(--rule); }
+  .dot-row { display: flex; gap: 0.4rem; }
+  .dot-row .d { width: 8px; height: 8px; opacity: 0.7; }
+  .dot-row .d.r { background: var(--accent-red); }
+  .dot-row .d.a { background: var(--accent-amber); }
+  .dot-row .d.g { background: var(--brand); }
+  .tree-frame > pre { padding: 1.25rem 1rem; }
+  .brand-text { color: var(--brand); }
+
+  .hero-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--rule-strong);
+    position: relative;
+    z-index: 1;
+  }
+  .hero-banner .tag {
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
+    color: var(--ink);
+    margin: 0;
+    max-width: none;
+  }
+  .hero-banner .tag code { color: var(--brand); }
+
+  .btn.primary {
+    background: var(--brand);
+    color: #0a1410;
+    border-color: var(--brand);
+  }
+  .btn.primary:hover { background: #95e1b3; color: #0a1410; border-color: #95e1b3; }
+  .btn.ghost { border-color: var(--rule-strong); color: var(--ink-dim); }
+  .btn.ghost:hover { color: var(--ink); border-color: var(--ink); background: transparent; }
+
+  /* === SECTIONS === */
+  .three-lines p {
+    max-width: 70ch;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    color: var(--ink-dim);
+  }
+  .three-lines p strong { color: var(--ink); font-weight: 500; }
+  .three-lines .num-tag {
+    display: inline-block;
+    min-width: 3.5rem;
+    color: var(--brand);
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-right: 0.5rem;
+  }
+
+  .flow-diagram {
+    font-family: var(--font);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre;
+    overflow-x: auto;
+    padding: 1.25rem 1.5rem;
+    background: #060606;
+    border: 1px solid var(--rule);
+    margin: 0;
+  }
+  .flow-diagram .step { color: var(--ink); font-weight: 500; }
+  .flow-diagram .dim { color: var(--ink-dim); }
+  .flow-diagram .pipe { color: var(--brand-dim); }
+  .flow-diagram .red { color: var(--accent-red); font-size: 0.75rem; }
+  .flow-diagram .anno { color: var(--brand); font-weight: 700; }
+
+  @media (max-width: 720px) {
+    .flow-diagram { font-size: 0.6875rem; padding: 1rem; }
+    .hero-banner { flex-direction: column; align-items: flex-start; }
+  }
+</style>

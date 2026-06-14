@@ -1,0 +1,122 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SectionRule from '../components/SectionRule.astro';
+
+const title = 'Resources — plnt';
+const description = 'Documentation, source code, reading list, and a quick CLI / HTTP reference.';
+
+const docs = [
+  { label: 'README', href: 'https://github.com/devdattatalele/plnt/blob/main/README.md', detail: 'What plnt is, why it exists, the one-paragraph pitch.' },
+  { label: 'ARCHITECTURE.md', href: 'https://github.com/devdattatalele/plnt/blob/main/ARCHITECTURE.md', detail: 'File-by-file mapping of the four planes.' },
+  { label: 'SETUP.md', href: 'https://github.com/devdattatalele/plnt/blob/main/SETUP.md', detail: '~530-line cross-platform install guide. macOS + Linux, Ollama + cloud backends.' },
+  { label: 'IMPROVEMENTS.md', href: 'https://github.com/devdattatalele/plnt/blob/main/IMPROVEMENTS.md', detail: 'The v0 → v0.1 punch list — resident planner, streaming ACC, episodic memory, mTLS.' },
+];
+
+const source = [
+  { label: 'GitHub repository', href: 'https://github.com/devdattatalele/plnt', detail: 'Full source. ~4,800 LOC Python runtime + Go Bubble Tea TUI.' },
+  { label: 'Apache 2.0 license', href: 'https://github.com/devdattatalele/plnt/blob/main/LICENSE', detail: 'Permissive. Use commercially, fork, modify. Keep the notice.' },
+  { label: 'Issue tracker', href: 'https://github.com/devdattatalele/plnt/issues', detail: 'Bugs, feature requests, design discussion. Pre-alpha, so everything is fair game.' },
+];
+
+const reading = [
+  { label: 'Beyond Scaling: Agents Are Heading to the Edge', href: 'https://arxiv.org/abs/2605.18535', detail: 'arXiv:2605.18535 — the thesis behind running agent runtimes on your own hardware.' },
+  { label: 'HearthNet', href: 'https://arxiv.org/abs/2604.09618', detail: 'arXiv:2604.09618 — inspiration for the file-backed, audit-first memory model.' },
+  { label: 'exo — distributed inference', href: 'https://github.com/exo-explore/exo', detail: 'Federated local inference. Plnt routes to exo by pointing PLNT_DEEP_URL at a cluster.' },
+  { label: 'Firecracker / gVisor sandbox consensus', href: 'https://firecracker-microvm.github.io/', detail: 'The microVM and user-space-kernel sandboxes that future plnt rungs target.' },
+];
+---
+
+<Layout title={title} description={description} path="/resources">
+
+  <section class="section" style="padding-top: clamp(3rem, 6vw, 5rem);">
+    <div class="container">
+      <span class="eyebrow">§ 00 — resources</span>
+      <h1 style="margin-top: 1.25rem;">Read, install, hack.</h1>
+      <p class="dim lead" style="margin-top: 1.5rem; max-width: 60ch;">
+        The repo is the source of truth — this page is a map.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="01" title="Documentation" />
+      <div class="row-table">
+        {docs.map((d) => (
+          <a class="row link-row" href={d.href} target="_blank" rel="noopener">
+            <div class="choice">{d.label} <span class="dim">↗</span></div>
+            <div class="why">{d.detail}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="02" title="Source & license" />
+      <div class="row-table">
+        {source.map((d) => (
+          <a class="row link-row" href={d.href} target="_blank" rel="noopener">
+            <div class="choice">{d.label} <span class="dim">↗</span></div>
+            <div class="why">{d.detail}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="03" title="Reading list" />
+      <p class="dim" style="margin-bottom: 1rem;">
+        Papers and projects that shape plnt's design.
+      </p>
+      <div class="row-table">
+        {reading.map((d) => (
+          <a class="row link-row" href={d.href} target="_blank" rel="noopener">
+            <div class="choice">{d.label} <span class="dim">↗</span></div>
+            <div class="why">{d.detail}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="04" title="Quick reference" />
+      <pre style="margin-top: 1rem;"><code><span class="dim"># install</span>
+git clone https://github.com/devdattatalele/plnt
+cd plnt && pip install -e .
+
+<span class="dim"># CLI</span>
+plnt submit <span class="brand-text">"find anything on agent memory in my Documents"</span>
+plnt up                          <span class="dim"># server on 127.0.0.1:7777</span>
+plnt submit --remote "..."       <span class="dim"># via HTTP</span>
+plnt runs                        <span class="dim"># list recent runs</span>
+plnt tail r-XXXXXXXX --follow    <span class="dim"># stream events live</span>
+plnt skills list                 <span class="dim"># installed skill bundles</span>
+
+<span class="dim"># HTTP / SSE</span>
+POST /v1/intents                 <span class="dim"># submit a new intent</span>
+GET  /v1/runs                    <span class="dim"># list runs</span>
+GET  /v1/runs/&#123;id&#125;/stream       <span class="dim"># SSE stream of the blackboard</span>
+GET  /v1/skills                  <span class="dim"># installed skills</span>
+GET  /v1/health</code></pre>
+
+      <div style="display:flex; gap:0.75rem; flex-wrap: wrap; margin-top: 2rem;">
+        <a class="btn primary" href="/docs/">Open the docs portal →</a>
+        <a class="btn" href="/architecture">Read the architecture</a>
+      </div>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  .link-row { text-decoration: none; cursor: pointer; }
+  .link-row .choice { color: var(--ink); transition: color 0.12s ease; }
+  .link-row:hover .choice { color: var(--brand); }
+  .link-row .dim { color: var(--ink-faint); }
+</style>

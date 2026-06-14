@@ -1,0 +1,145 @@
+---
+title: Events schema
+description: Every event kind written to events.jsonl, with payload shape and an example.
+---
+
+import { Code } from 'astro:components';
+
+Every event on the blackboard has the same envelope:
+
+```json
+{
+  "ts": 1781445433.337,
+  "run_id": "r-2a5c42e150",
+  "kind": "<event-kind>",
+  "agent_id": "<a-...>" ,
+  "payload": { /* kind-specific */ }
+}
+```
+
+`agent_id` is omitted for run-level events (`intent`, `triage_start`, `triage`, `plan`).
+
+## Event kinds
+
+### `intent`
+The Surface received a user intent.
+
+```json
+{"kind":"intent","payload":{"text":"find anything on agent memory in my Documents"}}
+```
+
+### `triage_start`
+Orchestration starts triaging the intent.
+
+```json
+{"kind":"triage_start"}
+```
+
+### `triage`
+Triage result.
+
+```json
+{"kind":"triage","payload":{"kind":"simple_task|swarm_mode|needs_clarification","reason":"...","estimated_agents":3,"missing_info":[]}}
+```
+
+### `plan`
+The planner emitted a sub-task DAG.
+
+```json
+{"kind":"plan","payload":{"agent_count":3,"agents":[{"id":"a-...","role":"literature-scout","depends_on":[]}]}}
+```
+
+### `spawn`
+The Control plane spawned a micro-agent.
+
+```json
+{"kind":"spawn","agent_id":"a-6e038660","payload":{"role":"general-helper","parent_id":null,"depth":0,"isolation":"process","tools":["search","execute"],"model_hint":"small","workdir":"/Users/.../runs/r-.../work/a-...","workdir_persistent":true}}
+```
+
+### `started`
+The agent process has started executing.
+
+```json
+{"kind":"started","agent_id":"a-6e038660","payload":{"role":"general-helper","depth":0}}
+```
+
+### `model_call`
+The Compute plane is about to call the LLM.
+
+```json
+{"kind":"model_call","agent_id":"a-6e038660","payload":{"step":1,"model_hint":"small"}}
+```
+
+### `model_result`
+The LLM responded.
+
+```json
+{"kind":"model_result","agent_id":"a-6e038660","payload":{"step":1,"decision_kind":"tool_call","tokens":127,"latency_ms":420}}
+```
+
+### `tool_call`
+The agent invoked `search` or `execute`.
+
+```json
+{"kind":"tool_call","agent_id":"a-6e038660","payload":{"step":1,"tool":"search","args":{"pattern":"agent memory","root":"/Users/dev16/Documents"}}}
+```
+
+### `tool_result`
+The tool returned.
+
+```json
+{"kind":"tool_result","agent_id":"a-6e038660","payload":{"step":1,"tool":"search","ok":true,"hits":4}}
+```
+
+### `fs_change`
+A tool call created or modified files in the agent's workdir.
+
+```json
+{"kind":"fs_change","agent_id":"a-6e038660","payload":{"step":2,"paths":["/.../work/a-.../out.md"]}}
+```
+
+### `log`
+Free-form log line from the framework or an agent.
+
+```json
+{"kind":"log","payload":{"level":"info","msg":"docker rung available"}}
+```
+
+### `budget_tick`
+The budget governor sampled current spend.
+
+```json
+{"kind":"budget_tick","agent_id":"a-6e038660","payload":{"tokens":3422,"wall_seconds":12,"cap_tokens":8000,"cap_wall":120}}
+```
+
+### `result`
+The agent returned its final structured output.
+
+```json
+{"kind":"result","agent_id":"a-6e038660","payload":{"text":"...","files_touched":["..."]}}
+```
+
+### `error`
+Framework or agent error.
+
+```json
+{"kind":"error","agent_id":"a-6e038660","payload":{"code":"OUTPUT_SCHEMA_INVALID","message":"missing required key 'candidates'"}}
+```
+
+### `killed`
+ACC or budget governor killed the agent.
+
+```json
+{"kind":"killed","agent_id":"a-6e038660","payload":{"reason":"wall_seconds exceeded","cap":120}}
+```
+
+### `finished`
+Agent finished — success or otherwise.
+
+```json
+{"kind":"finished","agent_id":"a-6e038660","payload":{"exit":"ok|error|killed","wall_seconds":12.3,"tokens_used":3422}}
+```
+
+## Queries
+
+See [Blackboard](/docs/concepts/blackboard/) for `jq`/`grep` audit query examples.

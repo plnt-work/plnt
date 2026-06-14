@@ -1,0 +1,12 @@
+---
+export interface Props {
+  choice: string;
+  why: string;
+}
+const { choice, why } = Astro.props;
+---
+
+<div class="row">
+  <div class="choice"><Fragment set:html={choice} /></div>
+  <div class="why"><Fragment set:html={why} /></div>
+</div>

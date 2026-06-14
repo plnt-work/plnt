@@ -1,0 +1,79 @@
+---
+title: Quickstart
+description: Submit → tail → result. The end-to-end flow in five minutes.
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+This walks the full lifecycle with the **offline echo backend**, so no LLM is required.
+Switch to Ollama or a cloud endpoint once you've seen the pipeline run.
+
+## Five-minute tour
+
+<Steps>
+
+1. **Submit an intent inline (no server)**
+
+   ```bash
+   plnt submit "find anything on agent memory in my Documents"
+   ```
+
+   You will see triage, plan, spawn, model_call, tool_call, result, finished events
+   stream to your terminal. The final markdown lands at `~/Desktop/plnt-r-XXXXXXXX.md`.
+
+2. **Or run the surface server**
+
+   ```bash
+   plnt up &        # starts FastAPI on 127.0.0.1:7777
+   plnt status      # confirm
+   ```
+
+3. **Submit via HTTP and tail the SSE stream**
+
+   ```bash
+   plnt submit --remote "catch me up on the latest in agent memory"
+   plnt runs                              # list recent runs
+   plnt tail r-XXXXXXXX --follow          # stream events live
+   ```
+
+4. **List the installed skills**
+
+   ```bash
+   plnt skills list
+   plnt skills show literature-scout
+   ```
+
+5. **Drive the Bubble Tea TUI**
+
+   ```bash
+   ./plnt-tui-bin
+   ```
+
+   The TUI holds an SSE connection to the surface and routes events by `run_id`,
+   so multiple concurrent runs stay clean.
+
+</Steps>
+
+## What just happened
+
+Every step you ran wrote one or more JSONL lines to `$PLNT_HOME/runs/<run_id>/events.jsonl`.
+That file is the source of truth — every UI, every dashboard, every replay walks it.
+
+```bash
+jq -r 'select(.kind == "tool_call") | .payload.tool' \
+  ~/.plnt/runs/r-XXXXXXXX/events.jsonl | sort | uniq -c
+```
+
+That one-liner tells you which tools the agents actually called. No database needed.
+
+<Aside type="note">
+If you set <code>PLNT_LOCAL_URL</code> and a real model, the planner will write a richer
+plan; without it the offline echo planner emits a deterministic single-agent plan and
+finishes in milliseconds.
+</Aside>
+
+## Next
+
+- [The four planes](/docs/concepts/four-planes/) — what every module does
+- [Blackboard](/docs/concepts/blackboard/) — the JSONL audit log in detail
+- [CLI reference](/docs/reference/cli/) — every subcommand

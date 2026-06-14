@@ -1,0 +1,74 @@
+---
+title: HTTP API
+description: Every /v1/... route the surface server exposes. JSON in, JSON or SSE out.
+---
+
+The Surface plane exposes a small FastAPI app at `127.0.0.1:7777` by default. mTLS
+is a stub today (loopback only). Bind to a non-loopback interface at your own risk
+until `plnt enroll` ships.
+
+## Routes
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/v1/health` | `{ok, version, home}`. Liveness. |
+| `GET` | `/v1/system` | Host snapshot: sandbox rungs, docker stats, recent runs. |
+| `GET` | `/v1/skills` | List installed roles. |
+| `GET` | `/v1/runs` | List recent runs with `run_id`, mtime, event_bytes. |
+| `GET` | `/v1/runs/{run_id}` | Snapshot for one run: event count, last `result` event, last 100 events. |
+| `POST` | `/v1/intents` | Submit intent; returns `run_id`; spawns the swarm in a background thread. |
+| `GET` | `/v1/runs/{run_id}/stream` | Server-Sent Events tail of the run's event stream. Auto-closes on the run-level `finished` event. |
+
+## Submit an intent
+
+```http
+POST /v1/intents
+Content-Type: application/json
+
+{ "text": "summarize ~/Downloads/paper.pdf" }
+```
+
+```json
+{ "run_id": "r-9c4f218e0a" }
+```
+
+The swarm runs in a background thread. Watch progress via the SSE stream.
+
+## Tail a run
+
+```bash
+curl -N http://127.0.0.1:7777/v1/runs/r-9c4f218e0a/stream
+```
+
+Each SSE event is one line of the blackboard's JSONL:
+
+```
+data: {"ts":1781445433.337,"run_id":"r-9c4f218e0a","kind":"intent","payload":{"text":"summarize ~/Downloads/paper.pdf"}}
+
+data: {"ts":1781445433.353,"run_id":"r-9c4f218e0a","kind":"spawn","agent_id":"a-6e038660","payload":{"role":"paper-reader",...}}
+```
+
+The stream closes when a run-level `finished` event lands.
+
+## Snapshot the host
+
+```bash
+curl -s http://127.0.0.1:7777/v1/system | jq
+```
+
+Returns:
+
+```json
+{
+  "rungs": ["process", "docker"],
+  "docker": { "available": true, "running_containers": 2 },
+  "recent_runs": [
+    { "run_id": "r-9c4f218e0a", "mtime": 1781445500, "event_bytes": 14233 }
+  ]
+}
+```
+
+## CORS
+
+CORS is disabled by default — the surface is intended for local clients and the TUI.
+The CLI and TUI both use the same loopback connection.

@@ -1,0 +1,141 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SectionRule from '../components/SectionRule.astro';
+
+const title = 'Roadmap — plnt';
+const description = 'What ships in v0, the 12-week plan, the v0 → v0.1 punch list, and the architectural choices being held.';
+
+const v0Ships = [
+  { name: 'Surface', detail: 'REST + SSE, mTLS stub (loopback only).' },
+  { name: 'Control', detail: 'Keyword-routed planner with LLM plug-in shape.' },
+  { name: 'Execution', detail: 'Process + docker sandbox rungs, full event stream.' },
+  { name: 'Compute', detail: 'OpenAI-compatible router with offline-echo fallback.' },
+  { name: 'Memory', detail: 'Per-run JSONL + artifacts; episodic dir scaffolded.' },
+  { name: 'Skills', detail: '8 seed bundles, hot-reload, skill installer for anthropic/skills + 4 others.' },
+  { name: 'TUI', detail: 'Go / Bubble Tea client with chat history, agent panels, SSE routing.' },
+  { name: 'Tests', detail: '31/31 green at last snapshot. Offline echo means no LLM required.' },
+];
+
+const weeks12 = [
+  'Surface + mTLS',
+  'Control plane + rung-0 sandbox',
+  'ACC + budget governance',
+  'Five seed skills',
+  'exo router',
+  'iOS client',
+  'Dashboard',
+  'Private beta',
+];
+
+const punchList = [
+  { title: 'Resident planner service', detail: 'Today the orchestrator materialises a fresh planner per intent. The target is a long-lived process holding identity + warm state across days.' },
+  { title: 'Streaming ACC + budget tail', detail: 'Today the ACC runs post-hoc; runaway kills don\'t fire in real time.' },
+  { title: 'Resident specialist runtime', detail: 'Pool of pre-warmed processes per named role (vs ephemeral spawns).' },
+  { title: 'Episodic memory append', detail: 'One JSONL line per completed run to $PLNT_HOME/episodic/YYYY/MM/DD.jsonl.' },
+  { title: 'mTLS + plnt enroll', detail: 'Make "your phone reaches the server" real. Today loopback only.' },
+  { title: 'De-duplicate finished events', detail: 'Three finished events fire at end of run today. Consolidate to one.' },
+];
+
+const heldNonChanges = [
+  'No database. Filesystem memory is the architecture.',
+  'No HTTP bus between planner and specialists. Function calls + in-process queues.',
+  'No MCP. The framework owns memory, skills, and the sandbox.',
+];
+---
+
+<Layout title={title} description={description} path="/roadmap">
+
+  <section class="section" style="padding-top: clamp(3rem, 6vw, 5rem);">
+    <div class="container">
+      <span class="eyebrow">§ 00 — roadmap</span>
+      <h1 style="margin-top: 1.25rem;">v0 ships today.<br/>v0.1 is the next 12 weeks.</h1>
+      <p class="dim lead" style="margin-top: 1.5rem; max-width: 60ch;">
+        Plnt is pre-alpha and the four planes work end-to-end. The pieces that
+        are explicitly stubs, and the architectural choices being held, are
+        documented below.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="01" title="Shipping today (v0)" />
+      <div class="row-table">
+        {v0Ships.map((s) => (
+          <div class="row">
+            <div class="choice">{s.name}</div>
+            <div class="why">{s.detail}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="02" title="v0 in 12 weeks" />
+      <p class="dim" style="margin-bottom: 1.5rem;">
+        From the design doc. Eight pieces, in priority order.
+      </p>
+      <div class="numbered-list">
+        {weeks12.map((label, i) => (
+          <div class="item">
+            <div class="n">{String(i + 1).padStart(2, '0')}</div>
+            <div class="body"><strong>{label}</strong></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="03" title="v0 → v0.1 punch list" />
+      <p class="dim" style="margin-bottom: 1.5rem;">
+        Tracked in <code>IMPROVEMENTS.md</code>. Each item is a concrete
+        scoped change against the working v0.
+      </p>
+      <div class="numbered-list">
+        {punchList.map((item, i) => (
+          <div class="item">
+            <div class="n">{String(i + 1).padStart(2, '0')}</div>
+            <div class="body">
+              <strong>{item.title}</strong>
+              <p class="dim">{item.detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="04" title="Explicit non-changes" />
+      <p class="dim" style="margin-bottom: 1.5rem;">
+        Architectural choices being held. Adding any of these would invert the project.
+      </p>
+      <div class="row-table">
+        {heldNonChanges.map((line) => (
+          <div class="row">
+            <div class="choice">No.</div>
+            <div class="why">{line}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionRule num="05" title="Influences" />
+      <p class="dim" style="max-width: 64ch;">
+        Beyond Scaling (arXiv:<a href="https://arxiv.org/abs/2605.18535" target="_blank" rel="noopener">2605.18535</a>) ·
+        HearthNet (arXiv:<a href="https://arxiv.org/abs/2604.09618" target="_blank" rel="noopener">2604.09618</a>) ·
+        <a href="https://github.com/exo-explore/exo" target="_blank" rel="noopener">exo</a> distributed inference ·
+        Agentnetes · Firecracker / gVisor sandbox consensus 2026.
+      </p>
+    </div>
+  </section>
+
+</Layout>

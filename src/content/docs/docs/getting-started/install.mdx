@@ -1,0 +1,77 @@
+---
+title: Install
+description: Clone plnt, install in editable mode, submit your first intent.
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+Plnt runs on **macOS and Linux**. The runtime is pure Python; the TUI client is Go.
+A local model (Ollama / MLX) is recommended but optional — the offline echo backend
+runs the full pipeline with no LLM at all.
+
+## Requirements
+
+- **Python 3.11+**
+- **Git** (skills are versioned by git, and the installer pulls upstream skill catalogs)
+- **Ollama** *(optional)* — the default local backend
+- **Docker** *(optional)* — needed only for the rung-1 sandbox
+
+## Install
+
+<Steps>
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/devdattatalele/plnt
+   cd plnt
+   ```
+
+2. **Install in editable mode**
+
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+   This pulls FastAPI, pydantic, pytest, and the optional `semantic` extras.
+
+3. **(Optional) point at a local Ollama**
+
+   ```bash
+   export PLNT_LOCAL_URL=http://127.0.0.1:11434
+   export PLNT_PLANNER_MODEL=llama3.2:3b
+   export PLNT_DEEP_MODEL=llama3.1:8b
+   ```
+
+   Skip this and Plnt will fall back to the offline echo backend, which is enough
+   to exercise the full control loop.
+
+4. **Submit your first intent**
+
+   ```bash
+   plnt submit "list five interesting things in $PWD"
+   ```
+
+   The result is written to `~/Desktop/plnt-r-XXXXXXXX.md` and the audit log
+   to `$PLNT_HOME/runs/r-XXXXXXXX/events.jsonl`.
+
+</Steps>
+
+<Aside type="tip" title="No internet required">
+The offline echo backend means you can install, run, and audit the whole system
+without any LLM credentials, any cloud account, or any network at all.
+</Aside>
+
+## What gets installed
+
+| Component | Where | Purpose |
+|---|---|---|
+| `plnt` CLI | your `$PATH` | submit, tail, runs, skills |
+| `$PLNT_HOME` | `~/.plnt` by default | runs, skills, episodic memory |
+| Seed skills | `$PLNT_HOME/skills/` | 8 markdown bundles |
+| Editable Python | `plnt/` in clone | runtime source |
+
+## Next
+
+- Walk the end-to-end flow → [Quickstart](/docs/getting-started/quickstart/)
+- Understand the architecture → [The four planes](/docs/concepts/four-planes/)

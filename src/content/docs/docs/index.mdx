@@ -1,0 +1,59 @@
+---
+title: plnt docs
+description: Personal Local Native Twin — a local-first agent runtime. Documentation, install guide, architecture, and reference.
+template: doc
+hero:
+  tagline: A local-first agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your own hardware.
+  actions:
+    - text: Install
+      link: /docs/getting-started/install/
+      icon: right-arrow
+      variant: primary
+    - text: Architecture
+      link: /architecture
+      icon: external
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/devdattatalele/plnt
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What plnt is
+
+Plnt is a server you run on your own hardware. It hosts **one long-lived planner LLM** that owns
+your identity and memory, plus a few **named resident specialists** (research-librarian, code-shepherd,
+inbox-triage). When work arrives, the planner spawns **ephemeral micro-agents** in sandboxed compute
+units, each with just two tools — `search()` and `execute()` — over your filesystem.
+
+Memory is plain files: JSONL + markdown + a derived FAISS sidecar. No SQL, ever.
+
+## Where to start
+
+<CardGrid>
+  <Card title="Install" icon="rocket">
+    Clone, `pip install -e .`, submit your first intent in two minutes.
+    [Start here →](/docs/getting-started/install/)
+  </Card>
+  <Card title="Quickstart" icon="open-book">
+    Submit → tail → result. Run the end-to-end flow with the offline echo backend.
+    [Walk it →](/docs/getting-started/quickstart/)
+  </Card>
+  <Card title="The four planes" icon="puzzle">
+    Surface · Control · Execution · Compute. The architectural backbone.
+    [Read →](/docs/concepts/four-planes/)
+  </Card>
+  <Card title="AgentSpec" icon="setting">
+    The only object that crosses Control → Execution. The hard contract.
+    [Inspect →](/docs/concepts/agentspec/)
+  </Card>
+</CardGrid>
+
+## Reference
+
+- [CLI](/docs/reference/cli/) — every `plnt` subcommand.
+- [HTTP API](/docs/reference/http-api/) — every `/v1/...` route.
+- [Environment variables](/docs/reference/env-vars/) — `PLNT_HOME`, backend picker vars, model defaults.
+- [Events schema](/docs/reference/events-schema/) — every `EventKind` literal with payload shape.

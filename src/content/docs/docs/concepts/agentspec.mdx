@@ -1,0 +1,118 @@
+---
+title: AgentSpec
+description: The only object that crosses Control → Execution. The hard contract for every spawn.
+---
+
+import { Code } from 'astro:components';
+
+The `AgentSpec` is the **single object that crosses the Control → Execution boundary**.
+Anything the control plane wants to enforce on a spawn — depth, budget, isolation, tools —
+lives on the spec. Nothing else.
+
+## The model
+
+From `plnt/execution/spec.py`. Pydantic `BaseModel`.
+
+<Code code={`class AgentSpec(BaseModel):
+    # Identity
+    id: str = Field(default_factory=lambda: f"a-{uuid.uuid4().hex[:10]}")
+    role: str                                       # → skills/<role>.md
+    run_id: str
+    parent_id: str | None = None
+    depth: int = Field(default=0, ge=0, le=HARD_MAX_DEPTH)
+
+    # Capability
+    lifetime: Literal["ephemeral", "resident"] = "ephemeral"
+    isolation: Literal["process", "docker", "gvisor", "microvm", "wasm"] = "process"
+    tools: list[str] = Field(default_factory=lambda: ["search", "execute"])
+
+    # Inputs / outputs
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    output_schema: dict[str, Any] | None = None
+    blackboard_scope: str | None = None             # glob over run_ids the agent may read
+
+    # Compute hints — the router decides; the planner only hints.
+    model_hint: Literal["small", "deep", "auto"] = "auto"
+
+    # Budget
+    budget: Budget = Field(default_factory=Budget)
+
+
+class Budget(BaseModel):
+    tokens: int = 20_000
+    wall_seconds: int = 300
+    joules: int = 0`} lang="python" theme="vesper" />
+
+## Field-by-field
+
+### Identity
+
+- **`id`** — `a-<10 hex chars>`. Auto-generated. Used as the agent_id in every event on the blackboard.
+- **`role`** — maps to a skill bundle under `skills/<role>/`. The skill's `prompt.md` is the agent's system prompt.
+- **`run_id`** — which run does this spawn belong to. Every event the agent emits is scoped to this run.
+- **`parent_id`** — the spawn-tree edge. Null for the root agent of a run.
+- **`depth`** — how deep in the spawn tree. Hard-capped by `HARD_MAX_DEPTH` to prevent runaway recursion.
+
+### Capability
+
+- **`lifetime`** — `ephemeral` (the default) or `resident` (long-lived, planned for v0.1).
+- **`isolation`** — which sandbox rung. `process` ships today; `docker` ships today; `gvisor`, `microvm`, `wasm` are registered stubs. See [Sandbox ladder](/docs/concepts/sandbox-ladder/).
+- **`tools`** — defaults to `["search", "execute"]`. Adding a third tool requires deliberate framework changes; nothing in the planner can grow this list at runtime.
+
+### I/O
+
+- **`inputs`** — arbitrary dict the planner fills in. Validated against the skill's manifest.
+- **`output_schema`** — JSON schema the agent's `result` event must conform to.
+- **`blackboard_scope`** — glob over run_ids the agent is allowed to read. The framework enforces this.
+
+### Compute hints
+
+- **`model_hint`** — `small` / `deep` / `auto`. The planner hints; the router decides which backend serves it.
+
+### Budget
+
+Hard caps. The budget governor checks against these every tool call. When a cap is breached, the runner gets a `killed` event and stops.
+
+- **`tokens`** — default 20,000 tokens per spawn.
+- **`wall_seconds`** — default 5 minutes per spawn.
+- **`joules`** — energy budget (today informational; future power-aware scheduling).
+
+## Two tools — what the runner exposes
+
+The runner gives every agent exactly these two tools. Both enforce `allowed_roots`
+as a hard security boundary.
+
+<Code code={`def search(pattern, root, *, allowed_roots, max_hits=200,
+           case_sensitive=False, file_glob=None) -> list[SearchHit]: ...
+
+def execute(argv, *, workdir, allowed_roots, timeout_seconds=30,
+            max_output_bytes=256*1024, env=None) -> ExecuteResult: ...`} lang="python" theme="vesper" />
+
+- **`search`** — regex match under `root`. Rejects any path outside `allowed_roots`. Ripgrep when available; pure-Python fallback otherwise.
+- **`execute`** — bounded child process. `argv` list — no shell interpolation. Blocks `sudo`, `su`, `doas`. `workdir ⊆ allowed_roots`. Stdout capped at 256 KB; overflow sets `truncated=True`.
+
+## How the planner builds one
+
+```python
+spec = AgentSpec(
+    role="literature-scout",
+    run_id=run_id,
+    parent_id=librarian_id,
+    depth=2,
+    inputs={"library_root": "~/Documents/research", "query": "agent memory"},
+    output_schema=load_skill("literature-scout").output_schema,
+    blackboard_scope=f"r-{run_id}/*",
+    model_hint="small",
+    budget=Budget(tokens=8_000, wall_seconds=120),
+)
+```
+
+The orchestrator's `_harvest_paths` and `_inject_paths` helpers reach into the
+intent text and the skill metadata to fill in absolute paths *before* handing
+the spec to the runner — so the model cannot hallucinate filesystem paths.
+
+## Next
+
+- [Blackboard](/docs/concepts/blackboard/) — every event an agent emits
+- [Skills](/docs/concepts/skills/) — the `role` side of the contract
+- [Sandbox ladder](/docs/concepts/sandbox-ladder/) — the `isolation` rungs

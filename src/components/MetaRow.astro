@@ -1,0 +1,12 @@
+---
+export interface Props {
+  label: string;
+  items: string[];
+}
+const { label, items } = Astro.props;
+---
+
+<div class="meta-row">
+  <span class="label">{label}</span>
+  {items.map((i) => <span>· {i}</span>)}
+</div>

@@ -1,0 +1,78 @@
+---
+title: Sandbox ladder
+description: process → docker → gVisor → Firecracker µVM → wasm. Climb only when the threat model demands it.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The sandbox is a **ladder**, not a single boundary. Don't pay microVM cost until
+the threat model demands it. Two rungs ship today; two are registered as stubs
+ready to be wired in.
+
+## The four rungs
+
+| Rung | Module | Status | Use case |
+|---|---|---|---|
+| 0 — process | `execution/sandbox/process.py` | shipping (273 LOC) | default; subprocess + rlimits + watchdog |
+| 1 — docker | `execution/sandbox/docker.py` | shipping (290 LOC) | CPU/memory caps; parallel-safe via labelled containers |
+| 2 — gVisor | stub | future | stronger isolation without the VM cost |
+| 3 — Firecracker µVM | stub | future | hard tenancy; reserved for LLM-emitted code that touches the network |
+
+`execution/sandbox/__init__.py` is a registry. Each rung is a class implementing the
+base interface, and the orchestrator picks one based on `AgentSpec.isolation`.
+
+## Rung 0 — process
+
+The default. Subprocess + rlimits + watchdog. Enforces:
+
+- `workdir` is created under `$PLNT_HOME/runs/<run_id>/work/<agent_id>/` (or persistent under `~/.plnt/work/<role>/` if the skill opts in).
+- Walltime budget from the spec — SIGTERM if exceeded; SIGKILL after a grace window.
+- Token budget tracked via a model-call counter; ACC can issue an out-of-band kill.
+- `argv`-only execute (no shell interpolation), `sudo`/`su`/`doas` blocked, stdout capped at 256 KB.
+
+A SIGTERM handler ensures a `transcript-summary` event always lands on the blackboard
+even on a watchdog kill — so the run is never silently lost.
+
+<Aside type="caution" title="What rung 0 is not">
+Rung 0 is not a security boundary against malicious code you choose to execute.
+It's there to keep accidental loops, runaway commands, and badly-prompted agents
+from eating your machine. Real isolation lives at rung 2 and above.
+</Aside>
+
+## Rung 1 — docker
+
+Same contract as rung 0, but each agent runs inside its own container. Used when:
+
+- You need parallel runs with disjoint mounts.
+- You want CPU/memory caps enforced by the kernel, not the runtime.
+- You're running plnt on a shared box and want a kernel-level cleanup story.
+
+Containers are labelled `dev.plnt.agent=true` so cleanup is unambiguous —
+`docker container prune -f --filter label=dev.plnt.agent=true` is the kill switch.
+
+## Rung 2 — gVisor (future)
+
+Registered as a stub. The plan: gVisor's user-space kernel gives you syscall-level
+isolation without the cost of a microVM. The right rung for "I want to be sure
+this agent cannot escape, but I don't need full multi-tenant guarantees."
+
+## Rung 3 — Firecracker µVM (future)
+
+Registered as a stub. The plan: hard tenancy. Reserved for when plnt grows multi-user
+or starts running LLM-emitted code that talks to the network.
+
+<Aside type="note">
+Docker alone is not enough for LLM-emitted code. The container/host kernel surface
+is wide; container escapes are routine in CTFs. That's why rung 2 and 3 exist as
+the ladder's real isolation tiers.
+</Aside>
+
+## What stays the same across rungs
+
+- The two-tool surface (`search`, `execute`).
+- The blackboard event stream.
+- The budget governor.
+- The `AgentSpec` contract.
+
+A skill that runs on rung 0 runs on rung 3 unchanged. The rung is a deployment knob,
+not an API.

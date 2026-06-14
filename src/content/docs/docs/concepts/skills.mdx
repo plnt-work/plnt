@@ -1,0 +1,121 @@
+---
+title: Skills
+description: A skill is one markdown file plus a TOML manifest. The framework hot-reloads on file change. No SDK, no MCP, no vendor.
+---
+
+import { Code } from 'astro:components';
+
+A **skill** is the smallest reusable unit in plnt. It is two files under
+`$PLNT_HOME/skills/<role>/`:
+
+- **`prompt.md`** — the system prompt the agent runs with.
+- **`skill.toml`** — manifest: tools allowed, model hint, budgets, input/output schema.
+
+Skills are hot-reloaded on file change. No server restart. No `plnt skills reload`.
+
+## A real skill
+
+This is `literature-scout`, a small ephemeral skill the research-librarian spawns
+to surface candidate sources.
+
+### `prompt.md`
+
+<Code code={`You are literature-scout — an ephemeral micro-agent the
+research-librarian spawns to locate candidate sources.
+
+Given inputs.library_root and inputs.query, return a JSON
+array of {path, why} entries — the paths that look relevant
+and a one-line reason for each. Use search() first; only
+execute() for listings (e.g. arXiv lookups via the user's
+bibliography scripts).
+
+Do not summarise the papers — that is paper-reader's job.
+Stop as soon as you have a candidate list.`} lang="markdown" theme="vesper" />
+
+### `skill.toml`
+
+<Code code={`[meta]
+name = "literature-scout"
+version = "0.2"
+description = "Ephemeral micro-agent: surface candidate papers for the librarian"
+tags = ["research", "scout", "ephemeral"]
+
+[runtime]
+model_hint = "small"
+tools = ["search", "execute"]
+default_isolation = "process"
+
+[budget]
+tokens = 8_000
+wall_seconds = 120
+joules = 0
+
+[[requires.inputs]]
+name = "library_root"
+type = "directory"
+description = "Where the user's papers live"
+example = "~/Documents/research"
+
+[[requires.inputs]]
+name = "query"
+type = "string"
+description = "What to look for"
+example = "agent memory"
+
+[output]
+schema = "object"
+required = ["candidates"]
+
+[graph]
+can_spawn = []`} lang="toml" theme="vesper" />
+
+## Manifest fields
+
+| Section | Field | Purpose |
+|---|---|---|
+| `[meta]` | `name`, `version`, `description`, `tags` | Identification + searchability. |
+| `[runtime]` | `model_hint` | `small` / `deep` / `auto` — passed to the router. |
+| | `tools` | Subset of `["search", "execute"]`. You cannot add a third tool. |
+| | `default_isolation` | Sandbox rung. Overridable per spawn. |
+| `[budget]` | `tokens`, `wall_seconds`, `joules` | Hard caps for every spawn of this role. |
+| `[[requires.inputs]]` | repeated | Required input field validation. |
+| `[[requires.optional]]` | repeated | Optional input field. |
+| `[output]` | `schema`, `required`, `properties.*` | Output schema the `result` event must match. |
+| `[graph]` | `can_spawn` | Names of skills *this* skill may spawn. Empty = leaf. |
+
+## Seeds shipped today
+
+| Role | Purpose |
+|---|---|
+| `code-shepherd` | Repo exploration and review. Resident specialist for code repos. |
+| `general-helper` | Fallback for any intent the triage can't classify. |
+| `git-bootstrapper` | Turn a directory into a git repo with sensible structure. |
+| `inbox-triage` | Scan `~/Downloads`, mail, similar. |
+| `literature-scout` | Surface candidate papers for the research workflow. |
+| `paper-reader` | Summarise PDFs. |
+| `research-librarian` | Resident specialist for research workflows. |
+| `vite-scaffolder` | Bootstrap a Vite project from a brief. |
+
+## Installing more
+
+`plnt skills install` pulls from public skill catalogs. Shorthands are recognised:
+
+```bash
+plnt skills install anthropic           # anthropic/skills
+plnt skills install addyosmani          # addyosmani/skills
+plnt skills install scientific          # scientific-skills/catalog
+plnt skills install antigravity         # antigravity/skills
+plnt skills install claude-skills-collection
+plnt skills install the-library         # the-library/skills
+plnt skills install https://github.com/<org>/<repo>   # any GitHub URL
+```
+
+Skills land in `$PLNT_HOME/skills/<role>/` and are versioned by git automatically.
+
+## Writing your own
+
+The minimum viable skill is **one prompt and one TOML file**. The framework will accept
+it as soon as the file appears on disk. There is no plugin API. There is no compilation step.
+There is no upload.
+
+If you ship it as a folder under `git`, you can install it with `plnt skills install <git-url>`.

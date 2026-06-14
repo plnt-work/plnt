@@ -1,0 +1,142 @@
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/700.css';
+
+:root,
+[data-theme='dark'] {
+  --sl-color-bg: #0a0a0a;
+  --sl-color-bg-nav: #0a0a0a;
+  --sl-color-bg-sidebar: #0a0a0a;
+  --sl-color-bg-inline-code: rgba(125, 211, 160, 0.08);
+  --sl-color-text: #ededea;
+  --sl-color-text-accent: #7dd3a0;
+  --sl-color-accent: #7dd3a0;
+  --sl-color-accent-low: rgba(125, 211, 160, 0.12);
+  --sl-color-accent-high: #95e1b3;
+  --sl-color-hairline: #1c1c1a;
+  --sl-color-hairline-light: #1c1c1a;
+  --sl-color-hairline-shade: #1c1c1a;
+  --sl-color-white: #ededea;
+  --sl-color-gray-1: #ededea;
+  --sl-color-gray-2: #cfcfca;
+  --sl-color-gray-3: #8a8a85;
+  --sl-color-gray-4: #6a6a65;
+  --sl-color-gray-5: #4d4d49;
+  --sl-color-gray-6: #2a2a27;
+  --sl-color-black: #0a0a0a;
+
+  --sl-font: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
+  --sl-font-system: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
+}
+
+/* Sharp corners everywhere */
+* {
+  border-radius: 0 !important;
+}
+
+/* Site header — match the rest of the site's flush mono look */
+.site-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+header.header {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Mono small caps for sidebar group labels */
+.sidebar-content details > summary,
+.sidebar-content ul li > a span {
+  font-family: var(--sl-font-mono);
+}
+.sidebar-content details > summary {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--sl-color-gray-3);
+}
+.sidebar-content a {
+  font-size: 0.875rem;
+}
+.sidebar-content a[aria-current='page'] {
+  color: var(--sl-color-accent);
+  background: var(--sl-color-accent-low);
+  border-left: 2px solid var(--sl-color-accent);
+}
+
+/* Right-side TOC */
+starlight-toc nav > h2 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--sl-color-gray-3);
+  font-weight: 500;
+}
+
+/* Page headings — heavy mono to match landing */
+.sl-markdown-content h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sl-markdown-content h2 {
+  font-weight: 700;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content h2:first-child { border-top: 0; padding-top: 0; }
+.sl-markdown-content h3 {
+  font-weight: 500;
+  color: var(--sl-color-text-accent);
+  margin-top: 2rem;
+}
+
+.sl-markdown-content code {
+  font-family: var(--sl-font-mono);
+  color: var(--sl-color-accent);
+  border-bottom: 1px dotted rgba(125, 211, 160, 0.4);
+  background: transparent !important;
+  padding: 0 0.15rem;
+}
+.sl-markdown-content pre {
+  border: 1px solid var(--sl-color-hairline);
+  background: #060606 !important;
+}
+
+.sl-markdown-content a {
+  color: var(--sl-color-text);
+  text-decoration-color: var(--sl-color-accent);
+  text-underline-offset: 3px;
+}
+.sl-markdown-content a:hover { color: var(--sl-color-accent); }
+
+/* Pagination footer */
+.pagination-links a {
+  border: 1px solid var(--sl-color-hairline);
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+}
+.pagination-links a:hover {
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-accent);
+}
+
+/* Search box */
+site-search button {
+  border: 1px solid var(--sl-color-hairline);
+  background: transparent;
+  font-family: var(--sl-font-mono);
+  color: var(--sl-color-gray-3);
+}
+site-search button:hover {
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-text);
+}
+
+/* Cards/asides */
+.starlight-aside {
+  border-left-width: 2px;
+}
