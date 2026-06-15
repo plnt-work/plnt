@@ -1,38 +1,37 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import TerminalWindow from '../components/TerminalWindow.astro';
 
 const title = 'Resources — plnt';
 const description = 'Documentation, source code, reading list, and a quick CLI / HTTP reference.';
 
 const docs = [
-  { label: 'README', href: 'https://github.com/devdattatalele/plnt/blob/main/README.md', detail: 'What plnt is, why it exists, the one-paragraph pitch.' },
-  { label: 'ARCHITECTURE.md', href: 'https://github.com/devdattatalele/plnt/blob/main/ARCHITECTURE.md', detail: 'File-by-file mapping of the four planes.' },
-  { label: 'SETUP.md', href: 'https://github.com/devdattatalele/plnt/blob/main/SETUP.md', detail: 'Cross-platform install guide. macOS + Linux. Ollama + cloud backends.' },
-  { label: 'IMPROVEMENTS.md', href: 'https://github.com/devdattatalele/plnt/blob/main/IMPROVEMENTS.md', detail: 'v0 → v0.1 punch list. Resident planner, streaming ACC, episodic memory, mTLS.' },
+  { k: 'README', v: 'What plnt is and the one-paragraph pitch.', href: 'https://github.com/devdattatalele/plnt/blob/main/README.md' },
+  { k: 'ARCHITECTURE.md', v: 'File-by-file mapping of the four planes.', href: 'https://github.com/devdattatalele/plnt/blob/main/ARCHITECTURE.md' },
+  { k: 'SETUP.md', v: 'Cross-platform install guide. macOS + Linux. Ollama + cloud backends.', href: 'https://github.com/devdattatalele/plnt/blob/main/SETUP.md' },
+  { k: 'IMPROVEMENTS.md', v: 'v0 → v0.1 punch list. Resident planner, streaming ACC, episodic memory, mTLS.', href: 'https://github.com/devdattatalele/plnt/blob/main/IMPROVEMENTS.md' },
 ];
 
 const source = [
-  { label: 'GitHub repository', href: 'https://github.com/devdattatalele/plnt', detail: 'Full source. ~4,800 LOC Python runtime + Go Bubble Tea TUI.' },
-  { label: 'Apache 2.0 license', href: 'https://github.com/devdattatalele/plnt/blob/main/LICENSE', detail: 'Permissive. Use commercially, fork, modify. Keep the notice.' },
-  { label: 'Issue tracker', href: 'https://github.com/devdattatalele/plnt/issues', detail: 'Bugs, feature requests, design discussion. Pre-alpha, so everything is fair game.' },
+  { k: 'GitHub', v: '~4,800 LOC Python runtime + Go Bubble Tea TUI.', href: 'https://github.com/devdattatalele/plnt' },
+  { k: 'LICENSE', v: 'Apache 2.0. Permissive. Use commercially, fork, modify.', href: 'https://github.com/devdattatalele/plnt/blob/main/LICENSE' },
+  { k: 'Issues', v: 'Bugs, feature requests, design discussion. Pre-alpha — everything is fair game.', href: 'https://github.com/devdattatalele/plnt/issues' },
 ];
 
 const reading = [
-  { label: 'Beyond Scaling: Agents Are Heading to the Edge', href: 'https://arxiv.org/abs/2605.18535', detail: 'arXiv:2605.18535 — the thesis behind running agent runtimes on your own hardware.' },
-  { label: 'HearthNet', href: 'https://arxiv.org/abs/2604.09618', detail: 'arXiv:2604.09618 — inspiration for the file-backed, audit-first memory model.' },
-  { label: 'exo — distributed inference', href: 'https://github.com/exo-explore/exo', detail: 'Federated local inference. plnt routes to exo by pointing PLNT_DEEP_URL at a cluster.' },
-  { label: 'Firecracker / gVisor consensus', href: 'https://firecracker-microvm.github.io/', detail: 'The microVM and user-space-kernel sandboxes that future plnt rungs target.' },
+  { k: 'Beyond Scaling', v: 'arXiv:2605.18535 — the thesis behind running agent runtimes on your own hardware.', href: 'https://arxiv.org/abs/2605.18535' },
+  { k: 'HearthNet', v: 'arXiv:2604.09618 — inspiration for the file-backed, audit-first memory model.', href: 'https://arxiv.org/abs/2604.09618' },
+  { k: 'exo', v: 'Federated local inference. plnt routes to exo by pointing PLNT_DEEP_URL at a cluster.', href: 'https://github.com/exo-explore/exo' },
+  { k: 'Firecracker / gVisor', v: 'The microVM and user-space-kernel sandboxes that future plnt rungs target.', href: 'https://firecracker-microvm.github.io/' },
 ];
 ---
 
 <Layout title={title} description={description} path="/resources">
 
-  <section class="section" style="padding-top: clamp(3.5rem, 6vw, 5rem); padding-bottom: clamp(2rem, 4vw, 3rem);">
-    <div class="container narrow center">
-      <span class="eyebrow">resources</span>
-      <h1>Read, install, hack.</h1>
-      <p class="lead dim" style="margin: 1.25rem auto 0; max-width: 56ch;">
+  <section class="section" style="padding-top: clamp(5rem, 9vw, 7rem); padding-bottom: clamp(4rem, 6vw, 5rem);">
+    <div class="container">
+      <span class="eyebrow">00 / 04 — resources</span>
+      <h1 style="max-width: 22ch;">Read, install, hack.</h1>
+      <p class="lead mt-4" style="max-width: 56ch;">
         The repository is the source of truth. This page is a map of where to start
         and what to read.
       </p>
@@ -41,28 +40,15 @@ const reading = [
 
   <section class="section">
     <div class="container">
-      <span class="eyebrow">documentation</span>
-      <h2>Project docs.</h2>
-      <div class="grid-2 mt-4">
-        {docs.map((d) => (
-          <a class="card hover" href={d.href} target="_blank" rel="noopener" style="text-decoration: none; display: block;">
-            <h3 style="display: flex; align-items: center; gap: 0.5rem;">{d.label} <span class="arrow-ext">↗</span></h3>
-            <p style="margin: 0.3rem 0 0;">{d.detail}</p>
-          </a>
-        ))}
+      <div class="sechead">
+        <div class="count">01 <span class="of">/ 04</span> — DOCS</div>
+        <p class="lead-text">Project documentation lives in the repo.</p>
       </div>
-    </div>
-  </section>
-
-  <section class="section tinted">
-    <div class="container">
-      <span class="eyebrow">source · license</span>
-      <h2>Get the code.</h2>
-      <div class="grid-3 mt-4">
-        {source.map((d) => (
-          <a class="card hover" href={d.href} target="_blank" rel="noopener" style="text-decoration: none; display: block;">
-            <h3 style="display: flex; align-items: center; gap: 0.5rem;">{d.label} <span class="arrow-ext">↗</span></h3>
-            <p style="margin: 0.3rem 0 0;">{d.detail}</p>
+      <div class="rows">
+        {docs.map((d) => (
+          <a class="r r-link" href={d.href} target="_blank" rel="noopener">
+            <div class="k">{d.k} ↗</div>
+            <p class="v">{d.v}</p>
           </a>
         ))}
       </div>
@@ -71,47 +57,70 @@ const reading = [
 
   <section class="section">
     <div class="container">
-      <span class="eyebrow">reading list</span>
-      <h2>Papers and projects that shape plnt.</h2>
-      <div class="grid-2 mt-4">
-        {reading.map((d) => (
-          <a class="card hover" href={d.href} target="_blank" rel="noopener" style="text-decoration: none; display: block;">
-            <h3 style="display: flex; align-items: center; gap: 0.5rem;">{d.label} <span class="arrow-ext">↗</span></h3>
-            <p style="margin: 0.3rem 0 0;">{d.detail}</p>
+      <div class="sechead">
+        <div class="count">02 <span class="of">/ 04</span> — SOURCE</div>
+        <p class="lead-text">Code, license, issue tracker.</p>
+      </div>
+      <div class="rows">
+        {source.map((d) => (
+          <a class="r r-link" href={d.href} target="_blank" rel="noopener">
+            <div class="k">{d.k} ↗</div>
+            <p class="v">{d.v}</p>
           </a>
         ))}
       </div>
     </div>
   </section>
 
-  <section class="section tinted">
-    <div class="container narrow">
-      <span class="eyebrow">quick reference</span>
-      <h2>Two minutes, end to end.</h2>
-      <div class="mt-4">
-        <TerminalWindow title="plnt — bash">
-<div><span class="cmt"># install</span></div>
-<div><span class="prompt">$</span> git clone https://github.com/devdattatalele/plnt</div>
-<div><span class="prompt">$</span> cd plnt && pip install -e <span class="str">"."</span></div>
-<div style="margin-top: 0.65rem;"><span class="cmt"># CLI</span></div>
-<div><span class="prompt">$</span> plnt submit <span class="str">"find anything on agent memory in my Documents"</span></div>
-<div><span class="prompt">$</span> plnt up &                          <span class="cmt"># server on 127.0.0.1:7777</span></div>
-<div><span class="prompt">$</span> plnt submit --remote <span class="str">"..."</span>       <span class="cmt"># via HTTP</span></div>
-<div><span class="prompt">$</span> plnt runs                          <span class="cmt"># list recent runs</span></div>
-<div><span class="prompt">$</span> plnt tail r-XXXXXXXX --follow      <span class="cmt"># stream events live</span></div>
-<div><span class="prompt">$</span> plnt skills list                   <span class="cmt"># installed skill bundles</span></div>
-<div style="margin-top: 0.65rem;"><span class="cmt"># HTTP / SSE</span></div>
-<div><span class="kw">POST</span> /v1/intents                       <span class="cmt"># submit a new intent</span></div>
-<div><span class="kw">GET</span>  /v1/runs                          <span class="cmt"># list runs</span></div>
-<div><span class="kw">GET</span>  /v1/runs/&#123;id&#125;/stream             <span class="cmt"># SSE stream of the blackboard</span></div>
-<div><span class="kw">GET</span>  /v1/skills                        <span class="cmt"># installed skills</span></div>
-<div><span class="kw">GET</span>  /v1/health</div>
-        </TerminalWindow>
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">03 <span class="of">/ 04</span> — READING</div>
+        <p class="lead-text">Papers and projects that shape plnt.</p>
       </div>
+      <div class="rows">
+        {reading.map((d) => (
+          <a class="r r-link" href={d.href} target="_blank" rel="noopener">
+            <div class="k">{d.k} ↗</div>
+            <p class="v">{d.v}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
 
-      <div class="flex gap wrap mt-4" style="justify-content: center;">
-        <a class="btn brand" href="/docs/">Open the docs portal <span class="arrow">→</span></a>
-        <a class="btn" href="/architecture">Read the architecture</a>
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">04 <span class="of">/ 04</span> — QUICK REF</div>
+        <p class="lead-text">Two minutes, end to end.</p>
+      </div>
+      <div class="term" style="max-width: 760px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>plnt — bash</span>
+        </div>
+        <div class="body">
+          <div><span class="cmt"># install</span></div>
+          <div><span class="prompt">$</span> git clone https://github.com/devdattatalele/plnt</div>
+          <div><span class="prompt">$</span> cd plnt && pip install -e <span class="str">"."</span></div>
+          <div style="margin-top: 0.85rem;"><span class="cmt"># CLI</span></div>
+          <div><span class="prompt">$</span> plnt submit <span class="str">"find anything on agent memory in my Documents"</span></div>
+          <div><span class="prompt">$</span> plnt up &</div>
+          <div><span class="prompt">$</span> plnt runs</div>
+          <div><span class="prompt">$</span> plnt tail r-XXXXXXXX --follow</div>
+          <div><span class="prompt">$</span> plnt skills list</div>
+          <div style="margin-top: 0.85rem;"><span class="cmt"># HTTP / SSE</span></div>
+          <div><span class="kw">POST</span> /v1/intents</div>
+          <div><span class="kw">GET</span>  /v1/runs</div>
+          <div><span class="kw">GET</span>  /v1/runs/&#123;id&#125;/stream</div>
+          <div><span class="kw">GET</span>  /v1/skills</div>
+          <div><span class="kw">GET</span>  /v1/health</div>
+        </div>
+      </div>
+      <div class="flex gap wrap mt-5">
+        <a class="btn primary" href="/docs/">Open the docs portal <span class="arrow">→</span></a>
+        <a class="btn" href="/architecture">Architecture</a>
       </div>
     </div>
   </section>
@@ -119,6 +128,8 @@ const reading = [
 </Layout>
 
 <style>
-  .arrow-ext { color: var(--ink-5); font-size: 0.9em; font-weight: 400; }
-  .card.hover:hover .arrow-ext { color: var(--brand); }
+  .r-link { text-decoration: none; transition: background 0.12s ease; display: grid; }
+  .r-link .v { color: var(--ink-3); }
+  .r-link:hover .k { color: var(--acc); }
+  .r-link:hover .v { color: var(--ink-2); }
 </style>

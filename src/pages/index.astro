@@ -1,500 +1,195 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import TerminalWindow from '../components/TerminalWindow.astro';
-import LogStream from '../components/LogStream.astro';
 import ArchDiagram from '../components/ArchDiagram.astro';
 import SpawnGraph from '../components/SpawnGraph.astro';
+import LogStream from '../components/LogStream.astro';
 
 const title = 'plnt — a local-first agent runtime';
 const description = 'plnt is an open-source personal agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your own hardware. Memory is plain files. Apache-2.0.';
 
 const liveEvents = [
-  { ts: '04:17:33', kind: 'intent', payload: '<span class="v">"catch me up on agent memory papers by 7am"</span>' },
-  { ts: '04:17:33', kind: 'plan', payload: '<span class="k">agents</span>: 4 · librarian → scout → readers ×3 → summarizer' },
-  { ts: '04:17:34', kind: 'spawn', payload: '<span class="k">role</span>: literature-scout · <span class="k">isolation</span>: process' },
-  { ts: '04:17:36', kind: 'tool_call', payload: 'search("agent memory", "~/Documents/research")' },
-  { ts: '04:17:36', kind: 'tool_result', payload: '<span class="v">12 hits</span> · 4 candidates queued' },
-  { ts: '04:17:38', kind: 'spawn', payload: '<span class="k">role</span>: paper-reader × 3 (parallel)' },
-  { ts: '04:18:42', kind: 'model_call', payload: 'summarizer · <span class="k">model_hint</span>: deep · exo cluster' },
-  { ts: '04:19:02', kind: 'result', payload: '~/Desktop/agent-memory-2026-06-13.md' },
+  { ts: '04:17:33', kind: 'intent', payload: '<span class="v">"papers by 7am"</span>' },
+  { ts: '04:17:33', kind: 'plan', payload: '<span class="k">agents</span>: 4 · librarian → readers → summarizer' },
+  { ts: '04:17:34', kind: 'spawn', payload: 'literature-scout · isolation=process' },
+  { ts: '04:17:36', kind: 'tool_call', payload: 'search("agent memory", "~/Documents")' },
+  { ts: '04:17:36', kind: 'tool_result', payload: '<span class="v">12 candidates</span>' },
+  { ts: '04:18:42', kind: 'model_call', payload: 'summarizer · deep · exo' },
   { ts: '04:19:02', kind: 'finished', payload: '<span class="v">12 papers · 12 min · $0</span>' },
 ];
 
 const choices = [
-  { choice: 'Resident planner + named specialists', why: 'Long-lived specialists with shared state outperform many-ephemeral. (HearthNet)' },
-  { choice: 'Filesystem memory · JSONL + markdown', why: 'No schema before the data has shape. cat / grep / jq / git is the admin UI.' },
-  { choice: 'Two tools only: search, execute', why: 'RLM pattern. Context lives in the filesystem; anything else is reachable through these.' },
-  { choice: 'Sandbox ladder: process → µVM → wasm', why: 'Climb only when the threat model demands. Docker is not enough for LLM-emitted code.' },
-  { choice: 'Federate compute, not agent state', why: 'Multi-device inference is solved; multi-device agent state is a debugging hellscape.' },
-  { choice: 'No MCP · no SDK · no SaaS', why: 'The framework owns memory + skills + sandbox. The model is a swappable backend.' },
+  { k: 'Resident + ephemeral', v: '<strong>Resident planner and named specialists, ephemeral spawns.</strong> Long-lived specialists with shared state outperform many-ephemeral (HearthNet).' },
+  { k: 'Filesystem memory', v: '<strong>JSONL + markdown + FAISS sidecar.</strong> No schema before the data has shape. <code>cat</code> / <code>grep</code> / <code>jq</code> / <code>git</code> is the admin UI.' },
+  { k: 'Two tools', v: '<strong>search and execute.</strong> The RLM pattern. Context lives in the filesystem; anything else is reachable through these.' },
+  { k: 'Sandbox ladder', v: '<strong>process → gVisor → µVM → wasm.</strong> Climb only when the threat model demands. Docker is not enough for LLM-emitted code.' },
+  { k: 'Federate compute', v: '<strong>Compute federated, agents not (exo style).</strong> Multi-device inference is solved; multi-device agent state is a debugging hellscape.' },
+  { k: 'No MCP, no SaaS', v: '<strong>The framework owns memory, skills, and the sandbox.</strong> The model is a swappable backend.' },
 ];
 ---
 
 <Layout title={title} description={description} path="/">
 
-  {/* ============== HERO ============== */}
-  <section class="hero">
+  <section class="section" style="padding-top: clamp(5rem, 10vw, 8rem); padding-bottom: clamp(4rem, 7vw, 6rem);">
     <div class="container">
-      <div class="hero-grid">
-        <div class="hero-left">
-          <span class="pill brand"><span class="dot"></span>v0 · pre-alpha · open-source</span>
-          <h1>The agent runtime that <span class="grad">runs on your hardware.</span></h1>
-          <p class="lead">
-            plnt is an open-source local-first agent platform. One resident planner spawns
-            a swarm of sandboxed micro-agents to do the work. Memory is plain files in
-            <code>$PLNT_HOME</code>. No cloud bill, no SaaS, no vendor watching.
-          </p>
-          <div class="cta">
-            <a class="btn brand" href="/docs/getting-started/install/">Install plnt <span class="arrow">→</span></a>
-            <a class="btn" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.1c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.75 1.18 1.75 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.52-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.3 3.15 1.17a10.96 10.96 0 0 1 5.74 0c2.19-1.47 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.73.8 1.18 1.82 1.18 3.07 0 4.4-2.7 5.36-5.26 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
-              </svg>
-              Star on GitHub
-            </a>
-          </div>
-          <div class="hero-meta">
-            <span class="meta-item"><strong>Apache-2.0</strong> licensed</span>
-            <span class="dotsep">·</span>
-            <span class="meta-item"><strong>~$1</strong>/month in electricity</span>
-            <span class="dotsep">·</span>
-            <span class="meta-item">runs <strong>offline</strong></span>
-          </div>
-        </div>
+      <span class="eyebrow">00 / 06 — plnt</span>
+      <h1 style="max-width: 22ch;">A local-first agent runtime that runs on your hardware.</h1>
+      <p class="lead mt-4" style="max-width: 56ch;">
+        One resident planner spawns a swarm of sandboxed micro-agents.
+        Memory is plain files. <code>cat</code>, <code>grep</code>, <code>jq</code>, <code>git</code>
+        are the admin tools. No cloud bill, no vendor SDK, no SaaS that disappears when funding does.
+      </p>
+      <div class="flex gap wrap mt-5">
+        <a class="btn primary" href="/docs/getting-started/install/">Install <span class="arrow">→</span></a>
+        <a class="btn" href="/architecture">Architecture</a>
+        <a class="btn" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+      </div>
 
-        <div class="hero-right">
-          <TerminalWindow title="~/.plnt/runs/r-9c4f218e0a">
-            <div class="logstream-frame">
-              <div style="margin-bottom: 0.65rem;">
-                <span class="prompt">$</span> <span>plnt submit </span><span class="str">"catch me up on agent memory papers by 7am"</span>
-              </div>
-              <LogStream events={liveEvents} />
+      <div class="mt-6" style="max-width: 720px;">
+        <div class="term">
+          <div class="chrome">
+            <span class="dots"><span></span><span></span><span></span></span>
+            <span>~/.plnt/runs/r-9c4f218e0a</span>
+          </div>
+          <div class="body">
+            <div style="margin-bottom: 0.85rem;">
+              <span class="prompt">$</span> plnt submit <span class="str">"catch me up on agent memory papers by 7am"</span>
             </div>
-          </TerminalWindow>
-          <div class="hero-caption">
-            <span class="pill"><span class="dot" style="background: var(--brand);"></span>live event stream · audit-grade JSONL</span>
+            <LogStream events={liveEvents} />
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  {/* ============== TRUST STRIP ============== */}
-  <section class="strip">
+  <section class="section">
     <div class="container">
-      <div class="strip-grid">
-        <div><strong>~4,800</strong><span>lines of Python + Go</span></div>
-        <div><strong>31 / 31</strong><span>tests green</span></div>
-        <div><strong>8 seed</strong><span>skill bundles</span></div>
-        <div><strong>4 planes</strong><span>Surface · Control · Execution · Compute</span></div>
-        <div><strong>0 SaaS</strong><span>nothing leaves your box</span></div>
+      <div class="sechead">
+        <div class="count">01 <span class="of">/ 06</span> — WHAT</div>
+        <h2 class="lead-text" style="font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 500; letter-spacing: -0.02em; line-height: 1.25;">
+          <strong>plnt is the anti-SaaS personal agent platform.</strong> Four planes
+          with hard responsibility boundaries. The only object that crosses
+          <strong>Control → Execution</strong> is the <code>AgentSpec</code>.
+        </h2>
       </div>
+      <ArchDiagram />
     </div>
   </section>
 
-  {/* ============== PROBLEM / SOLUTION ============== */}
   <section class="section">
-    <div class="container narrow">
-      <div class="center">
-        <span class="eyebrow">why plnt</span>
-        <h2>Cloud agents are vendor-shaped. <br/>plnt is hardware-shaped.</h2>
-        <p class="lead dim center" style="margin: 1rem auto 0; max-width: 60ch;">
-          Today's agent platforms live in someone else's data center, behind someone else's
-          API, with someone else's storage primitive. plnt inverts every default.
+    <div class="container">
+      <div class="sechead">
+        <div class="count">02 <span class="of">/ 06</span> — HOW</div>
+        <p class="lead-text">
+          Three steps. No daemons to babysit. No accounts to provision. No deploys
+          to coordinate. The offline echo backend means it runs with no LLM at all.
         </p>
       </div>
-
-      <div class="compare mt-5">
-        <div class="col bad">
-          <span class="tag">Cloud agent SaaS</span>
-          <h3>$50–200 / month</h3>
-          <ul>
-            <li>Your prompts, files, and history sit in vendor storage</li>
-            <li>API rate limits become product limits</li>
-            <li>State machine is a hidden database you cannot inspect</li>
-            <li>Memory layer is an SDK you have to learn</li>
-            <li>Migrations are vendor lock-in by design</li>
-          </ul>
-        </div>
-        <div class="col good">
-          <span class="tag">plnt — local-first</span>
-          <h3>~$1 / month electricity</h3>
-          <ul>
-            <li>Files live on your disk in <code>$PLNT_HOME</code></li>
-            <li>Inference runs on Ollama / MLX, optionally federated via exo</li>
-            <li>Every event is one JSONL line — <code>cat</code> is the admin UI</li>
-            <li>Skills are markdown files versioned by git</li>
-            <li>Survives sessions, survives vendor cycles, survives funding rounds</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  {/* ============== HOW IT WORKS ============== */}
-  <section class="section tinted" id="how">
-    <div class="container">
-      <span class="eyebrow">how it works</span>
-      <h2>From intent to result, on your hardware.</h2>
-      <p class="lead dim" style="max-width: 64ch;">
-        Three steps. No daemons to babysit. No accounts to provision. No deploys to coordinate.
-      </p>
-
-      <div class="steps mt-5">
-        <div class="step">
-          <span class="num">01 · INSTALL</span>
-          <h3>One <code>pip install</code></h3>
-          <p>Clone the repo and install in editable mode. Optionally point at a local Ollama. The offline echo backend works with no LLM at all.</p>
-        </div>
-        <div class="step">
-          <span class="num">02 · SUBMIT</span>
-          <h3>One intent, plain language</h3>
-          <p>Run <code>plnt submit "find anything on agent memory in my Documents"</code>. The planner triages, plans a DAG, and spawns ephemeral micro-agents in sandboxes.</p>
-        </div>
-        <div class="step">
-          <span class="num">03 · TAIL</span>
-          <h3>Watch it think on disk</h3>
-          <p>Every event lands in <code>events.jsonl</code> as it happens. The result is a markdown file in <code>~/Desktop</code>. The audit log is a <code>cat</code> away.</p>
-        </div>
-      </div>
-
-      <div class="mt-4 center">
-        <a class="btn primary" href="/docs/getting-started/quickstart/">Read the quickstart <span class="arrow">→</span></a>
-      </div>
-    </div>
-  </section>
-
-  {/* ============== ARCHITECTURE ============== */}
-  <section class="section">
-    <div class="container">
-      <div class="split">
-        <div>
-          <span class="eyebrow">architecture</span>
-          <h2>Four planes. <br/>One hard contract.</h2>
-          <p class="lead">
-            plnt is split into four planes with hard responsibility boundaries.
-            The only object that crosses <strong>Control → Execution</strong> is the
-            <code>AgentSpec</code>. Everything you want to enforce on a spawn lives on it.
-          </p>
-          <ul class="bullet-list">
-            <li><strong>Surface</strong> — task panels on your devices.</li>
-            <li><strong>Control</strong> — one resident process owning identity + memory.</li>
-            <li><strong>Execution</strong> — ephemeral sandboxed micro-agents.</li>
-            <li><strong>Compute</strong> — OpenAI-compatible router with offline fallback.</li>
-          </ul>
-          <div class="mt-3">
-            <a class="btn" href="/architecture">Full deep dive <span class="arrow">→</span></a>
+      <div class="steps-list">
+        <div class="li">
+          <div class="n">01</div>
+          <div class="body">
+            <strong>Install</strong>
+            <p><code>git clone</code> the repo. <code>pip install -e .</code>. Optionally point at a local Ollama. The offline echo backend exercises the full pipeline with no LLM.</p>
           </div>
         </div>
-        <div>
-          <ArchDiagram />
+        <div class="li">
+          <div class="n">02</div>
+          <div class="body">
+            <strong>Submit</strong>
+            <p><code>plnt submit "find anything on agent memory in my Documents"</code>. The planner triages, plans a DAG, and spawns ephemeral micro-agents in sandboxes.</p>
+          </div>
+        </div>
+        <div class="li">
+          <div class="n">03</div>
+          <div class="body">
+            <strong>Tail</strong>
+            <p>Every event lands in <code>events.jsonl</code> as it happens. The result is a markdown file in <code>~/Desktop</code>. The audit log is one <code>cat</code> away.</p>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  {/* ============== INTENT FLOW (CONCRETE EXAMPLE) ============== */}
-  <section class="section tinted">
+  <section class="section">
     <div class="container">
-      <div class="center">
-        <span class="eyebrow">one intent · end to end</span>
-        <h2>"Catch me up on agent memory papers by 7am."</h2>
-        <p class="lead dim center" style="margin: 1rem auto 0; max-width: 56ch;">
+      <div class="sechead">
+        <div class="count">03 <span class="of">/ 06</span> — FLOW</div>
+        <p class="lead-text">
           A single intent traverses the system. Resident specialists decide work plans.
-          Ephemeral micro-agents do the legwork. ACC and the budget governor watch the
-          streams in real time.
+          Ephemeral micro-agents do the legwork. <strong>Nothing leaves your hardware.</strong>
         </p>
       </div>
-      <div class="mt-5">
-        <SpawnGraph />
-      </div>
-      <div class="kpis mt-4">
-        <div class="kpi"><strong>12 papers</strong><span>scanned</span></div>
-        <div class="kpi"><strong>12 minutes</strong><span>wall-clock</span></div>
-        <div class="kpi"><strong>$0</strong><span>cloud spend</span></div>
-        <div class="kpi"><strong>0 bytes</strong><span>left your box</span></div>
-      </div>
+      <SpawnGraph />
+      <p class="dim mt-4" style="font-family: var(--font-mono); font-size: 0.78rem; text-align: center;">
+        12 papers · 12 minutes wall-clock · $0 cloud spend · 0 bytes left your box
+      </p>
     </div>
   </section>
 
-  {/* ============== KEY CHOICES ============== */}
   <section class="section">
     <div class="container">
-      <span class="eyebrow">design choices</span>
-      <h2>Six decisions that shape everything.</h2>
-      <p class="lead dim" style="max-width: 62ch;">
-        Each row is a hill plnt is willing to die on. The "why" column is the receipt.
-      </p>
-      <table class="tbl mt-4">
-        <thead><tr><th style="width: 40%;">Choice</th><th>Why</th></tr></thead>
-        <tbody>
-          {choices.map((c) => (
-            <tr>
-              <td><strong>{c.choice}</strong></td>
-              <td class="dim">{c.why}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  {/* ============== OSS STORY ============== */}
-  <section class="section tinted">
-    <div class="container">
-      <div class="split">
-        <div>
-          <span class="eyebrow">open source</span>
-          <h2>Built so you can fork it on Friday.</h2>
-          <p class="lead">
-            plnt ships under <strong>Apache 2.0</strong>. The runtime is ~4,800 lines of Python.
-            The TUI client is Go. There is no telemetry, no opt-in analytics, no anonymized usage data.
-            What you run is what you can read.
-          </p>
-          <p>
-            We hold three things on the roadmap and refuse to change them: <strong>no database</strong>,
-            <strong>no HTTP bus between planner and specialists</strong>, and <strong>no MCP</strong>.
-            Adding any of these would invert the project's posture.
-          </p>
-          <div class="cta mt-3">
-            <a class="btn primary" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">View source <span class="arrow">→</span></a>
-            <a class="btn" href="/roadmap">Roadmap</a>
+      <div class="sechead">
+        <div class="count">04 <span class="of">/ 06</span> — CHOICES</div>
+        <p class="lead-text">
+          Six decisions that shape everything. Each is a hill the project will die on.
+          The right column is the receipt.
+        </p>
+      </div>
+      <div class="rows">
+        {choices.map((c) => (
+          <div class="r">
+            <div class="k">{c.k}</div>
+            <p class="v" set:html={c.v} />
           </div>
-        </div>
-        <div class="grid-2">
-          <div class="card">
-            <div class="icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            </div>
-            <h3>Four planes</h3>
-            <p>Surface, Control, Execution, Compute — each owns one responsibility, with one hard contract between.</p>
-          </div>
-          <div class="card">
-            <div class="icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <h3>Two tools</h3>
-            <p><code>search</code> and <code>execute</code>. The RLM pattern. Context lives in the filesystem; everything else is reachable through these.</p>
-          </div>
-          <div class="card">
-            <div class="icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
-            </div>
-            <h3>Sandbox ladder</h3>
-            <p>process → docker → gVisor → Firecracker. Climb only when the threat model demands it.</p>
-          </div>
-          <div class="card">
-            <div class="icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            </div>
-            <h3>Skills are markdown</h3>
-            <p>One <code>prompt.md</code> and one <code>skill.toml</code>. Hot-reloaded on file change. Versioned by git.</p>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   </section>
 
-  {/* ============== CTA ============== */}
-  <section class="section dark">
+  <section class="section">
     <div class="container">
-      <div class="center">
-        <h2 style="color: #fff;">Run an agent on your own hardware.</h2>
-        <p style="color: #c8cdd6; font-size: 1.0625rem; max-width: 52ch; margin: 1rem auto 2rem;">
+      <div class="sechead">
+        <div class="count">05 <span class="of">/ 06</span> — OSS</div>
+        <p class="lead-text">
+          <strong>Apache 2.0.</strong> ~4,800 lines of Python plus a Go TUI client. No telemetry.
+          No analytics. No opt-in usage data. What you run is what you can read.
+          We hold three things on the roadmap and refuse to change them — no database,
+          no HTTP bus between planner and specialists, no MCP.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: clamp(5rem, 9vw, 8rem); padding-bottom: clamp(5rem, 9vw, 8rem);">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">06 <span class="of">/ 06</span> — INSTALL</div>
+        <p class="lead-text">
           Two commands. Five minutes. No accounts.
         </p>
       </div>
-      <div class="cta-block">
-        <TerminalWindow title="install · plnt — bash">
-<div><span class="cmt"># clone + install (editable)</span></div>
-<div><span class="prompt">$</span> git clone https://github.com/devdattatalele/plnt</div>
-<div><span class="prompt">$</span> cd plnt && pip install -e <span class="str">".[dev]"</span></div>
-<div style="margin-top: 0.65rem;"><span class="cmt"># submit your first intent (offline echo works with no LLM)</span></div>
-<div><span class="prompt">$</span> plnt submit <span class="str">"list five interesting things in $PWD"</span></div>
-<div style="margin-top: 0.65rem;"><span class="cmt"># or run the server + Bubble Tea TUI</span></div>
-<div><span class="prompt">$</span> plnt up &</div>
-<div><span class="prompt">$</span> ./plnt-tui-bin</div>
-        </TerminalWindow>
+      <div class="term" style="max-width: 720px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>install · plnt — bash</span>
+        </div>
+        <div class="body">
+          <div><span class="cmt"># clone + install</span></div>
+          <div><span class="prompt">$</span> git clone https://github.com/devdattatalele/plnt</div>
+          <div><span class="prompt">$</span> cd plnt && pip install -e <span class="str">"."</span></div>
+          <div style="margin-top: 0.85rem;"><span class="cmt"># submit (offline echo works with no LLM)</span></div>
+          <div><span class="prompt">$</span> plnt submit <span class="str">"list five interesting things in $PWD"</span></div>
+          <div style="margin-top: 0.85rem;"><span class="cmt"># server + TUI</span></div>
+          <div><span class="prompt">$</span> plnt up &</div>
+          <div><span class="prompt">$</span> ./plnt-tui-bin</div>
+        </div>
       </div>
-      <div class="cta center mt-4" style="justify-content: center;">
-        <a class="btn brand" href="/docs/getting-started/install/">Install plnt <span class="arrow">→</span></a>
-        <a class="btn ghost" style="color: #fff; border-color: #2a2f37;" href="/docs/">Browse docs</a>
-        <a class="btn ghost" style="color: #fff; border-color: #2a2f37;" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">Star on GitHub</a>
+      <div class="flex gap wrap mt-5">
+        <a class="btn primary" href="/docs/getting-started/install/">Install <span class="arrow">→</span></a>
+        <a class="btn" href="/docs/">Read the docs</a>
+        <a class="btn" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </section>
 
 </Layout>
-
-<style>
-  /* ===== HERO ===== */
-  .hero {
-    padding: clamp(4rem, 7vw, 6rem) 0 clamp(3rem, 6vw, 5rem);
-    background:
-      radial-gradient(ellipse at 75% 0%, var(--brand-tint) 0%, transparent 50%),
-      radial-gradient(ellipse at 0% 100%, #fef9f0 0%, transparent 60%),
-      var(--bg);
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
-    background-size: 64px 64px;
-    background-position: -1px -1px;
-    opacity: 0.4;
-    mask-image: radial-gradient(ellipse at 50% 0%, black, transparent 70%);
-    -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black, transparent 70%);
-    pointer-events: none;
-  }
-  .hero-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 3rem;
-    align-items: center;
-    position: relative;
-    z-index: 1;
-  }
-  @media (min-width: 1024px) {
-    .hero-grid { grid-template-columns: 1.05fr 1fr; gap: 3.5rem; }
-  }
-  .hero-left { max-width: 38rem; }
-  .hero-left .pill { margin-bottom: 1.5rem; }
-  .hero h1 .grad {
-    color: var(--brand);
-    background: linear-gradient(90deg, var(--brand) 0%, var(--brand-1) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .hero p.lead {
-    margin-top: 1.5rem;
-    color: var(--ink-2);
-  }
-  .hero .cta {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-top: 2rem;
-  }
-  .hero-meta {
-    margin-top: 1.75rem;
-    color: var(--ink-4);
-    font-size: 0.875rem;
-    display: flex;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .hero-meta strong { color: var(--ink-2); font-weight: 600; }
-  .hero-meta .dotsep { color: var(--ink-5); }
-  .hero-right { width: 100%; }
-  .hero-caption {
-    margin-top: 1rem;
-    text-align: center;
-  }
-  .logstream-frame {
-    min-height: 320px;
-  }
-
-  /* ===== STRIP ===== */
-  .strip {
-    background: var(--bg-elev);
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-    padding: 1.75rem 0;
-  }
-  .strip-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    text-align: left;
-  }
-  @media (min-width: 880px) { .strip-grid { grid-template-columns: repeat(5, 1fr); } }
-  .strip-grid > div {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-  .strip-grid strong {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--ink);
-    letter-spacing: -0.02em;
-  }
-  .strip-grid span {
-    color: var(--ink-4);
-    font-size: 0.8125rem;
-  }
-
-  /* ===== KPIs ===== */
-  .kpis {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-  @media (min-width: 880px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
-  .kpi {
-    background: var(--bg-elev);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    padding: 1rem 1.25rem;
-    text-align: center;
-  }
-  .kpi strong {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--ink);
-    letter-spacing: -0.02em;
-  }
-  .kpi span {
-    color: var(--ink-4);
-    font-size: 0.8125rem;
-    margin-top: 0.15rem;
-    display: block;
-  }
-
-  /* ===== SPLIT ===== */
-  .split {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-    align-items: center;
-  }
-  @media (min-width: 980px) { .split { grid-template-columns: 1fr 1.1fr; gap: 3.5rem; } }
-
-  /* ===== BULLET ===== */
-  .bullet-list { list-style: none; padding: 0; margin: 1.25rem 0 0; }
-  .bullet-list li {
-    padding-left: 1.5rem;
-    position: relative;
-    margin-bottom: 0.55rem;
-    color: var(--ink-3);
-  }
-  .bullet-list li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.55em;
-    width: 7px;
-    height: 7px;
-    background: var(--brand);
-    border-radius: 50%;
-  }
-  .bullet-list strong { color: var(--ink); font-weight: 600; }
-
-  /* ===== CTA block ===== */
-  .cta-block {
-    max-width: 760px;
-    margin: 2.5rem auto 0;
-  }
-
-  /* compact pill in nav */
-  :global(.pill.compact) {
-    font-size: 0.7rem !important;
-    padding: 0.15rem 0.5rem;
-  }
-</style>

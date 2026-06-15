@@ -5,194 +5,154 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 
-/* ===========================================================================
-   Light-first theme matching the rest of the site (Inter + emerald accent).
-   Starlight ships dark + light; we override both palettes so toggling stays
-   coherent.
-   =========================================================================== */
-
-:root {
-  --sl-color-bg: #fafaf7;
-  --sl-color-bg-nav: #fafaf7;
-  --sl-color-bg-sidebar: #fafaf7;
-  --sl-color-bg-inline-code: #f3f3ee;
-  --sl-color-text: #0f1115;
-  --sl-color-text-accent: #059669;
-  --sl-color-accent: #059669;
-  --sl-color-accent-low: #ecfdf5;
-  --sl-color-accent-high: #047857;
-  --sl-color-hairline: #e7e5df;
-  --sl-color-hairline-light: #e7e5df;
-  --sl-color-hairline-shade: #d6d3cc;
-  --sl-color-white: #0f1115;
-  --sl-color-gray-1: #0f1115;
-  --sl-color-gray-2: #2b2e35;
-  --sl-color-gray-3: #4a4f59;
-  --sl-color-gray-4: #6a6f78;
-  --sl-color-gray-5: #8a8f97;
-  --sl-color-gray-6: #d6d3cc;
-  --sl-color-black: #fafaf7;
+/* Dark theme matches the rest of the site (warm near-black, terminal-green accent). */
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --sl-color-bg: #0c0c0c;
+  --sl-color-bg-nav: #0c0c0c;
+  --sl-color-bg-sidebar: #0c0c0c;
+  --sl-color-bg-inline-code: transparent;
+  --sl-color-text: #ededea;
+  --sl-color-text-accent: #7dd3a0;
+  --sl-color-accent: #7dd3a0;
+  --sl-color-accent-low: rgba(125, 211, 160, 0.08);
+  --sl-color-accent-high: #95e1b3;
+  --sl-color-hairline: #1f1f1f;
+  --sl-color-hairline-light: #1f1f1f;
+  --sl-color-hairline-shade: #1f1f1f;
+  --sl-color-white: #ededea;
+  --sl-color-gray-1: #ededea;
+  --sl-color-gray-2: #c2c1ba;
+  --sl-color-gray-3: #8c8b84;
+  --sl-color-gray-4: #5d5c57;
+  --sl-color-gray-5: #3d3c39;
+  --sl-color-gray-6: #1f1f1f;
+  --sl-color-black: #0c0c0c;
 
   --sl-font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --sl-font-system: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --sl-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
-[data-theme='dark'] {
-  --sl-color-bg: #0d1117;
-  --sl-color-bg-nav: #0d1117;
-  --sl-color-bg-sidebar: #0d1117;
-  --sl-color-bg-inline-code: #161b22;
-  --sl-color-text: #e6edf3;
-  --sl-color-text-accent: #34d399;
-  --sl-color-accent: #34d399;
-  --sl-color-accent-low: #022c22;
-  --sl-color-accent-high: #6ee7b7;
-  --sl-color-hairline: #21262d;
-  --sl-color-hairline-light: #21262d;
-  --sl-color-hairline-shade: #30363d;
-  --sl-color-white: #e6edf3;
-  --sl-color-gray-1: #e6edf3;
-  --sl-color-gray-2: #c9d1d9;
-  --sl-color-gray-3: #8b949e;
-  --sl-color-gray-4: #6e7681;
-  --sl-color-gray-5: #484f58;
-  --sl-color-gray-6: #30363d;
-  --sl-color-black: #0d1117;
-}
-
-/* Friendly radii (don't force sharp corners — that was the v1 metronis vibe) */
+/* Headings — match landing typography */
 .sl-markdown-content h1 {
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.035em;
 }
 .sl-markdown-content h2 {
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.025em;
-  margin-top: 2.5rem;
-  padding-top: 1.25rem;
+  margin-top: 2.75rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--sl-color-hairline);
 }
 .sl-markdown-content h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 1.5rem; }
 .sl-markdown-content h3 {
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.02em;
   margin-top: 1.75rem;
   color: var(--sl-color-text);
 }
 
 .sl-markdown-content p { color: var(--sl-color-gray-2); }
-.sl-markdown-content strong { color: var(--sl-color-text); font-weight: 600; }
+.sl-markdown-content strong { color: var(--sl-color-text); font-weight: 500; }
 
 .sl-markdown-content code {
-  background: var(--sl-color-bg-inline-code);
-  border: 1px solid var(--sl-color-hairline);
-  color: var(--sl-color-accent-high);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--sl-color-accent);
+  padding: 0;
   font-size: 0.875em;
 }
 
 .sl-markdown-content pre {
   border: 1px solid var(--sl-color-hairline);
-  border-radius: 10px;
-  background: #0d1117 !important;
+  background: #131313 !important;
 }
 .sl-markdown-content pre code {
   background: transparent;
   border: 0;
-  color: #e6edf3;
+  color: #ededea;
   font-size: 0.8125rem;
 }
 
 .sl-markdown-content a {
   color: var(--sl-color-text);
   text-decoration: underline;
-  text-decoration-color: var(--sl-color-accent);
+  text-decoration-color: var(--sl-color-gray-5);
   text-underline-offset: 3px;
 }
-.sl-markdown-content a:hover { color: var(--sl-color-accent); }
+.sl-markdown-content a:hover { color: var(--sl-color-accent); text-decoration-color: var(--sl-color-accent); }
 
 /* Top header */
 header.header {
   border-bottom: 1px solid var(--sl-color-hairline);
-  background: rgba(250, 250, 247, 0.85) !important;
+  background: rgba(12, 12, 12, 0.85) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
-[data-theme='dark'] header.header {
-  background: rgba(13, 17, 23, 0.85) !important;
-}
 .site-title {
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: var(--sl-font-mono);
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: -0.005em;
 }
 
-/* Sidebar */
+/* Sidebar — small mono caps */
 .sidebar-content { font-family: var(--sl-font); }
 .sidebar-content details > summary {
+  font-family: var(--sl-font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--sl-color-gray-4);
-  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sl-color-gray-3);
+  font-weight: 500;
 }
 .sidebar-content a {
-  font-size: 0.9375rem;
-  border-radius: 6px;
+  font-size: 0.9rem;
 }
 .sidebar-content a[aria-current='page'] {
-  color: var(--sl-color-accent-high);
+  color: var(--sl-color-accent);
   background: var(--sl-color-accent-low);
   border-left: 2px solid var(--sl-color-accent);
 }
 
 /* Right TOC */
 starlight-toc nav > h2 {
+  font-family: var(--sl-font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--sl-color-gray-4);
-  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sl-color-gray-3);
+  font-weight: 500;
 }
 
-/* Pagination */
+/* Pagination — outlined like buttons */
 .pagination-links a {
   border: 1px solid var(--sl-color-hairline);
-  border-radius: 10px;
   padding: 1rem 1.25rem;
   text-decoration: none;
-  transition: border-color 0.15s ease;
 }
 .pagination-links a:hover {
   border-color: var(--sl-color-accent);
   color: var(--sl-color-accent);
 }
 
-/* Cards from <CardGrid> */
+/* Cards — flat, no shadow */
 .card {
-  border-radius: 10px !important;
-  background: #ffffff !important;
+  background: #131313 !important;
   border: 1px solid var(--sl-color-hairline) !important;
 }
-[data-theme='dark'] .card { background: var(--sl-color-bg-inline-code) !important; }
 
 /* Search */
 site-search button {
   border: 1px solid var(--sl-color-hairline);
-  border-radius: 8px;
   background: transparent;
-  font-family: var(--sl-font);
-  color: var(--sl-color-gray-4);
+  font-family: var(--sl-font-mono);
+  color: var(--sl-color-gray-3);
 }
 site-search button:hover {
   border-color: var(--sl-color-accent);
   color: var(--sl-color-text);
 }
-
-/* Hero (used on the docs index) */
-.hero {
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.hero h1 { font-weight: 800; letter-spacing: -0.035em; }
