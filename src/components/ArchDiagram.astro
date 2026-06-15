@@ -1,0 +1,147 @@
+---
+const planes = [
+  {
+    kind: 'surface',
+    name: 'Surface',
+    summary: 'Where intents land and results return',
+    modules: ['CLI', 'HTTP + SSE', 'TUI (Bubble Tea)'],
+    color: 'var(--plane-surface)',
+  },
+  {
+    kind: 'control',
+    name: 'Control',
+    summary: 'One resident process — the brain',
+    modules: ['Planner LLM', 'Triage · DAG', 'Budget · ACC', 'Skills (md)'],
+    color: 'var(--plane-control)',
+  },
+  {
+    kind: 'execution',
+    name: 'Execution',
+    summary: 'Ephemeral micro-agents in sandboxes',
+    modules: ['AgentSpec', 'Blackboard', 'Runner', 'search · execute'],
+    color: 'var(--plane-execution)',
+  },
+  {
+    kind: 'compute',
+    name: 'Compute',
+    summary: 'Local inference, optionally federated',
+    modules: ['LLM Router', 'Ollama', 'Cloud fallback', 'Offline echo'],
+    color: 'var(--plane-compute)',
+  },
+];
+
+const edgeLabel = ['HTTP + SSE', 'AgentSpec', 'OpenAI-compat'];
+---
+
+<div class="arch">
+  {planes.map((p, i) => (
+    <>
+      <div class="plane">
+        <span class="lbar" style={`background: ${p.color}`}></span>
+        <div class="plane-body">
+          <div class="plane-head">
+            <span class="dot" style={`background: ${p.color}`}></span>
+            <h3>{p.name}</h3>
+          </div>
+          <p class="plane-sum">{p.summary}</p>
+          <div class="plane-mods">
+            {p.modules.map((m) => <span class="mod">{m}</span>)}
+          </div>
+        </div>
+      </div>
+      {i < planes.length - 1 && (
+        <div class="edge">
+          <span class="line"></span>
+          <span class="lbl">{edgeLabel[i]}</span>
+          <span class="line"></span>
+          <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
+            <path d="M1 4 L7 10 L13 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      )}
+    </>
+  ))}
+</div>
+
+<style>
+  .arch {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: stretch;
+  }
+  .plane {
+    display: flex;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    overflow: hidden;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .plane:hover { border-color: var(--ink-5); }
+  .lbar {
+    width: 5px;
+    flex: none;
+  }
+  .plane-body {
+    flex: 1;
+    padding: 1.25rem 1.5rem;
+  }
+  .plane-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
+  }
+  .plane-head .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .plane-head h3 {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+  .plane-sum {
+    color: var(--ink-3);
+    margin: 0 0 0.85rem;
+    font-size: 0.9375rem;
+  }
+  .plane-mods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .plane-mods .mod {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    background: var(--bg-soft);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid var(--rule);
+  }
+  .edge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--ink-5);
+    padding: 0.5rem 0;
+    align-self: center;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+  .edge .line {
+    width: 36px;
+    height: 1px;
+    background: var(--rule-strong);
+  }
+  .edge .lbl {
+    color: var(--ink-4);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.65rem;
+  }
+</style>

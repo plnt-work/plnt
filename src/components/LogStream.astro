@@ -1,0 +1,21 @@
+---
+export interface Event {
+  ts: string;
+  kind: string;
+  payload?: string;
+}
+export interface Props {
+  events: Event[];
+}
+const { events } = Astro.props;
+---
+
+<div class="logstream">
+  {events.map((e) => (
+    <div class="line">
+      <span class="ts">{e.ts}</span>
+      <span class={`kind k-${e.kind.replace(/_/g, '_')}`}>{e.kind}</span>
+      <span class="payload" set:html={e.payload || ''} />
+    </div>
+  ))}
+</div>

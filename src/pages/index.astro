@@ -1,194 +1,325 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import SpawnTree from '../components/SpawnTree.astro';
-import CreamCard from '../components/CreamCard.astro';
-import MetaRow from '../components/MetaRow.astro';
-import SectionRule from '../components/SectionRule.astro';
-import KeyChoice from '../components/KeyChoice.astro';
+import TerminalWindow from '../components/TerminalWindow.astro';
+import LogStream from '../components/LogStream.astro';
+import ArchDiagram from '../components/ArchDiagram.astro';
+import SpawnGraph from '../components/SpawnGraph.astro';
 
-const title = 'plnt — personal local native twin';
-const description = 'A local-first agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your own hardware. Memory is plain files. Apache-2.0.';
+const title = 'plnt — a local-first agent runtime';
+const description = 'plnt is an open-source personal agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your own hardware. Memory is plain files. Apache-2.0.';
+
+const liveEvents = [
+  { ts: '04:17:33', kind: 'intent', payload: '<span class="v">"catch me up on agent memory papers by 7am"</span>' },
+  { ts: '04:17:33', kind: 'plan', payload: '<span class="k">agents</span>: 4 · librarian → scout → readers ×3 → summarizer' },
+  { ts: '04:17:34', kind: 'spawn', payload: '<span class="k">role</span>: literature-scout · <span class="k">isolation</span>: process' },
+  { ts: '04:17:36', kind: 'tool_call', payload: 'search("agent memory", "~/Documents/research")' },
+  { ts: '04:17:36', kind: 'tool_result', payload: '<span class="v">12 hits</span> · 4 candidates queued' },
+  { ts: '04:17:38', kind: 'spawn', payload: '<span class="k">role</span>: paper-reader × 3 (parallel)' },
+  { ts: '04:18:42', kind: 'model_call', payload: 'summarizer · <span class="k">model_hint</span>: deep · exo cluster' },
+  { ts: '04:19:02', kind: 'result', payload: '~/Desktop/agent-memory-2026-06-13.md' },
+  { ts: '04:19:02', kind: 'finished', payload: '<span class="v">12 papers · 12 min · $0</span>' },
+];
 
 const choices = [
-  {
-    choice: 'Resident planner + named specialists + ephemeral spawns',
-    why: 'Long-lived specialists with shared state outperform many-ephemeral (HearthNet).',
-  },
-  {
-    choice: 'Filesystem memory: JSONL + markdown + FAISS sidecar',
-    why: 'No schema before the data has shape. <code>cat</code> / <code>grep</code> / <code>jq</code> / <code>git</code> is the admin UI.',
-  },
-  {
-    choice: 'Two tools only: <code>search</code>, <code>execute</code>',
-    why: 'RLM pattern. Context lives in the filesystem; anything else is reachable through these.',
-  },
-  {
-    choice: 'Sandbox ladder: process → gVisor → µVM → wasm',
-    why: 'Climb only when the threat model demands. Docker is not enough for LLM-emitted code.',
-  },
-  {
-    choice: 'Compute federated, agents not (exo style)',
-    why: 'Multi-device inference is solved; multi-device agent state is a debugging hellscape.',
-  },
-  {
-    choice: 'No MCP · no Claude skill · no SaaS',
-    why: 'The framework owns memory + skills + sandbox. The model is a swappable backend.',
-  },
+  { choice: 'Resident planner + named specialists', why: 'Long-lived specialists with shared state outperform many-ephemeral. (HearthNet)' },
+  { choice: 'Filesystem memory · JSONL + markdown', why: 'No schema before the data has shape. cat / grep / jq / git is the admin UI.' },
+  { choice: 'Two tools only: search, execute', why: 'RLM pattern. Context lives in the filesystem; anything else is reachable through these.' },
+  { choice: 'Sandbox ladder: process → µVM → wasm', why: 'Climb only when the threat model demands. Docker is not enough for LLM-emitted code.' },
+  { choice: 'Federate compute, not agent state', why: 'Multi-device inference is solved; multi-device agent state is a debugging hellscape.' },
+  { choice: 'No MCP · no SDK · no SaaS', why: 'The framework owns memory + skills + sandbox. The model is a swappable backend.' },
 ];
 ---
 
 <Layout title={title} description={description} path="/">
 
+  {/* ============== HERO ============== */}
   <section class="hero">
-    <div class="container hero-inner">
-      <div class="hero-left">
-        <div class="status-strip">
-          <span class="dot"></span>
-          <span class="mono-caps">v0 · pre-alpha · apache-2.0</span>
-        </div>
-
-        <div class="wordmark">
-          <span class="wm-sprout" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square">
-              <rect x="5" y="16" width="14" height="5"/>
-              <line x1="12" y1="16" x2="12" y2="7"/>
-              <path d="M12 12 Q7.5 11 6.5 6 Q11 7 12 12 Z"/>
-              <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z"/>
-            </svg>
-          </span>
-          <span class="wm-text">plnt<span class="wm-tail">/</span></span>
-        </div>
-
-        <p class="subline">personal · local · native · twin</p>
-
-        <div class="hero-claim">
-          <h1>
-            An agent runtime<br/>
-            that <span class="brand-mark">grows on your hardware</span>.
-          </h1>
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-left">
+          <span class="pill brand"><span class="dot"></span>v0 · pre-alpha · open-source</span>
+          <h1>The agent runtime that <span class="grad">runs on your hardware.</span></h1>
           <p class="lead">
-            One resident planner spawns a swarm of sandboxed micro-agents.
-            Memory is plain files in <code>$PLNT_HOME</code>. <code>cat</code>,
-            <code>grep</code>, <code>jq</code>, <code>git</code> are the admin tools.
-            Nothing leaves your machine unless you wire a cloud backend yourself.
+            plnt is an open-source local-first agent platform. One resident planner spawns
+            a swarm of sandboxed micro-agents to do the work. Memory is plain files in
+            <code>$PLNT_HOME</code>. No cloud bill, no SaaS, no vendor watching.
           </p>
-          <div class="cta-row">
-            <a class="btn primary" href="/docs/getting-started/install/">Install plnt →</a>
-            <a class="btn" href="/architecture">Read the architecture</a>
-            <a class="btn ghost" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+          <div class="cta">
+            <a class="btn brand" href="/docs/getting-started/install/">Install plnt <span class="arrow">→</span></a>
+            <a class="btn" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.1c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.75 1.18 1.75 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.52-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.3 3.15 1.17a10.96 10.96 0 0 1 5.74 0c2.19-1.47 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.73.8 1.18 1.82 1.18 3.07 0 4.4-2.7 5.36-5.26 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
+              </svg>
+              Star on GitHub
+            </a>
+          </div>
+          <div class="hero-meta">
+            <span class="meta-item"><strong>Apache-2.0</strong> licensed</span>
+            <span class="dotsep">·</span>
+            <span class="meta-item"><strong>~$1</strong>/month in electricity</span>
+            <span class="dotsep">·</span>
+            <span class="meta-item">runs <strong>offline</strong></span>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <TerminalWindow title="~/.plnt/runs/r-9c4f218e0a">
+            <div class="logstream-frame">
+              <div style="margin-bottom: 0.65rem;">
+                <span class="prompt">$</span> <span>plnt submit </span><span class="str">"catch me up on agent memory papers by 7am"</span>
+              </div>
+              <LogStream events={liveEvents} />
+            </div>
+          </TerminalWindow>
+          <div class="hero-caption">
+            <span class="pill"><span class="dot" style="background: var(--brand);"></span>live event stream · audit-grade JSONL</span>
           </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div class="hero-right">
-        <div class="tree-frame">
-          <div class="tree-header">
-            <span class="dim">~/.plnt/runs/r-2a5c42e150 ▸ spawn tree</span>
-            <span class="dot-row">
-              <span class="d r"></span><span class="d a"></span><span class="d g"></span>
-            </span>
+  {/* ============== TRUST STRIP ============== */}
+  <section class="strip">
+    <div class="container">
+      <div class="strip-grid">
+        <div><strong>~4,800</strong><span>lines of Python + Go</span></div>
+        <div><strong>31 / 31</strong><span>tests green</span></div>
+        <div><strong>8 seed</strong><span>skill bundles</span></div>
+        <div><strong>4 planes</strong><span>Surface · Control · Execution · Compute</span></div>
+        <div><strong>0 SaaS</strong><span>nothing leaves your box</span></div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============== PROBLEM / SOLUTION ============== */}
+  <section class="section">
+    <div class="container narrow">
+      <div class="center">
+        <span class="eyebrow">why plnt</span>
+        <h2>Cloud agents are vendor-shaped. <br/>plnt is hardware-shaped.</h2>
+        <p class="lead dim center" style="margin: 1rem auto 0; max-width: 60ch;">
+          Today's agent platforms live in someone else's data center, behind someone else's
+          API, with someone else's storage primitive. plnt inverts every default.
+        </p>
+      </div>
+
+      <div class="compare mt-5">
+        <div class="col bad">
+          <span class="tag">Cloud agent SaaS</span>
+          <h3>$50–200 / month</h3>
+          <ul>
+            <li>Your prompts, files, and history sit in vendor storage</li>
+            <li>API rate limits become product limits</li>
+            <li>State machine is a hidden database you cannot inspect</li>
+            <li>Memory layer is an SDK you have to learn</li>
+            <li>Migrations are vendor lock-in by design</li>
+          </ul>
+        </div>
+        <div class="col good">
+          <span class="tag">plnt — local-first</span>
+          <h3>~$1 / month electricity</h3>
+          <ul>
+            <li>Files live on your disk in <code>$PLNT_HOME</code></li>
+            <li>Inference runs on Ollama / MLX, optionally federated via exo</li>
+            <li>Every event is one JSONL line — <code>cat</code> is the admin UI</li>
+            <li>Skills are markdown files versioned by git</li>
+            <li>Survives sessions, survives vendor cycles, survives funding rounds</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============== HOW IT WORKS ============== */}
+  <section class="section tinted" id="how">
+    <div class="container">
+      <span class="eyebrow">how it works</span>
+      <h2>From intent to result, on your hardware.</h2>
+      <p class="lead dim" style="max-width: 64ch;">
+        Three steps. No daemons to babysit. No accounts to provision. No deploys to coordinate.
+      </p>
+
+      <div class="steps mt-5">
+        <div class="step">
+          <span class="num">01 · INSTALL</span>
+          <h3>One <code>pip install</code></h3>
+          <p>Clone the repo and install in editable mode. Optionally point at a local Ollama. The offline echo backend works with no LLM at all.</p>
+        </div>
+        <div class="step">
+          <span class="num">02 · SUBMIT</span>
+          <h3>One intent, plain language</h3>
+          <p>Run <code>plnt submit "find anything on agent memory in my Documents"</code>. The planner triages, plans a DAG, and spawns ephemeral micro-agents in sandboxes.</p>
+        </div>
+        <div class="step">
+          <span class="num">03 · TAIL</span>
+          <h3>Watch it think on disk</h3>
+          <p>Every event lands in <code>events.jsonl</code> as it happens. The result is a markdown file in <code>~/Desktop</code>. The audit log is a <code>cat</code> away.</p>
+        </div>
+      </div>
+
+      <div class="mt-4 center">
+        <a class="btn primary" href="/docs/getting-started/quickstart/">Read the quickstart <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  {/* ============== ARCHITECTURE ============== */}
+  <section class="section">
+    <div class="container">
+      <div class="split">
+        <div>
+          <span class="eyebrow">architecture</span>
+          <h2>Four planes. <br/>One hard contract.</h2>
+          <p class="lead">
+            plnt is split into four planes with hard responsibility boundaries.
+            The only object that crosses <strong>Control → Execution</strong> is the
+            <code>AgentSpec</code>. Everything you want to enforce on a spawn lives on it.
+          </p>
+          <ul class="bullet-list">
+            <li><strong>Surface</strong> — task panels on your devices.</li>
+            <li><strong>Control</strong> — one resident process owning identity + memory.</li>
+            <li><strong>Execution</strong> — ephemeral sandboxed micro-agents.</li>
+            <li><strong>Compute</strong> — OpenAI-compatible router with offline fallback.</li>
+          </ul>
+          <div class="mt-3">
+            <a class="btn" href="/architecture">Full deep dive <span class="arrow">→</span></a>
           </div>
-          <SpawnTree />
-          <div class="tree-footer">
-            <span class="dim">soil = your filesystem</span>
-            <span class="brand-text">leaves = ephemeral agents</span>
+        </div>
+        <div>
+          <ArchDiagram />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============== INTENT FLOW (CONCRETE EXAMPLE) ============== */}
+  <section class="section tinted">
+    <div class="container">
+      <div class="center">
+        <span class="eyebrow">one intent · end to end</span>
+        <h2>"Catch me up on agent memory papers by 7am."</h2>
+        <p class="lead dim center" style="margin: 1rem auto 0; max-width: 56ch;">
+          A single intent traverses the system. Resident specialists decide work plans.
+          Ephemeral micro-agents do the legwork. ACC and the budget governor watch the
+          streams in real time.
+        </p>
+      </div>
+      <div class="mt-5">
+        <SpawnGraph />
+      </div>
+      <div class="kpis mt-4">
+        <div class="kpi"><strong>12 papers</strong><span>scanned</span></div>
+        <div class="kpi"><strong>12 minutes</strong><span>wall-clock</span></div>
+        <div class="kpi"><strong>$0</strong><span>cloud spend</span></div>
+        <div class="kpi"><strong>0 bytes</strong><span>left your box</span></div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============== KEY CHOICES ============== */}
+  <section class="section">
+    <div class="container">
+      <span class="eyebrow">design choices</span>
+      <h2>Six decisions that shape everything.</h2>
+      <p class="lead dim" style="max-width: 62ch;">
+        Each row is a hill plnt is willing to die on. The "why" column is the receipt.
+      </p>
+      <table class="tbl mt-4">
+        <thead><tr><th style="width: 40%;">Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          {choices.map((c) => (
+            <tr>
+              <td><strong>{c.choice}</strong></td>
+              <td class="dim">{c.why}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {/* ============== OSS STORY ============== */}
+  <section class="section tinted">
+    <div class="container">
+      <div class="split">
+        <div>
+          <span class="eyebrow">open source</span>
+          <h2>Built so you can fork it on Friday.</h2>
+          <p class="lead">
+            plnt ships under <strong>Apache 2.0</strong>. The runtime is ~4,800 lines of Python.
+            The TUI client is Go. There is no telemetry, no opt-in analytics, no anonymized usage data.
+            What you run is what you can read.
+          </p>
+          <p>
+            We hold three things on the roadmap and refuse to change them: <strong>no database</strong>,
+            <strong>no HTTP bus between planner and specialists</strong>, and <strong>no MCP</strong>.
+            Adding any of these would invert the project's posture.
+          </p>
+          <div class="cta mt-3">
+            <a class="btn primary" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">View source <span class="arrow">→</span></a>
+            <a class="btn" href="/roadmap">Roadmap</a>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <h3>Four planes</h3>
+            <p>Surface, Control, Execution, Compute — each owns one responsibility, with one hard contract between.</p>
+          </div>
+          <div class="card">
+            <div class="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3>Two tools</h3>
+            <p><code>search</code> and <code>execute</code>. The RLM pattern. Context lives in the filesystem; everything else is reachable through these.</p>
+          </div>
+          <div class="card">
+            <div class="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+            </div>
+            <h3>Sandbox ladder</h3>
+            <p>process → docker → gVisor → Firecracker. Climb only when the threat model demands it.</p>
+          </div>
+          <div class="card">
+            <div class="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <h3>Skills are markdown</h3>
+            <p>One <code>prompt.md</code> and one <code>skill.toml</code>. Hot-reloaded on file change. Versioned by git.</p>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="hero-banner container">
-      <p class="tag">a worker that runs while you sleep. an audit trail you can <code>cat</code>.</p>
-      <a class="btn primary" href="/docs/getting-started/install/">Install plnt →</a>
-    </div>
   </section>
 
-  <section class="section">
+  {/* ============== CTA ============== */}
+  <section class="section dark">
     <div class="container">
-      <SectionRule num="01" title="Three lines" />
-      <div class="three-lines">
-        <p><span class="num-tag">§ 01</span> <strong>No cloud lock-in.</strong> The default backend is local Ollama. Cloud is a fallback when the external SSD with the models isn't mounted. Every router decision lands in <code>events.jsonl</code> so <code>grep</code> is a real audit query.</p>
-        <p><span class="num-tag">§ 02</span> <strong>No database.</strong> Memory is JSONL + markdown + (later) a FAISS sidecar. Every observable event is one line. If <code>cat</code> can't see it, it doesn't exist as state.</p>
-        <p><span class="num-tag">§ 03</span> <strong>No vendor lock-in.</strong> Skills are markdown files the framework owns. The model is a swappable backend. No MCP. No SDK in the middle.</p>
+      <div class="center">
+        <h2 style="color: #fff;">Run an agent on your own hardware.</h2>
+        <p style="color: #c8cdd6; font-size: 1.0625rem; max-width: 52ch; margin: 1rem auto 2rem;">
+          Two commands. Five minutes. No accounts.
+        </p>
       </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <SectionRule num="02" title="Key choices · why" />
-      <div class="row-table">
-        {choices.map((c) => <KeyChoice choice={c.choice} why={c.why} />)}
+      <div class="cta-block">
+        <TerminalWindow title="install · plnt — bash">
+<div><span class="cmt"># clone + install (editable)</span></div>
+<div><span class="prompt">$</span> git clone https://github.com/devdattatalele/plnt</div>
+<div><span class="prompt">$</span> cd plnt && pip install -e <span class="str">".[dev]"</span></div>
+<div style="margin-top: 0.65rem;"><span class="cmt"># submit your first intent (offline echo works with no LLM)</span></div>
+<div><span class="prompt">$</span> plnt submit <span class="str">"list five interesting things in $PWD"</span></div>
+<div style="margin-top: 0.65rem;"><span class="cmt"># or run the server + Bubble Tea TUI</span></div>
+<div><span class="prompt">$</span> plnt up &</div>
+<div><span class="prompt">$</span> ./plnt-tui-bin</div>
+        </TerminalWindow>
       </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <SectionRule num="03" title="One intent, end to end" />
-      <p class="dim" style="max-width: 64ch; margin-bottom: 1.5rem;">
-        A single intent traverses the system. Nothing leaves the user's hardware.
-        Red annotations are the <code>ACC</code> monitor and the budget governor watching the streams.
-      </p>
-
-      <pre class="flow-diagram">
-<span class="anno">user intent</span>          <span class="dim">"catch me up on agent memory papers by 7am"</span>
-        <span class="pipe">│</span>
-     <span class="step">Surface</span>          <span class="dim">record run_id · open event stream</span>
-        <span class="pipe">│</span>
-   <span class="step">Planner LLM</span>        <span class="dim">route to owner specialist</span>
-        <span class="pipe">│</span>
- <span class="step">research-librarian</span>   <span class="dim">(resident) decide work plan</span>
-        <span class="pipe">│</span>
-<span class="step">AgentSpec[ literature-scout ]</span>     <span class="dim">search ~/Documents · arXiv → 12 candidates</span>
-        <span class="pipe">│</span>
-   <span class="pipe">┌────┼────┐</span>
-<span class="step">paper-reader</span>  <span class="step">paper-reader</span>  <span class="step">paper-reader</span>      <span class="dim">(4 papers each)</span>
-   <span class="pipe">└────┼────┘</span>
-        <span class="pipe">│</span>
-<span class="step">AgentSpec[ summarizer · model_hint=deep ]</span>   <span class="dim">exo cluster handles the heavy call</span>
-        <span class="pipe">│</span>                                <span class="red">↑ ACC monitor — watching streams</span>
-<span class="step">~/Desktop/agent-memory-2026-06-13.md</span>      <span class="dim">+ episodic log entry</span>
-        <span class="pipe">│</span>                                <span class="red">↑ Budget governor — meter spend</span>
-   <span class="step">▸ phone notification</span>   <span class="dim">"summary ready · 12 papers · 12 min · $0"</span>
-      </pre>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container narrow">
-      <SectionRule num="04" title="What we achieve" />
-      <p class="lead" style="font-size: 1.125rem; line-height: 1.65;">
-        A personal agent that survives sessions and stays on your hardware.
-        A worker that runs while you sleep. An audit trail you can <code>cat</code>.
-        A skills ecosystem that is just <code>git</code>. An architecture immune to vendor cycles.
-      </p>
-      <p class="dim" style="margin-top: 1.5rem;">
-        Roughly <span class="brand-text">$1/month in electricity</span> vs the
-        $50–200/month a cloud-hosted equivalent would cost. No vendor watching.
-        No SaaS that disappears when funding does.
-      </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container narrow">
-      <SectionRule num="05" title="Install" />
-      <pre><code><span class="dim"># clone + install</span>
-git clone https://github.com/devdattatalele/plnt
-cd plnt && pip install -e .
-
-<span class="dim"># submit an intent (offline echo backend works with no LLM)</span>
-plnt submit <span class="brand-text">"list five interesting things in $PWD"</span>
-
-<span class="dim"># or run the server + the Bubble Tea TUI</span>
-plnt up &
-./plnt-tui-bin</code></pre>
-
-      <div style="display:flex; gap:0.75rem; flex-wrap: wrap; margin-top: 2rem;">
-        <a class="btn primary" href="/docs/getting-started/quickstart/">Read the quickstart →</a>
-        <a class="btn" href="/architecture">Read the architecture</a>
-        <a class="btn ghost" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub →</a>
+      <div class="cta center mt-4" style="justify-content: center;">
+        <a class="btn brand" href="/docs/getting-started/install/">Install plnt <span class="arrow">→</span></a>
+        <a class="btn ghost" style="color: #fff; border-color: #2a2f37;" href="/docs/">Browse docs</a>
+        <a class="btn ghost" style="color: #fff; border-color: #2a2f37;" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">Star on GitHub</a>
       </div>
     </div>
   </section>
@@ -196,195 +327,174 @@ plnt up &
 </Layout>
 
 <style>
+  /* ===== HERO ===== */
   .hero {
+    padding: clamp(4rem, 7vw, 6rem) 0 clamp(3rem, 6vw, 5rem);
+    background:
+      radial-gradient(ellipse at 75% 0%, var(--brand-tint) 0%, transparent 50%),
+      radial-gradient(ellipse at 0% 100%, #fef9f0 0%, transparent 60%),
+      var(--bg);
     position: relative;
-    border-bottom: 1px solid var(--rule);
     overflow: hidden;
   }
-  .hero::before {
-    /* faint background JSONL drift — a stylized log "rain" */
+  .hero::after {
     content: '';
     position: absolute;
     inset: 0;
-    background-image:
-      radial-gradient(circle at 80% 15%, var(--brand-soft) 0%, transparent 45%),
-      radial-gradient(circle at 5% 90%, var(--brand-soft) 0%, transparent 55%);
-    opacity: 0.55;
+    background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: -1px -1px;
+    opacity: 0.4;
+    mask-image: radial-gradient(ellipse at 50% 0%, black, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black, transparent 70%);
     pointer-events: none;
-    z-index: 0;
   }
-  .hero-inner {
-    position: relative;
-    z-index: 1;
+  .hero-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 3rem;
-    padding: clamp(3rem, 6vw, 5.5rem) 0 clamp(2.5rem, 5vw, 4rem);
-    align-items: start;
-  }
-  @media (min-width: 1020px) {
-    .hero-inner {
-      grid-template-columns: 1.05fr 1fr;
-      gap: 4rem;
-    }
-  }
-
-  .status-strip {
-    display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
-    padding-bottom: 0.5rem;
-    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
   }
-  .status-strip .dot {
-    width: 8px;
-    height: 8px;
-    background: var(--brand);
-    box-shadow: 0 0 0 3px rgba(125, 211, 160, 0.16);
+  @media (min-width: 1024px) {
+    .hero-grid { grid-template-columns: 1.05fr 1fr; gap: 3.5rem; }
   }
-  .status-strip .mono-caps { color: var(--brand); }
-
-  .wordmark {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 800;
-    font-size: clamp(2.5rem, 8vw, 5.5rem);
-    line-height: 0.9;
-    letter-spacing: -0.04em;
-    color: var(--ink);
-  }
-  .wordmark .wm-sprout {
-    width: 0.85em;
-    height: 0.85em;
+  .hero-left { max-width: 38rem; }
+  .hero-left .pill { margin-bottom: 1.5rem; }
+  .hero h1 .grad {
     color: var(--brand);
-    display: inline-flex;
+    background: linear-gradient(90deg, var(--brand) 0%, var(--brand-1) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  .wordmark .wm-sprout svg { width: 100%; height: 100%; }
-  .wordmark .wm-tail { color: var(--brand); }
-  .subline {
-    margin: 0.75rem 0 0;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.32em;
-    color: var(--ink-dim);
-  }
-
-  .hero-claim { margin-top: clamp(2rem, 4vw, 3rem); max-width: 38rem; }
-  .hero-claim h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); letter-spacing: -0.02em; line-height: 1.1; }
-  .hero-claim h1 .brand-mark {
-    background: linear-gradient(to right, var(--brand) 0%, var(--brand) 100%);
-    background-position: 0 92%;
-    background-repeat: no-repeat;
-    background-size: 100% 3px;
-    padding-bottom: 0.05em;
-    color: var(--ink);
-  }
-  .hero-claim .lead {
+  .hero p.lead {
     margin-top: 1.5rem;
-    color: var(--ink);
-    font-size: 1rem;
-    line-height: 1.65;
+    color: var(--ink-2);
   }
-  .cta-row {
+  .hero .cta {
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
     margin-top: 2rem;
   }
-
-  /* "terminal frame" around the spawn tree */
-  .tree-frame {
-    background: #060606;
-    border: 1px solid var(--rule-strong);
-    box-shadow: 0 0 0 1px rgba(125, 211, 160, 0.06);
-  }
-  .tree-header,
-  .tree-footer {
+  .hero-meta {
+    margin-top: 1.75rem;
+    color: var(--ink-4);
+    font-size: 0.875rem;
     display: flex;
-    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
     align-items: center;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.22em;
-    color: var(--ink-faint);
+  }
+  .hero-meta strong { color: var(--ink-2); font-weight: 600; }
+  .hero-meta .dotsep { color: var(--ink-5); }
+  .hero-right { width: 100%; }
+  .hero-caption {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  .logstream-frame {
+    min-height: 320px;
+  }
+
+  /* ===== STRIP ===== */
+  .strip {
+    background: var(--bg-elev);
+    border-top: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
+    padding: 1.75rem 0;
   }
-  .tree-footer { border-bottom: 0; border-top: 1px solid var(--rule); }
-  .dot-row { display: flex; gap: 0.4rem; }
-  .dot-row .d { width: 8px; height: 8px; opacity: 0.7; }
-  .dot-row .d.r { background: var(--accent-red); }
-  .dot-row .d.a { background: var(--accent-amber); }
-  .dot-row .d.g { background: var(--brand); }
-  .tree-frame > pre { padding: 1.25rem 1rem; }
-  .brand-text { color: var(--brand); }
-
-  .hero-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .strip-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
-    padding: 1.5rem 0;
-    border-top: 1px solid var(--rule-strong);
-    position: relative;
-    z-index: 1;
+    text-align: left;
   }
-  .hero-banner .tag {
-    font-size: clamp(1rem, 2.2vw, 1.5rem);
+  @media (min-width: 880px) { .strip-grid { grid-template-columns: repeat(5, 1fr); } }
+  .strip-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .strip-grid strong {
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--ink);
-    margin: 0;
-    max-width: none;
+    letter-spacing: -0.02em;
   }
-  .hero-banner .tag code { color: var(--brand); }
-
-  .btn.primary {
-    background: var(--brand);
-    color: #0a1410;
-    border-color: var(--brand);
-  }
-  .btn.primary:hover { background: #95e1b3; color: #0a1410; border-color: #95e1b3; }
-  .btn.ghost { border-color: var(--rule-strong); color: var(--ink-dim); }
-  .btn.ghost:hover { color: var(--ink); border-color: var(--ink); background: transparent; }
-
-  /* === SECTIONS === */
-  .three-lines p {
-    max-width: 70ch;
-    margin-bottom: 1.5rem;
-    font-size: 1rem;
-    color: var(--ink-dim);
-  }
-  .three-lines p strong { color: var(--ink); font-weight: 500; }
-  .three-lines .num-tag {
-    display: inline-block;
-    min-width: 3.5rem;
-    color: var(--brand);
-    font-size: 0.75rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    margin-right: 0.5rem;
-  }
-
-  .flow-diagram {
-    font-family: var(--font);
+  .strip-grid span {
+    color: var(--ink-4);
     font-size: 0.8125rem;
-    line-height: 1.7;
-    color: var(--ink);
-    white-space: pre;
-    overflow-x: auto;
-    padding: 1.25rem 1.5rem;
-    background: #060606;
-    border: 1px solid var(--rule);
-    margin: 0;
   }
-  .flow-diagram .step { color: var(--ink); font-weight: 500; }
-  .flow-diagram .dim { color: var(--ink-dim); }
-  .flow-diagram .pipe { color: var(--brand-dim); }
-  .flow-diagram .red { color: var(--accent-red); font-size: 0.75rem; }
-  .flow-diagram .anno { color: var(--brand); font-weight: 700; }
 
-  @media (max-width: 720px) {
-    .flow-diagram { font-size: 0.6875rem; padding: 1rem; }
-    .hero-banner { flex-direction: column; align-items: flex-start; }
+  /* ===== KPIs ===== */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  @media (min-width: 880px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+  .kpi {
+    background: var(--bg-elev);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    text-align: center;
+  }
+  .kpi strong {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .kpi span {
+    color: var(--ink-4);
+    font-size: 0.8125rem;
+    margin-top: 0.15rem;
+    display: block;
+  }
+
+  /* ===== SPLIT ===== */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+  @media (min-width: 980px) { .split { grid-template-columns: 1fr 1.1fr; gap: 3.5rem; } }
+
+  /* ===== BULLET ===== */
+  .bullet-list { list-style: none; padding: 0; margin: 1.25rem 0 0; }
+  .bullet-list li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.55rem;
+    color: var(--ink-3);
+  }
+  .bullet-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 7px;
+    height: 7px;
+    background: var(--brand);
+    border-radius: 50%;
+  }
+  .bullet-list strong { color: var(--ink); font-weight: 600; }
+
+  /* ===== CTA block ===== */
+  .cta-block {
+    max-width: 760px;
+    margin: 2.5rem auto 0;
+  }
+
+  /* compact pill in nav */
+  :global(.pill.compact) {
+    font-size: 0.7rem !important;
+    padding: 0.15rem 0.5rem;
   }
 </style>

@@ -1,45 +1,18 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import SectionRule from '../components/SectionRule.astro';
+import ArchDiagram from '../components/ArchDiagram.astro';
+import SpawnGraph from '../components/SpawnGraph.astro';
+import TerminalWindow from '../components/TerminalWindow.astro';
+import LogStream from '../components/LogStream.astro';
 import { Code } from 'astro:components';
 
 const title = 'Architecture — plnt';
 const description = 'Four planes. AgentSpec as the only contract. Blackboard as the audit story. Two tools only. The sandbox is a ladder.';
 
-const planes = [
-  {
-    kind: 'surface',
-    name: 'Surface',
-    title: 'Task panels on your devices',
-    summary: 'Where intents land and results return. JSON-RPC + Server-Sent Events. The TUI, CLI, and any future phone/web client all speak this.',
-    modules: ['plnt/surface/server.py', 'plnt/cli.py', 'plnt-tui/ (Go / Bubble Tea)'],
-  },
-  {
-    kind: 'control',
-    name: 'Control',
-    title: 'One resident process — the brain',
-    summary: 'Triage → plan → DAG → spawn → govern → synthesize. The planner LLM emits an AgentSpec; the orchestrator harvests filesystem paths so the model cannot hallucinate them. ACC monitors loops, fanout, ping-pong. Budget governor enforces hard caps.',
-    modules: ['orchestrator.py', 'planner_llm.py', 'triage.py · dag.py · synthesizer.py', 'parallel.py · skills.py · skill_installer.py', 'clarify.py · budget.py · acc.py'],
-  },
-  {
-    kind: 'execution',
-    name: 'Execution',
-    title: 'Ephemeral micro-agents in sandboxes',
-    summary: 'Each AgentSpec becomes a process (or container) running the RLM loop. Two tools, ever: search and execute. Every observable event is one JSONL line on the blackboard. A SIGTERM kill still emits a transcript summary.',
-    modules: ['spec.py (AgentSpec)', 'blackboard.py', 'runner.py', 'sandbox/process.py · sandbox/docker.py', 'tools/search.py · tools/execute.py'],
-  },
-  {
-    kind: 'compute',
-    name: 'Compute',
-    title: 'Local inference, optionally federated',
-    summary: 'OpenAI-compatible router. Local Ollama / LM Studio by default; cloud fallback when the SSD with the models isn\'t mounted; deterministic offline echo when neither is reachable (so tests run without an LLM at all).',
-    modules: ['router.py', 'backend_picker.py'],
-  },
-];
-
 const agentSpecCode = `class AgentSpec(BaseModel):
+    # Identity
     id: str = Field(default_factory=lambda: f"a-{uuid.uuid4().hex[:10]}")
-    role: str                                                  # → skills/<role>.md
+    role: str                                      # → skills/<role>.md
     run_id: str
     parent_id: str | None = None
     depth: int = Field(default=0, ge=0, le=HARD_MAX_DEPTH)
@@ -71,20 +44,8 @@ const eventKindCode = `EventKind = Literal[
     "log", "model_call", "model_result", "budget_tick",
     "result", "error", "killed", "finished",
 ]
-# Orchestration layer additionally emits:
+# Orchestration also emits:
 #   "triage_start", "triage", "plan", "fs_change"`;
-
-const eventsJsonl = `{"ts":1781445433.337,"run_id":"r-2a5c42e150","kind":"intent","payload":{"text":"ans"}}
-{"ts":1781445433.338,"run_id":"r-2a5c42e150","kind":"triage_start"}
-{"ts":1781445433.339,"run_id":"r-2a5c42e150","kind":"triage","payload":{"kind":"simple_task","reason":"triage unparseable → default simple","estimated_agents":0}}
-{"ts":1781445433.352,"run_id":"r-2a5c42e150","kind":"plan","payload":{"agent_count":1,"agents":[{"id":"a-6e038660","role":"general-helper","depends_on":[]}]}}
-{"ts":1781445433.353,"run_id":"r-2a5c42e150","kind":"spawn","agent_id":"a-6e038660","payload":{"role":"general-helper","depth":0,"isolation":"process","tools":["search","execute"],"model_hint":"small"}}
-{"ts":1781445433.487,"run_id":"r-2a5c42e150","kind":"started","agent_id":"a-6e038660"}
-{"ts":1781445433.566,"run_id":"r-2a5c42e150","kind":"model_call","agent_id":"a-6e038660","payload":{"step":1,"model_hint":"small"}}
-{"ts":1781445433.567,"run_id":"r-2a5c42e150","kind":"tool_call","agent_id":"a-6e038660","payload":{"step":1,"tool":"search","args":{"pattern":".","root":"/Users/dev16/Documents/plnt"}}}
-{"ts":1781445433.567,"run_id":"r-2a5c42e150","kind":"tool_result","agent_id":"a-6e038660","payload":{"step":1,"tool":"search","ok":true}}
-{"ts":1781445434.012,"run_id":"r-2a5c42e150","kind":"result","agent_id":"a-6e038660","payload":{"text":"..."}}
-{"ts":1781445434.013,"run_id":"r-2a5c42e150","kind":"finished","agent_id":"a-6e038660","payload":{"exit":"ok"}}`;
 
 const toolsCode = `def search(
     pattern: str,
@@ -96,8 +57,7 @@ const toolsCode = `def search(
     file_glob: str | None = None,
 ) -> list[SearchHit]:
     """Search 'pattern' (regex) under 'root'. Any path outside
-    allowed_roots raises SearchError. Ripgrep when available,
-    pure-Python fallback otherwise."""
+    allowed_roots raises SearchError."""
 
 def execute(
     argv: list[str],
@@ -109,8 +69,7 @@ def execute(
     env: dict[str, str] | None = None,
 ) -> ExecuteResult:
     """Bounded child process. argv list — no shell interpolation.
-    Blocks 'sudo', 'su', 'doas'. workdir ⊆ allowed_roots.
-    stdout capped at 256 KB; overflow sets truncated=True."""`;
+    Blocks sudo / su / doas. workdir ⊆ allowed_roots."""`;
 
 const skillPromptMd = `You are literature-scout — an ephemeral micro-agent the
 research-librarian spawns to locate candidate sources.
@@ -127,8 +86,7 @@ Stop as soon as you have a candidate list.`;
 const skillToml = `[meta]
 name = "literature-scout"
 version = "0.2"
-description = "Ephemeral micro-agent: surface candidate papers for the librarian"
-tags = ["research", "scout", "ephemeral"]
+description = "Surface candidate papers for the librarian"
 
 [runtime]
 model_hint = "small"
@@ -142,73 +100,63 @@ wall_seconds = 120
 [output]
 schema = "object"
 required = ["candidates"]`;
+
+const realLog = [
+  { ts: '04:17:33', kind: 'intent', payload: '<span class="v">"find anything on agent memory in my Documents"</span>' },
+  { ts: '04:17:33', kind: 'plan', payload: 'agent_count=1 · general-helper' },
+  { ts: '04:17:33', kind: 'spawn', payload: 'a-6e038660 · role=general-helper · isolation=process' },
+  { ts: '04:17:33', kind: 'model_call', payload: 'step=1 · model_hint=small' },
+  { ts: '04:17:33', kind: 'tool_call', payload: 'search("agent memory", "~/Documents")' },
+  { ts: '04:17:34', kind: 'tool_result', payload: 'ok · 17 hits' },
+  { ts: '04:17:34', kind: 'result', payload: '<span class="v">~/Desktop/plnt-r-2a5c42e150.md</span>' },
+  { ts: '04:17:34', kind: 'finished', payload: 'exit=ok · wall_seconds=0.9 · tokens=412' },
+];
 ---
 
 <Layout title={title} description={description} path="/architecture">
 
-  <section class="section" style="padding-top: clamp(3rem, 6vw, 5rem);">
-    <div class="container">
-      <span class="eyebrow">§ 00 — architecture</span>
-      <h1 style="margin-top: 1.25rem;">Four planes.<br/>One hard contract.</h1>
-      <p class="dim lead" style="margin-top: 1.5rem; max-width: 60ch;">
+  <section class="section" style="padding-top: clamp(3.5rem, 6vw, 5rem); padding-bottom: clamp(2.5rem, 5vw, 3.5rem);">
+    <div class="container narrow center">
+      <span class="eyebrow">architecture</span>
+      <h1>Four planes. One hard contract.</h1>
+      <p class="lead dim" style="margin: 1.25rem auto 0; max-width: 60ch;">
         Surface, Control, Execution, Compute — each owns one responsibility.
-        The only object that crosses Control → Execution is the
-        <code>AgentSpec</code>. Anything you want to enforce on a spawn lives on it.
+        The only object that crosses Control → Execution is the <code>AgentSpec</code>.
+        Everything you want to enforce on a spawn lives on it.
       </p>
     </div>
   </section>
 
-  <section class="section">
+  <section class="section" style="padding-top: 0;">
     <div class="container">
-      <SectionRule num="01" title="The four planes" />
-      <div class="planes">
-        {planes.map((p) => (
-          <div class={`plane-row ${p.kind}`}>
-            <div>
-              <div class="name">{p.name} plane</div>
-              <div class="title">{p.title}</div>
-            </div>
-            <div>
-              <p class="summary">{p.summary}</p>
-              <div class="modules">{p.modules.join(' · ')}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ArchDiagram />
     </div>
   </section>
 
-  <section class="section">
+  <section class="section tinted">
     <div class="container">
-      <SectionRule num="02" title="Hard rules" />
-      <div class="numbered-list">
-        <div class="item">
-          <div class="n">RULE 01</div>
-          <div class="body">
-            <strong>AgentSpec is the only Control → Execution object.</strong>
-            <p class="dim">Role, search roots, token + wall-second budget, isolation rung, tools — everything the control plane wants to enforce on a spawn is on the spec. Nothing else crosses the boundary.</p>
-          </div>
+      <span class="eyebrow">hard rules</span>
+      <h2>Four rules the codebase enforces.</h2>
+      <div class="grid-2 mt-4">
+        <div class="card">
+          <span class="tag">rule 01</span>
+          <h3>AgentSpec is the only contract</h3>
+          <p>Role, search roots, token + wall-second budget, isolation rung, tools — everything Control wants to enforce on a spawn is on the spec. Nothing else crosses the boundary.</p>
         </div>
-        <div class="item">
-          <div class="n">RULE 02</div>
-          <div class="body">
-            <strong>Two tools, ever — <code>search</code> and <code>execute</code>.</strong>
-            <p class="dim">The Restricted Language Model pattern. Context lives in the filesystem; anything else is reachable through these. There is no third tool. There will not be a third tool.</p>
-          </div>
+        <div class="card">
+          <span class="tag">rule 02</span>
+          <h3>Two tools, ever</h3>
+          <p><code>search</code> and <code>execute</code>. The Restricted Language Model pattern. Context lives in the filesystem; anything else is reachable through these. There will not be a third.</p>
         </div>
-        <div class="item">
-          <div class="n">RULE 03</div>
-          <div class="body">
-            <strong>Blackboard is the audit story.</strong>
-            <p class="dim">Every observable event is one JSONL line: <code>intent → spawn → started → model_call → tool_call → tool_result → result → finished</code>. SIGTERM kills still emit a <code>transcript-summary</code>.</p>
-          </div>
+        <div class="card">
+          <span class="tag">rule 03</span>
+          <h3>Blackboard is the audit story</h3>
+          <p>Every observable event is one JSONL line: <code>intent → spawn → started → model_call → tool_call → tool_result → result → finished</code>. SIGTERM kills still emit a <code>transcript-summary</code>.</p>
         </div>
-        <div class="item">
-          <div class="n">RULE 04</div>
-          <div class="body">
-            <strong>The framework owns memory, skills, and the sandbox.</strong>
-            <p class="dim">The model is a swappable backend. Skills are markdown the framework reads on file-change. No MCP. No vendor-controlled SDK in the middle.</p>
-          </div>
+        <div class="card">
+          <span class="tag">rule 04</span>
+          <h3>Framework owns memory + skills + sandbox</h3>
+          <p>The model is a swappable backend. Skills are markdown files the framework reads on file change. No MCP. No vendor-controlled SDK in the middle.</p>
         </div>
       </div>
     </div>
@@ -216,77 +164,49 @@ required = ["candidates"]`;
 
   <section class="section">
     <div class="container">
-      <SectionRule num="03" title="AgentSpec — the only contract" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        From <code>plnt/execution/spec.py</code>. Pydantic <code>BaseModel</code>.
-        Every spawn boundary in the system is one of these.
-      </p>
-      <Code code={agentSpecCode} lang="python" theme="vesper" />
+      <div class="split">
+        <div>
+          <span class="eyebrow">execution · spec.py</span>
+          <h2>AgentSpec</h2>
+          <p class="lead dim">
+            From <code>plnt/execution/spec.py</code>. Every spawn boundary in the system is
+            one of these — a Pydantic <code>BaseModel</code> with budget, isolation, and tool fields.
+          </p>
+          <ul class="bullet-list">
+            <li><strong>Identity.</strong> auto-generated <code>id</code>, parent_id, depth (hard-capped).</li>
+            <li><strong>Capability.</strong> isolation rung, two-tool default, lifetime.</li>
+            <li><strong>I/O.</strong> inputs, output schema, blackboard scope glob.</li>
+            <li><strong>Budget.</strong> tokens, wall-seconds, joules — enforced by the governor.</li>
+          </ul>
+        </div>
+        <div>
+          <TerminalWindow title="plnt/execution/spec.py">
+            <Code code={agentSpecCode} lang="python" theme="github-dark-default" />
+          </TerminalWindow>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="section tinted">
     <div class="container">
-      <SectionRule num="04" title="Blackboard event types" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        From <code>plnt/execution/blackboard.py</code>. Every observable
-        change of state in the system is one of these.
-      </p>
-      <Code code={eventKindCode} lang="python" theme="vesper" />
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <SectionRule num="05" title="A real events.jsonl" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        Captured from run <code>r-2a5c42e150</code>. The audit trail is the
-        source of truth — every UI, every dashboard, every replay walks this file.
-      </p>
-      <details>
-        <summary>Show 11 representative lines</summary>
-        <div style="margin-top: 1rem;">
-          <Code code={eventsJsonl} lang="json" theme="vesper" />
+      <div class="split">
+        <div>
+          <TerminalWindow title="plnt/execution/blackboard.py">
+            <Code code={eventKindCode} lang="python" theme="github-dark-default" />
+          </TerminalWindow>
         </div>
-      </details>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <SectionRule num="06" title="The two tools" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        From <code>plnt/execution/tools/</code>. Both enforce <code>allowed_roots</code>
-        as a hard security boundary. <code>execute</code> additionally caps stdout
-        and blocks privilege escalation.
-      </p>
-      <Code code={toolsCode} lang="python" theme="vesper" />
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <SectionRule num="07" title="The sandbox is a ladder" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        Climb only when the threat model demands it. Two rungs ship today;
-        two are registered as stubs ready to be wired in.
-      </p>
-      <div class="row-table">
-        <div class="row">
-          <div class="choice"><strong>Rung 0 — process</strong> · shipping</div>
-          <div class="why">Subprocess + rlimits + watchdog. The default. ~273 LOC at <code>execution/sandbox/process.py</code>.</div>
-        </div>
-        <div class="row">
-          <div class="choice"><strong>Rung 1 — docker</strong> · shipping</div>
-          <div class="why">CPU and memory caps, parallel-safe via labelled containers. ~290 LOC at <code>execution/sandbox/docker.py</code>.</div>
-        </div>
-        <div class="row">
-          <div class="choice"><strong>Rung 2 — gVisor</strong> · future</div>
-          <div class="why">Stronger isolation without the VM cost. Registered as a stub in the sandbox registry.</div>
-        </div>
-        <div class="row">
-          <div class="choice"><strong>Rung 3 — Firecracker µVM</strong> · future</div>
-          <div class="why">Hard tenancy. Reserved for when the threat model demands it.</div>
+        <div>
+          <span class="eyebrow">execution · blackboard.py</span>
+          <h2>Blackboard event types</h2>
+          <p class="lead dim">
+            Every observable change of state is one JSONL line. If <code>cat</code> can't see it,
+            it doesn't exist as state.
+          </p>
+          <p>
+            The same file is the source of truth for the TUI, future dashboards, replays,
+            and your audit queries. No database. No second source of truth.
+          </p>
         </div>
       </div>
     </div>
@@ -294,54 +214,152 @@ required = ["candidates"]`;
 
   <section class="section">
     <div class="container">
-      <SectionRule num="08" title="A skill is one markdown file" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        Two files under <code>skills/&lt;role&gt;/</code>: a system prompt and a
-        TOML manifest. The framework hot-reloads on file change. Below:
-        <code>literature-scout</code>, an ephemeral scout spawned by the librarian.
-      </p>
+      <div class="center">
+        <span class="eyebrow">one intent, end to end</span>
+        <h2>From "papers by 7am" to a markdown file on your Desktop.</h2>
+        <p class="lead dim center" style="margin: 1rem auto 0; max-width: 56ch;">
+          A single intent traverses the system. ACC and the budget governor watch the streams in real time.
+        </p>
+      </div>
+      <div class="mt-5">
+        <SpawnGraph />
+      </div>
+    </div>
+  </section>
 
-      <h3 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.7rem;">skills/literature-scout/prompt.md</h3>
-      <Code code={skillPromptMd} lang="markdown" theme="vesper" />
-
-      <h3 style="margin-top: 2rem; margin-bottom: 0.75rem; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.7rem;">skills/literature-scout/skill.toml</h3>
-      <Code code={skillToml} lang="toml" theme="vesper" />
+  <section class="section tinted">
+    <div class="container">
+      <div class="split">
+        <div>
+          <span class="eyebrow">real run · r-2a5c42e150</span>
+          <h2>A live audit log.</h2>
+          <p class="lead dim">
+            Captured from a real run. The lifecycle is intent → triage → plan → spawn → model_call →
+            tool_call → tool_result → result → finished.
+          </p>
+          <p>
+            Every line is grep-able. Every backend decision lands here too —
+            <code>grep -F '"backend":"cloud"'</code> is a real audit query.
+          </p>
+        </div>
+        <div>
+          <TerminalWindow title="~/.plnt/runs/r-2a5c42e150/events.jsonl">
+            <LogStream events={realLog} />
+          </TerminalWindow>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="section">
     <div class="container">
-      <SectionRule num="09" title="The compute router" />
-      <p class="dim" style="margin-bottom: 1.25rem;">
-        Every model call resolves through <code>backend_picker.py</code>:
-      </p>
-      <div class="numbered-list">
-        <div class="item">
-          <div class="n">01</div>
-          <div class="body">
-            <strong>Local</strong>
-            <p class="dim">If <code>PLNT_REQUIRED_PATH</code> is mounted (or unset) and <code>PLNT_LOCAL_URL</code> (default <code>http://127.0.0.1:11434</code>) is reachable.</p>
-          </div>
+      <div class="split">
+        <div>
+          <span class="eyebrow">execution · tools/</span>
+          <h2>The two tools.</h2>
+          <p class="lead dim">
+            Every micro-agent gets exactly these — <code>search</code> and <code>execute</code>.
+            Both enforce <code>allowed_roots</code> as a hard security boundary.
+          </p>
+          <ul class="bullet-list">
+            <li><strong>search</strong> — regex match, ripgrep or pure-Python. Rejects paths outside the allow-list.</li>
+            <li><strong>execute</strong> — argv-only (no shell). Blocks sudo/su/doas. Caps stdout at 256 KB.</li>
+          </ul>
         </div>
-        <div class="item">
-          <div class="n">02</div>
-          <div class="body">
-            <strong>Cloud fallback</strong>
-            <p class="dim">If <code>PLNT_CLOUD_URL</code> + <code>PLNT_CLOUD_API_KEY</code> are configured and reachable.</p>
-          </div>
-        </div>
-        <div class="item">
-          <div class="n">03</div>
-          <div class="body">
-            <strong>Offline echo</strong>
-            <p class="dim">No backend reachable → deterministic echo. The test suite runs against this with no LLM at all.</p>
-          </div>
+        <div>
+          <TerminalWindow title="plnt/execution/tools/">
+            <Code code={toolsCode} lang="python" theme="github-dark-default" />
+          </TerminalWindow>
         </div>
       </div>
-      <p class="dim" style="margin-top: 1.5rem;">
-        Every switch lands in <code>events.jsonl</code> with a <code>backend</code> field,
-        so <code>grep -F '"backend":"cloud"'</code> is a real audit query.
+    </div>
+  </section>
+
+  <section class="section tinted">
+    <div class="container">
+      <span class="eyebrow">execution · sandbox/</span>
+      <h2>The sandbox is a ladder.</h2>
+      <p class="lead dim" style="max-width: 62ch;">
+        Climb only when the threat model demands it. Two rungs ship; two are registered as stubs.
       </p>
+      <div class="grid-4 mt-4">
+        <div class="card">
+          <span class="tag">rung 0 · shipping</span>
+          <h3>process</h3>
+          <p>Subprocess + rlimits + watchdog. The default. ~273 LOC at <code>sandbox/process.py</code>.</p>
+        </div>
+        <div class="card">
+          <span class="tag">rung 1 · shipping</span>
+          <h3>docker</h3>
+          <p>CPU and memory caps, parallel-safe via labelled containers. ~290 LOC.</p>
+        </div>
+        <div class="card">
+          <span class="tag">rung 2 · future</span>
+          <h3>gVisor</h3>
+          <p>User-space kernel isolation without the VM cost. Stub in the registry.</p>
+        </div>
+        <div class="card">
+          <span class="tag">rung 3 · future</span>
+          <h3>Firecracker µVM</h3>
+          <p>Hard tenancy. Reserved for when the threat model demands it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="split">
+        <div>
+          <span class="eyebrow">skills</span>
+          <h2>A skill is one markdown file.</h2>
+          <p class="lead dim">
+            Two files under <code>$PLNT_HOME/skills/&lt;role&gt;/</code> — a system prompt and a TOML manifest.
+            The framework hot-reloads on file change. No SDK. No vendor.
+          </p>
+          <p>The example: <code>literature-scout</code>, an ephemeral scout the research-librarian spawns.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <TerminalWindow title="skills/literature-scout/prompt.md">
+            <Code code={skillPromptMd} lang="markdown" theme="github-dark-default" />
+          </TerminalWindow>
+          <TerminalWindow title="skills/literature-scout/skill.toml">
+            <Code code={skillToml} lang="toml" theme="github-dark-default" />
+          </TerminalWindow>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tinted">
+    <div class="container narrow">
+      <span class="eyebrow">compute</span>
+      <h2>One router. Three backends.</h2>
+      <p class="lead dim">
+        Every model call resolves through <code>backend_picker.py</code> and is logged so
+        <code>grep -F '"backend":"cloud"'</code> is a real audit query.
+      </p>
+      <div class="grid-3 mt-4">
+        <div class="card">
+          <span class="tag">01 · local</span>
+          <h3>Ollama</h3>
+          <p><code>PLNT_REQUIRED_PATH</code> mounted and <code>PLNT_LOCAL_URL</code> reachable → local.</p>
+        </div>
+        <div class="card">
+          <span class="tag">02 · cloud</span>
+          <h3>OpenAI-compat</h3>
+          <p><code>PLNT_CLOUD_URL</code> + <code>PLNT_CLOUD_API_KEY</code> set and reachable → cloud fallback.</p>
+        </div>
+        <div class="card">
+          <span class="tag">03 · offline</span>
+          <h3>Deterministic echo</h3>
+          <p>No backend reachable → deterministic echo. The test suite runs against this — no LLM required.</p>
+        </div>
+      </div>
+      <div class="center mt-5">
+        <a class="btn brand" href="/docs/concepts/four-planes/">Read the docs <span class="arrow">→</span></a>
+        <a class="btn" style="margin-left: 0.5rem;" href="/roadmap">Roadmap</a>
+      </div>
     </div>
   </section>
 

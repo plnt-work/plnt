@@ -1,0 +1,17 @@
+---
+export interface Props {
+  title?: string;
+  class?: string;
+}
+const { title = 'plnt — bash', class: cls = '' } = Astro.props;
+---
+
+<div class={`terminal ${cls}`}>
+  <div class="chrome">
+    <span class="dots"><span></span><span></span><span></span></span>
+    <span>{title}</span>
+  </div>
+  <div class="body">
+    <slot />
+  </div>
+</div>

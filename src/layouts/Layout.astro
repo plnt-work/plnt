@@ -5,10 +5,9 @@ export interface Props {
   title: string;
   description: string;
   path?: string;
-  transparentNav?: boolean;
 }
 
-const { title, description, path = '/', transparentNav = false } = Astro.props;
+const { title, description, path = '/' } = Astro.props;
 const canonical = new URL(path, Astro.site).toString();
 const ogImage = new URL('/og.png', Astro.site).toString();
 
@@ -42,39 +41,45 @@ const jsonLd = {
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
-    <meta property="og:site_name" content="Plnt" />
+    <meta property="og:site_name" content="plnt" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
 
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#fafaf7" />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
-    <header class="site-nav" data-transparent={transparentNav}>
+    <header class="site-nav">
       <div class="container inner">
         <a href="/" class="brand bare">
           <span class="logomark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="square">
-              <rect x="5" y="16" width="14" height="5"/>
-              <line x1="12" y1="16" x2="12" y2="7"/>
-              <path d="M12 12 Q7.5 11 6.5 6 Q11 7 12 12 Z"/>
-              <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="16" width="14" height="5" />
+              <line x1="12" y1="16" x2="12" y2="7" />
+              <path d="M12 12 Q7.5 11 6.5 6 Q11 7 12 12 Z" />
+              <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z" />
             </svg>
           </span>
           <span>plnt</span>
+          <span class="pill compact" style="margin-left: 0.5rem;">v0 · pre-alpha</span>
         </a>
         <nav>
+          <a href="/#how">How it works</a>
           <a href="/architecture">Architecture</a>
           <a href="/docs/">Docs</a>
           <a href="/roadmap">Roadmap</a>
-          <a href="/resources">Resources</a>
         </nav>
         <div class="right">
-          <a href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener" class="bare nav-extra">GITHUB</a>
-          <a class="btn inverted compact" href="/docs/getting-started/install/">Install →</a>
+          <a href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener" class="btn ghost compact">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.1c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.75 1.18 1.75 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.52-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.3 3.15 1.17a10.96 10.96 0 0 1 5.74 0c2.19-1.47 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.73.8 1.18 1.82 1.18 3.07 0 4.4-2.7 5.36-5.26 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
+            </svg>
+            <span>GitHub</span>
+          </a>
+          <a class="btn brand compact" href="/docs/getting-started/install/">Install <span class="arrow">→</span></a>
         </div>
       </div>
     </header>
@@ -85,56 +90,61 @@ const jsonLd = {
 
     <footer class="site-footer">
       <div class="container">
-        <div class="row">
+        <div class="grid">
           <div>
-            <div class="ink"><span class="logomark-inline" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square">
-                <rect x="5" y="16" width="14" height="5"/>
-                <line x1="12" y1="16" x2="12" y2="7"/>
-                <path d="M12 12 Q7.5 11 6.5 6 Q11 7 12 12 Z"/>
-                <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z"/>
-              </svg>
-            </span> plnt — personal local native twin</div>
-            <div class="dim" style="margin-top:0.5rem;">Apache-2.0 · v0 pre-alpha · runs on your hardware</div>
+            <div class="brand">
+              <span class="logomark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="16" width="14" height="5" />
+                  <line x1="12" y1="16" x2="12" y2="7" />
+                  <path d="M12 12 Q7.5 11 6.5 6 Q11 7 12 12 Z" />
+                  <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z" />
+                </svg>
+              </span>
+              <span>plnt</span>
+            </div>
+            <p class="dim" style="margin-top: 0.85rem; font-size: 0.875rem; max-width: 28ch;">
+              A local-first agent runtime. Personal Local Native Twin.
+            </p>
+            <p class="faint" style="font-size: 0.8125rem; margin-top: 0.35rem;">Apache-2.0 · v0 pre-alpha</p>
           </div>
-          <div class="links">
-            <a href="/architecture">Architecture</a>
-            <a href="/docs/">Docs</a>
-            <a href="/roadmap">Roadmap</a>
-            <a href="/resources">Resources</a>
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
-            <a href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+
+          <div>
+            <h4>Product</h4>
+            <ul>
+              <li><a href="/#how">How it works</a></li>
+              <li><a href="/architecture">Architecture</a></li>
+              <li><a href="/roadmap">Roadmap</a></li>
+              <li><a href="/resources">Resources</a></li>
+            </ul>
           </div>
+
+          <div>
+            <h4>Docs</h4>
+            <ul>
+              <li><a href="/docs/getting-started/install/">Install</a></li>
+              <li><a href="/docs/getting-started/quickstart/">Quickstart</a></li>
+              <li><a href="/docs/concepts/four-planes/">Concepts</a></li>
+              <li><a href="/docs/reference/cli/">Reference</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4>Source</h4>
+            <ul>
+              <li><a href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub repo</a></li>
+              <li><a href="https://github.com/devdattatalele/plnt/blob/main/LICENSE" target="_blank" rel="noopener">License</a></li>
+              <li><a href="/terms">Terms</a></li>
+              <li><a href="/privacy">Privacy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="credit">© 2026 plnt — runs on your hardware.</span>
+          <span class="credit">Built with Astro + Starlight.</span>
         </div>
       </div>
     </footer>
-
-    <style>
-      .nav-extra {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.22em;
-        color: var(--ink-dim);
-      }
-      .nav-extra:hover { color: var(--ink); }
-      .logomark-inline {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 18px;
-        height: 18px;
-        color: var(--brand);
-        margin-right: 0.35rem;
-        vertical-align: -0.3em;
-      }
-      .logomark-inline svg { width: 100%; height: 100%; }
-      .site-nav[data-transparent='true'] {
-        background: transparent;
-        border-bottom-color: transparent;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-    </style>
   </body>
 </html>
