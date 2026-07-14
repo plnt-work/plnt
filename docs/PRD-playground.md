@@ -11,7 +11,7 @@ inside 10 seconds of landing on the page.
 
 ## 1. Why this exists
 
-The plnt.work site pitches a platform for "multi-model inference on
+The plnt.work site pitches a platform for "agentic-workflow orchestration on
 Kubernetes — Helm charts, Temporal workflows, `InferenceModel` CRD +
 operator." Words are cheap. A hiring manager reading the pitch has three
 questions:
@@ -21,14 +21,14 @@ questions:
 3. Does the API look like something I recognise (OpenAI shape)?
 
 The playground answers all three in one screen. It is the **proof surface**
-for the platform, and the single most important artifact for the NVIDIA NIM
-Factory interview (JR2003580).
+for the platform — the most persuasive single artifact for anyone evaluating
+whether the runtime is real.
 
 ## 2. Target users, in order
 
 | Persona                                          | Weight | What they do here                                                                                    |
 |--------------------------------------------------|--------|------------------------------------------------------------------------------------------------------|
-| **NVIDIA hiring manager** (primary)              | 70%    | Lands from LinkedIn / resume link, scrolls hero, clicks "Try it", sends 1-3 prompts, closes tab.     |
+| **infrastructure engineer** (primary)              | 70%    | Lands from LinkedIn / resume link, scrolls hero, clicks "Try it", sends 1-3 prompts, closes tab.     |
 | **Other infra recruiters** (secondary)           | 20%    | Same flow, less patience.                                                                            |
 | **Devdatta himself, in interviews** (tertiary)   | 10%    | Screenshares plnt.work/playground live to walk through the platform on the same screen as an IDE.    |
 

@@ -1,14 +1,14 @@
 cff-version: 1.2.0
 message: "If you use plnt in your research or work, please cite it as below."
 type: software
-title: "plnt: multi-model inference playground on Kubernetes"
+title: "plnt: agentic-workflow orchestration playground on Kubernetes"
 version: 0.1.0
 date-released: "2026-07-14"
 authors:
   - family-names: Talele
     given-names: Devdatta
     email: bonde.sagar@gmail.com
-repository-code: "https://github.com/devdattatalele/plnt"
+repository-code: "https://github.com/plnt-work/plnt"
 url: "https://plnt.work"
 license: Apache-2.0
 keywords:

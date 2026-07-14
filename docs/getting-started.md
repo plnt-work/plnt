@@ -6,7 +6,7 @@ no signup.
 ## 1. Install
 
 ```bash
-git clone https://github.com/devdattatalele/plnt && cd plnt
+git clone https://github.com/plnt-work/plnt && cd plnt
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```

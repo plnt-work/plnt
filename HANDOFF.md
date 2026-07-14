@@ -8,9 +8,9 @@ Paste this into a fresh Claude Code session running in `/Users/dev16/Documents/d
 
 **What plnt used to be:** a local-first personal agent runtime — one resident planner spawns sandboxed micro-agents on your own hardware. See `README.md`, `ARCHITECTURE.md`. The four planes (Surface / Control / Execution / Compute) are the existing scaffold.
 
-**What plnt is becoming:** a **playground platform for deploying multiple ML inference models on Kubernetes**, using Helm charts + a Temporal workflow layer for deploy sagas, canary rollouts, and batch inference. Domain: `plnt.work`. Sister site at `/Users/dev16/Documents/den-agent/plnt-site`. Sister demo product at `/Users/dev16/Documents/den-agent/plnt-cloud` (a booking app built on plnt's primitives — the "product on the platform" proof).
+**What plnt is becoming:** the **orchestration runtime for micro-agent workflows** — a library that lets a small team pick a workflow recipe from a registry (S3 or OCI), pick a Kubernetes GPU backend, and run it as a durable Temporal saga (pull -> resolve -> Helm install -> canary -> smoke -> promote/rollback). Domain: `plnt.work`. Sister site at `/Users/dev16/Documents/den-agent/plnt-site`. Sister consumer product at `/Users/dev16/Documents/den-agent/plnt-cloud` (a Google-Business SaaS built on plnt — the reference consumer that proves the runtime).
 
-**Why the pivot:** target job is **NVIDIA — Senior Software Engineer, NIM Factory Container and Cloud Infrastructure** (Santa Clara, JR2003580). Job core: container strategy for NVIDIA Inference Microservices (NIMs), Python tooling for build orchestration + Helm/Operator automation, K8s deployment patterns for GPU workloads, base image strategy, multi-tenant multi-cluster delivery. plnt is being reshaped to look like *"a mini NIM Factory of my own"* — Helm charts for inference runtimes (vLLM / TGI / TRT-LLM / SGLang), Temporal workflows for deploy sagas, custom `InferenceModel` CRD + operator, Python CLI.
+**Why the pivot:** every small-business SaaS needs a handful of narrow AI features (draft a reply, write a post, triage a booking). Each is a tiny agent workflow of 3-5 steps and a GPU somewhere. Every team builds it bespoke and none of them want to. plnt is the middle layer: pluggable workflow recipes in a registry, an opinionated Helm-first runtime that turns a recipe + a backend into a running service. Playground surface at `playground.plnt.work` demonstrates a micro-agent orchestration backend with multiple GPUs; it is not a general-purpose model host.
 
 **Prior session artifacts you can reuse:**
 - `../plnt-cloud/workflows/saga_booking.py` — reference Temporal saga pattern (create -> notify -> compensate). Same shape as the deploy saga we need here.
@@ -46,7 +46,7 @@ Kubernetes surface (kind cluster for local demo):
 
 **Phase 0 — skeleton + narrative (day 1–2)**
 - Add top-level `plnt/charts/`, `plnt/operators/`, `plnt/workflows/`, `plnt/runtime/`, `plnt/cli/`, `plnt/registry/`, `plnt/bench/` dirs with `__init__.py` and stub modules.
-- Update `README.md` to reflect the new positioning. Keep the personal-runtime lineage as origin story, but the primary framing is now "multi-model inference playground on K8s."
+- Update `README.md` to reflect the new positioning. Keep the personal-runtime lineage as origin story, but the primary framing is now "agentic-workflow orchestration playground on K8s."
 - New `docs/architecture.md` with the ASCII diagram above.
 
 **Phase 1 — first Helm chart (day 3–5)**

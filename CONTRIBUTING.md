@@ -32,7 +32,7 @@ contributors, no committee. Here's how we work.
 ## Dev setup
 
 ```bash
-git clone https://github.com/devdattatalele/plnt && cd plnt
+git clone https://github.com/plnt-work/plnt && cd plnt
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```
@@ -115,7 +115,7 @@ service:
 4. Push: `git push origin main --tags`.
 5. GitHub Release from the tag, paste the CHANGELOG entry.
 6. Docker image: `docker buildx build --platform linux/amd64 --push
- -t ghcr.io/devdattatalele/plnt-playground-api:v0.X.Y .`.
+ -t ghcr.io/plnt-work/plnt-playground-api:v0.X.Y .`.
 
 ## Security
 
@@ -128,8 +128,8 @@ By participating you agree to [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## Questions
 
-- Bug or feature: [open an issue](https://github.com/devdattatalele/plnt/issues/new/choose).
+- Bug or feature: [open an issue](https://github.com/plnt-work/plnt/issues/new/choose).
 - General discussion: no forum yet — start a
- [Discussion](https://github.com/devdattatalele/plnt/discussions) if you'd
+ [Discussion](https://github.com/plnt-work/plnt/discussions) if you'd
  like one seeded.
 - Contact: `bonde.sagar@gmail.com`.

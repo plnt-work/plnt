@@ -2,24 +2,24 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default catch-all
-*                                    @devdattatalele
+*                                    @plnt-work/maintainers
 
 # Platform code
-/plnt/playground/                    @devdattatalele
-/plnt/charts/                        @devdattatalele
-/plnt/operators/                     @devdattatalele
-/plnt/workflows/                     @devdattatalele
+/plnt/playground/                    @plnt-work/maintainers
+/plnt/charts/                        @plnt-work/maintainers
+/plnt/operators/                     @plnt-work/maintainers
+/plnt/workflows/                     @plnt-work/maintainers
 
 # Deploy + infra
-/deploy/                             @devdattatalele
-/docker/                             @devdattatalele
-/fly.toml                            @devdattatalele
+/deploy/                             @plnt-work/maintainers
+/docker/                             @plnt-work/maintainers
+/fly.toml                            @plnt-work/maintainers
 
 # Docs
-/docs/                               @devdattatalele
-*.md                                 @devdattatalele
+/docs/                               @plnt-work/maintainers
+*.md                                 @plnt-work/maintainers
 
 # Community + policy
-/CODE_OF_CONDUCT.md                  @devdattatalele
-/CONTRIBUTING.md                     @devdattatalele
-/SECURITY.md                         @devdattatalele
+/CODE_OF_CONDUCT.md                  @plnt-work/maintainers
+/CONTRIBUTING.md                     @plnt-work/maintainers
+/SECURITY.md                         @plnt-work/maintainers

@@ -28,7 +28,7 @@ def _base_url() -> str:
 @click.group()
 @click.version_option(__version__, prog_name="plnt")
 def cli() -> None:
-    """plnt — multi-model inference playground on Kubernetes.
+    """plnt — agentic-workflow orchestration playground on Kubernetes.
 
     Subcommands split by plane:
 

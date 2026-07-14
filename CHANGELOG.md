@@ -55,5 +55,5 @@ The pre-existing personal-runtime code under
 still builds and runs. `plnt up`, `plnt submit`, `plnt runs`, etc. still
 work. It is frozen as origin story — see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
-[Unreleased]: https://github.com/devdattatalele/plnt/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/devdattatalele/plnt/releases/tag/v0.1.0
+[Unreleased]: https://github.com/plnt-work/plnt/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/plnt-work/plnt/releases/tag/v0.1.0

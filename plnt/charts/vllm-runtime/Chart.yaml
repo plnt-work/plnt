@@ -8,6 +8,9 @@ type: application
 version: 0.3.1
 appVersion: "0.6.3"        # vLLM upstream
 keywords: [vllm, inference, llm, gpu, kubernetes]
+home: https://plnt.work
+sources:
+  - https://github.com/plnt-work/plnt
 maintainers:
-  - name: devdattatalele
-    url: https://github.com/devdattatalele
+  - name: plnt
+    url: https://github.com/plnt-work

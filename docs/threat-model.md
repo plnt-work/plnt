@@ -38,7 +38,7 @@ Three components carry different trust assumptions:
   (model id, timing).
 - **Secrets.** Two kinds today:
   - Registry pull secrets (`docr-plnt`, `ghcr-*`) — normal K8s secrets.
-  - Upstream backend API keys (e.g. `NIM_API_KEY`) — K8s Secret,
+  - Upstream backend API keys (e.g. `UPSTREAM_API_KEY`) — K8s Secret,
     referenced from Helm values via `secretKeyRef`. Never inline.
 
 ## Attack surface

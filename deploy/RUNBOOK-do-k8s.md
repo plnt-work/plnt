@@ -70,7 +70,7 @@ and update `image.repository` in `deploy/do-k8s/values-do.yaml` accordingly.
 
 ```bash
 # smallest usable cluster: 1× s-1vcpu-2gb node, $12/mo
-# sfo3 (San Francisco) — closest to NVIDIA Santa Clara panel; swap for nyc1 / fra1 / blr1 as needed
+# sfo3 (San Francisco) — closest to the primary demo audience; swap for nyc1 / fra1 / blr1 as needed
 doctl kubernetes cluster create plnt \
   --region sfo3 \
   --version latest \

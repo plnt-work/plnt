@@ -81,11 +81,11 @@ uses it — see [`plnt/operators/inferencemodel_controller.py`](../plnt/operator
 word-by-word via SSE. Zero dependencies, no GPU, no network. The
 default backend when no model config is supplied.
 
-### NIM
+### microagents
 
-NVIDIA Inference Microservice. NVIDIA's first-party program for
-containerised model serving. plnt is the OSS, bring-your-own-cluster
-spiritual analog. See [`docs/PRD.md` §7](PRD.md#7-market-context).
+The workflow-recipe registry that plnt pulls from. Recipes are stored on
+S3 or an OCI registry, versioned, and referenced by name in a
+`WorkflowRun` spec. Sibling repo: `plnt-work/microagents`.
 
 ### Playground
 

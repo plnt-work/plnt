@@ -1,12 +1,12 @@
 # Kind demo — 60-second screencast script
 
-For the NVIDIA interview. Runs entirely on your laptop, no cloud, no GPU.
+For the platform demo. Runs entirely on your laptop, no cloud, no GPU.
 Deploys the plnt operator + Temporal + playground API on a local kind cluster,
 then applies an InferenceModel and shows the deploy saga running end-to-end.
 
 The saga uses a **CPU-stub image** in place of vLLM so the flow works without a
-real GPU. Frame this honestly in the interview: *"the platform layer is what
-you're seeing; hardening for GPU workloads is where I want to grow into the role."*
+real GPU. Frame this honestly when demoing: *"the runtime layer is what you're
+seeing here; hardening for real GPU workloads happens on a real GPU cluster."*
 
 ## Prereqs (one-time)
 
@@ -99,6 +99,6 @@ kubectl delete inferencemodel llama-3.1-70b-instruct
 2. **"This is the operator watching it"** — flash `plnt/operators/inferencemodel_controller.py`.
 3. **"This is the saga that does the work"** — flash `plnt/workflows/deploy_model.py`, point at the 5-step try/except with compensation.
 4. **"This is the runtime chart"** — show `plnt/charts/vllm-runtime/templates/deployment.yaml`, highlight the `nvidia.com/gpu` resource request.
-5. **"Playground is at play.plnt.work"** — open it, chat with a real NIM-backed model.
+5. **"Playground is at play.plnt.work"** — open it, invoke a workflow against a live model endpoint.
 
 Total demo run-time: 3–4 minutes. Rehearsed cold: 6 minutes.

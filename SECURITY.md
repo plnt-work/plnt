@@ -45,7 +45,7 @@ Short version — what plnt does and does not protect:
  registries.
 - Container image is minimal (only playground deps) — small blast
  radius on CVE.
-- Sensitive values (NIM keys, MLflow creds) come from `Secret`s or
+- Sensitive values (upstream API keys, registry credentials) come from `Secret`s or
  `fly secrets`, never inline.
 
 **Explicitly out of scope for v1:**

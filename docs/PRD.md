@@ -40,9 +40,10 @@ promote-or-rollback. Every runtime (vLLM/TGI/TRT-LLM/SGLang) has a Helm
 chart with the same values contract. The playground API sits above the
 runtimes and speaks OpenAI to any client that wants to.
 
-The whole thing is designed to look like a **mini NIM Factory** — the
-same job-to-be-done as NVIDIA's Inference Microservices program, but
-scoped to a single-team platform any infra engineer can stand up.
+The whole thing is designed to look like an **opinionated agentic-orchestration
+platform** — the shared job-to-be-done with any per-runtime container platform,
+but scoped to a single-team runtime any infra engineer can stand up on a
+Kubernetes cluster they already have.
 
 ## 3. Users & jobs-to-be-done
 
@@ -111,10 +112,6 @@ scoped to a single-team platform any infra engineer can stand up.
 
 ## 7. Market context
 
-- **NVIDIA NIM** — the direct spiritual reference. First-party inference
- microservice program. Closed-source per-runtime containers, K8s
- operator, Helm charts, benchmarks. plnt is the "small-team,
- open-source, single-cluster" analog.
 - **KServe** — the OSS status quo for K8s model serving. More
  general, less opinionated; supports many backends but you write the
  YAML per model. plnt trades KServe's generality for a sharper deploy
@@ -161,7 +158,7 @@ See [`ROADMAP.md`](../ROADMAP.md) for the phase-by-phase status.
 
 | Risk | Likelihood | Mitigation |
 |----------------------------------------------------------|------------|---------------------------------------------------------------------|
-| NVIDIA ships a public NIM-Factory tool that eats us | High | plnt is OSS + BYO cluster; that market segment survives. |
+| A hyperscaler ships an equivalent OSS product | Med | plnt is BYO cluster + small-team focused; that segment survives. |
 | Runtime contract drifts across vLLM upgrades | Med | Pinned chart appVersion + contract tests + regular re-run. |
 | Operator + Temporal is over-engineered for one cluster | Med | Both are optional; playground API + Helm chart already useful. |
 | Playground abuse (someone rents cycles for free chat) | Low | Cloudflare rule on cost spike; downgrade to mock backend. |
@@ -171,11 +168,11 @@ See [`ROADMAP.md`](../ROADMAP.md) for the phase-by-phase status.
 
 The 90-second pitch, if this works:
 
-> *"plnt.work is a K8s inference platform. Deploy an LLM with one YAML file
-> — the operator runs a Temporal saga that pulls weights, canary-installs
-> the Helm chart, runs a smoke test, and promotes or rolls back. Same
-> values contract across vLLM, TGI, TRT-LLM, SGLang. It's a mini NIM
-> Factory. Try it: `plnt.work/playground`."*
+> *"plnt.work is the orchestration runtime for micro-agent workflows.
+> Pick a workflow from the microagents registry, pick a Kubernetes GPU
+> backend, and plnt runs the Temporal saga that pulls the recipe,
+> Helm-installs it as a canary, smoke-tests it, and promotes or rolls
+> back. Try it: `plnt.work/playground`."*
 
 If that reads as true to an infra engineer inside 90 seconds, plnt has
 served its purpose.
