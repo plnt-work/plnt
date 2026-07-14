@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Sagar Bonde" />
+  <meta name="dcterms.date" content="2026-07-15" />
+  <title>plnt — one-pager</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css">
+@page {
+size: A4;
+margin: 22mm 20mm 22mm 20mm;
+@bottom-center {
+content: counter(page) " / " counter(pages);
+font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #999;
+}
+@top-right {
+content: "plnt";
+font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #999;
+letter-spacing: 0.05em;
+}
+}
+html, body {
+font: 11pt/1.55 "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #1a1a1a;
+background: #fff;
+margin: 0;
+padding: 0;
+-webkit-font-smoothing: antialiased;
+text-rendering: optimizeLegibility;
+}
+
+header#title-block-header {
+margin: 0 0 2.5em 0;
+padding: 0 0 1.5em 0;
+border-bottom: 2px solid #111;
+page-break-after: always;
+}
+header#title-block-header .title {
+font-size: 42pt;
+font-weight: 800;
+letter-spacing: -0.02em;
+margin: 0 0 0.1em 0;
+line-height: 1.05;
+}
+header#title-block-header .subtitle {
+font-size: 14pt;
+font-weight: 400;
+color: #555;
+margin: 0.4em 0 0 0;
+line-height: 1.4;
+}
+header#title-block-header .author,
+header#title-block-header .date {
+font-size: 10pt;
+color: #666;
+margin: 1.5em 0 0.2em 0;
+}
+header#title-block-header .date {
+margin-top: 0.2em;
+}
+
+h1 {
+font-size: 22pt;
+font-weight: 700;
+letter-spacing: -0.01em;
+margin: 2em 0 0.6em 0;
+padding: 0 0 0.25em 0;
+border-bottom: 1px solid #ddd;
+page-break-before: auto;
+page-break-after: avoid;
+}
+h1:first-of-type {
+margin-top: 0.5em;
+}
+h2 {
+font-size: 15pt;
+font-weight: 700;
+margin: 1.5em 0 0.5em 0;
+page-break-after: avoid;
+}
+h3 {
+font-size: 12pt;
+font-weight: 700;
+margin: 1.2em 0 0.4em 0;
+page-break-after: avoid;
+}
+
+p {
+margin: 0 0 0.8em 0;
+orphans: 3;
+widows: 3;
+}
+ul, ol {
+margin: 0 0 0.8em 0;
+padding-left: 1.4em;
+}
+li {
+margin: 0.15em 0;
+}
+li > p {
+margin: 0.15em 0;
+}
+
+a {
+color: #0057ff;
+text-decoration: none;
+border-bottom: 1px solid rgba(0, 87, 255, 0.25);
+}
+
+strong {
+font-weight: 700;
+color: #111;
+}
+em {
+font-style: italic;
+}
+
+code {
+font: 90% "SF Mono", Menlo, Consolas, monospace;
+background: #f4f4f6;
+padding: 1px 5px;
+border-radius: 3px;
+color: #b13a00;
+}
+pre {
+background: #f8f8fa;
+border: 1px solid #eaeaee;
+border-radius: 5px;
+padding: 14px 16px;
+margin: 0.6em 0 1em 0;
+font: 9pt/1.4 "SF Mono", Menlo, Consolas, monospace;
+overflow-x: hidden;
+page-break-inside: avoid;
+}
+pre code {
+background: transparent;
+padding: 0;
+color: #222;
+font-size: inherit;
+}
+
+table {
+border-collapse: collapse;
+width: 100%;
+margin: 0.8em 0 1.2em 0;
+font-size: 10pt;
+page-break-inside: avoid;
+}
+th, td {
+border: 1px solid #e5e5ea;
+padding: 8px 10px;
+text-align: left;
+vertical-align: top;
+}
+th {
+background: #fafafc;
+font-weight: 700;
+color: #333;
+}
+tr:nth-child(even) td {
+background: #fdfdfe;
+}
+
+blockquote {
+margin: 1em 0;
+padding: 0.6em 1.2em;
+border-left: 3px solid #0057ff;
+background: #f6f9ff;
+color: #333;
+font-style: italic;
+page-break-inside: avoid;
+}
+blockquote p {
+margin: 0.3em 0;
+}
+
+hr {
+border: 0;
+border-top: 1px solid #ddd;
+margin: 2em 0;
+}
+
+.hero {
+font-size: 18pt;
+font-weight: 500;
+color: #111;
+margin: 1.5em 0;
+line-height: 1.35;
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">plnt</h1>
+<p class="subtitle">Orchestration runtime for small-team agent workflows
+on Kubernetes</p>
+<p class="author">Sagar Bonde</p>
+<p class="date">2026-07-15</p>
+</header>
+<h1 id="plnt">plnt</h1>
+<p><strong>Orchestration runtime for small-team agent workflows on
+Kubernetes.</strong></p>
+<p>Live: <a href="https://plnt.work">plnt.work</a> · <a href="https://plnt.work/playground">plnt.work/playground</a> · <a href="https://github.com/plnt-work">github.com/plnt-work</a></p>
+<h2 id="problem">Problem</h2>
+<p>Every small SaaS product needs a handful of narrow AI features: draft
+a Google review reply, generate a weekly post, triage a booking inquiry.
+Each one is a tiny agent workflow — 3-5 steps, a couple of tool calls, a
+GPU somewhere.</p>
+<p>Every team builds it bespoke. Nine hidden pieces per feature: prompt,
+retry loop, rate limit, container image, Helm chart, canary rollout,
+rollback path, GPU node request, smoke test. There is no shared recipe
+format. No shared runtime. So the same nine things get reinvented for
+every feature, at every team. It is the K8s equivalent of pre-Rails web
+development.</p>
+<h2 id="solution-three-layers">Solution — three layers</h2>
+<ol type="1">
+<li><strong>microagents</strong> (<a href="https://github.com/plnt-work/microagents">github.com/plnt-work/microagents</a>)
+— an open registry of workflow recipes on S3. Versioned, hash-verified,
+anyone can pull. Each recipe is a <code>workflow.yaml</code> plus
+prompts plus tool bindings.</li>
+<li><strong>plnt</strong> (<a href="https://github.com/plnt-work/plnt">github.com/plnt-work/plnt</a>)
+— the Helm-native runtime. Reads a <code>WorkflowRun</code> CRD, kicks
+off a Temporal saga: pull recipe -&gt; resolve backend -&gt; Helm
+install as canary -&gt; smoke test -&gt; promote or rollback.</li>
+<li><strong>google-business</strong> (<a href="https://github.com/plnt-work/google-business">github.com/plnt-work/google-business</a>)
+— the reference SaaS consumer. Google Business owner-facing product.
+Uses microagents recipes, calls plnt to run them, ships the UI.</li>
+</ol>
+<h2 id="why-now">Why now</h2>
+<ul>
+<li>Every product team is building AI features. Every one of them is
+stuck at the deploy layer.</li>
+<li>vLLM, TGI, SGLang, llama.cpp-server all speak the same wire format
+(OpenAI-compat) as of the last 18 months. The runtime contract is
+finally stable enough to abstract over.</li>
+<li>Kubernetes is the terminal state for infra in most teams that need
+GPUs. Anything not K8s-native is a temporary bet.</li>
+<li>Small teams cannot afford dedicated MLOps hires. They need an
+opinionated runtime that just works.</li>
+</ul>
+<h2 id="traction">Traction</h2>
+<ul>
+<li><strong>v0.1 shipped.</strong> Playground API + Helm chart +
+DigitalOcean deploy path
+<ul>
+<li>Fly.io alt + CLI + 15 passing contract tests.</li>
+</ul></li>
+<li><strong>Live playground</strong> at
+<code>plnt.work/playground</code> — real chat surface, real streaming,
+real deploys.</li>
+<li><strong>4 repos live</strong> under <a href="https://github.com/plnt-work">github.com/plnt-work</a>: runtime,
+site, reference SaaS, recipe registry.</li>
+<li><strong>Full 12-doc portal</strong> — PRD, ERD, architecture, threat
+model, runbook. Enterprise-shape documentation on day one.</li>
+</ul>
+<h2 id="whats-next-v0.2-next-2-weeks">What’s next (v0.2 — next 2
+weeks)</h2>
+<ul>
+<li>vLLM runtime chart green on a real single-GPU cluster.</li>
+<li>First 3 shipping recipes: <code>review-responder</code>,
+<code>post-generator</code>, <code>booking-triage</code>.</li>
+<li>Bench harness — TTFT p95, tokens/sec/GPU numbers you can point
+at.</li>
+<li>Single-tenant DigitalOcean K8s deploy for the initial customer
+cohort; multi-tenant is a v1.0 concern.</li>
+</ul>
+<h2 id="market">Market</h2>
+<ul>
+<li><strong>Direct competition:</strong> KServe (too general, no recipe
+layer), BentoML / Modal / Replicate (API-first, hosted-first, wrong
+deployment model for BYO-cluster teams).</li>
+<li><strong>Adjacent tools:</strong> LangChain / LangGraph / CrewAI
+compose agent logic in Python; plnt is the K8s runtime that runs those
+agents in production. Complementary, not competitive.</li>
+<li><strong>TAM signal:</strong> every SaaS team building AI features is
+in the market.</li>
+</ul>
+<h2 id="business-model">Business model</h2>
+<ul>
+<li>Apache-2.0 runtime, forever free.</li>
+<li>Hosted control plane for teams that want plnt without operating the
+operator themselves — usage-based pricing.</li>
+<li>Enterprise support for on-prem deployments.</li>
+</ul>
+<h2 id="team">Team</h2>
+<ul>
+<li><strong>Sagar Bonde</strong> — Founder. <a href="https://github.com/sagarb27">github.com/sagarb27</a></li>
+</ul>
+<h2 id="ask">Ask</h2>
+<ul>
+<li><strong>Design partners</strong> running agent workflows in
+production — feedback on the recipe format.</li>
+<li><strong>Seed capital</strong> when we’re ready to hire two more, for
+the reference consumer buildout and the hosted control plane.</li>
+</ul>
+<h2 id="one-sentence">One sentence</h2>
+<blockquote>
+<p>plnt is the orchestration runtime for small-team agent workflows on
+Kubernetes.</p>
+</blockquote>
+</body>
+</html>

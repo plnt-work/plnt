@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Sagar Bonde · github.com/sagarb27" />
+  <meta name="dcterms.date" content="2026-07-15" />
+  <title>plnt — pitch</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">
+@page {
+size: A4;
+margin: 22mm 20mm 22mm 20mm;
+@bottom-center {
+content: counter(page) " / " counter(pages);
+font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #999;
+}
+@top-right {
+content: "plnt";
+font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #999;
+letter-spacing: 0.05em;
+}
+}
+html, body {
+font: 11pt/1.55 "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #1a1a1a;
+background: #fff;
+margin: 0;
+padding: 0;
+-webkit-font-smoothing: antialiased;
+text-rendering: optimizeLegibility;
+}
+
+header#title-block-header {
+margin: 0 0 2.5em 0;
+padding: 0 0 1.5em 0;
+border-bottom: 2px solid #111;
+page-break-after: always;
+}
+header#title-block-header .title {
+font-size: 42pt;
+font-weight: 800;
+letter-spacing: -0.02em;
+margin: 0 0 0.1em 0;
+line-height: 1.05;
+}
+header#title-block-header .subtitle {
+font-size: 14pt;
+font-weight: 400;
+color: #555;
+margin: 0.4em 0 0 0;
+line-height: 1.4;
+}
+header#title-block-header .author,
+header#title-block-header .date {
+font-size: 10pt;
+color: #666;
+margin: 1.5em 0 0.2em 0;
+}
+header#title-block-header .date {
+margin-top: 0.2em;
+}
+
+h1 {
+font-size: 22pt;
+font-weight: 700;
+letter-spacing: -0.01em;
+margin: 2em 0 0.6em 0;
+padding: 0 0 0.25em 0;
+border-bottom: 1px solid #ddd;
+page-break-before: auto;
+page-break-after: avoid;
+}
+h1:first-of-type {
+margin-top: 0.5em;
+}
+h2 {
+font-size: 15pt;
+font-weight: 700;
+margin: 1.5em 0 0.5em 0;
+page-break-after: avoid;
+}
+h3 {
+font-size: 12pt;
+font-weight: 700;
+margin: 1.2em 0 0.4em 0;
+page-break-after: avoid;
+}
+
+p {
+margin: 0 0 0.8em 0;
+orphans: 3;
+widows: 3;
+}
+ul, ol {
+margin: 0 0 0.8em 0;
+padding-left: 1.4em;
+}
+li {
+margin: 0.15em 0;
+}
+li > p {
+margin: 0.15em 0;
+}
+
+a {
+color: #0057ff;
+text-decoration: none;
+border-bottom: 1px solid rgba(0, 87, 255, 0.25);
+}
+
+strong {
+font-weight: 700;
+color: #111;
+}
+em {
+font-style: italic;
+}
+
+code {
+font: 90% "SF Mono", Menlo, Consolas, monospace;
+background: #f4f4f6;
+padding: 1px 5px;
+border-radius: 3px;
+color: #b13a00;
+}
+pre {
+background: #f8f8fa;
+border: 1px solid #eaeaee;
+border-radius: 5px;
+padding: 14px 16px;
+margin: 0.6em 0 1em 0;
+font: 9pt/1.4 "SF Mono", Menlo, Consolas, monospace;
+overflow-x: hidden;
+page-break-inside: avoid;
+}
+pre code {
+background: transparent;
+padding: 0;
+color: #222;
+font-size: inherit;
+}
+
+table {
+border-collapse: collapse;
+width: 100%;
+margin: 0.8em 0 1.2em 0;
+font-size: 10pt;
+page-break-inside: avoid;
+}
+th, td {
+border: 1px solid #e5e5ea;
+padding: 8px 10px;
+text-align: left;
+vertical-align: top;
+}
+th {
+background: #fafafc;
+font-weight: 700;
+color: #333;
+}
+tr:nth-child(even) td {
+background: #fdfdfe;
+}
+
+blockquote {
+margin: 1em 0;
+padding: 0.6em 1.2em;
+border-left: 3px solid #0057ff;
+background: #f6f9ff;
+color: #333;
+font-style: italic;
+page-break-inside: avoid;
+}
+blockquote p {
+margin: 0.3em 0;
+}
+
+hr {
+border: 0;
+border-top: 1px solid #ddd;
+margin: 2em 0;
+}
+
+.hero {
+font-size: 18pt;
+font-weight: 500;
+color: #111;
+margin: 1.5em 0;
+line-height: 1.35;
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">plnt</h1>
+<p class="subtitle">The orchestration runtime for small-team agent
+workflows on Kubernetes</p>
+<p class="author">Sagar Bonde · github.com/sagarb27</p>
+<p class="date">2026-07-15</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#plnt" id="toc-plnt">plnt</a></li>
+<li><a href="#problem" id="toc-problem">1. Problem</a>
+<ul>
+<li><a href="#the-situation-on-the-ground" id="toc-the-situation-on-the-ground">The situation on the
+ground</a></li>
+<li><a href="#the-engineering-cost-of-one-ai-feature" id="toc-the-engineering-cost-of-one-ai-feature">The engineering cost of
+one AI feature</a></li>
+<li><a href="#the-universal-pattern" id="toc-the-universal-pattern">The
+universal pattern</a></li>
+</ul></li>
+<li><a href="#solution" id="toc-solution">2. Solution</a>
+<ul>
+<li><a href="#the-three-layers" id="toc-the-three-layers">The three
+layers</a></li>
+<li><a href="#one-command-deploy" id="toc-one-command-deploy">One-command deploy</a></li>
+</ul></li>
+<li><a href="#playground" id="toc-playground">3. Playground</a></li>
+<li><a href="#why-now" id="toc-why-now">4. Why now</a>
+<ul>
+<li><a href="#why-this-team-why-this-month" id="toc-why-this-team-why-this-month">Why this team, why this
+month</a></li>
+</ul></li>
+<li><a href="#market-context" id="toc-market-context">5. Market
+context</a>
+<ul>
+<li><a href="#direct-competitors" id="toc-direct-competitors">Direct
+competitors</a></li>
+<li><a href="#adjacent-tools-complementary-not-competitive" id="toc-adjacent-tools-complementary-not-competitive">Adjacent tools
+(complementary, not competitive)</a></li>
+<li><a href="#what-we-do-that-nobody-else-does" id="toc-what-we-do-that-nobody-else-does">What we do that nobody else
+does</a></li>
+</ul></li>
+<li><a href="#product" id="toc-product">6. Product</a>
+<ul>
+<li><a href="#what-ships-today-v0.1" id="toc-what-ships-today-v0.1">What
+ships today (v0.1)</a></li>
+<li><a href="#whats-next-v0.2-2-weeks" id="toc-whats-next-v0.2-2-weeks">What’s next (v0.2 — 2 weeks)</a></li>
+<li><a href="#v0.3-v1.0-roadmap" id="toc-v0.3-v1.0-roadmap">v0.3-v1.0
+roadmap</a></li>
+</ul></li>
+<li><a href="#architecture" id="toc-architecture">7. Architecture</a>
+<ul>
+<li><a href="#layered-view" id="toc-layered-view">Layered view</a></li>
+<li><a href="#data-model" id="toc-data-model">Data model</a></li>
+</ul></li>
+<li><a href="#deploy-story" id="toc-deploy-story">8. Deploy story</a>
+<ul>
+<li><a href="#single-tenant-digitalocean-today" id="toc-single-tenant-digitalocean-today">Single-tenant DigitalOcean
+today</a></li>
+<li><a href="#multi-tenant-later" id="toc-multi-tenant-later">Multi-tenant later</a></li>
+<li><a href="#alternate-paths" id="toc-alternate-paths">Alternate
+paths</a></li>
+</ul></li>
+<li><a href="#security-posture" id="toc-security-posture">9. Security
+posture</a></li>
+<li><a href="#business-model" id="toc-business-model">10. Business
+model</a>
+<ul>
+<li><a href="#layered-pricing" id="toc-layered-pricing">Layered
+pricing</a></li>
+<li><a href="#reference-consumer-as-flywheel" id="toc-reference-consumer-as-flywheel">Reference consumer as
+flywheel</a></li>
+</ul></li>
+<li><a href="#team" id="toc-team">11. Team</a></li>
+<li><a href="#ask" id="toc-ask">12. Ask</a>
+<ul>
+<li><a href="#design-partners" id="toc-design-partners">Design
+partners</a></li>
+<li><a href="#seed-capital-when-ready" id="toc-seed-capital-when-ready">Seed capital (when ready)</a></li>
+</ul></li>
+<li><a href="#links" id="toc-links">13. Links</a></li>
+<li><a href="#one-sentence" id="toc-one-sentence">One sentence</a></li>
+</ul>
+</nav>
+<h1 id="plnt">plnt</h1>
+<p><strong>Orchestration runtime for small-team agent workflows on
+Kubernetes.</strong></p>
+<p>Live surfaces:</p>
+<ul>
+<li>Website: <a href="https://plnt.work">plnt.work</a></li>
+<li>Playground: <a href="https://plnt.work/playground">plnt.work/playground</a></li>
+<li>Code: <a href="https://github.com/plnt-work">github.com/plnt-work</a> — four
+repos, all under one org.</li>
+</ul>
+<hr />
+<h1 id="problem">1. Problem</h1>
+<h2 id="the-situation-on-the-ground">The situation on the ground</h2>
+<p>Take one Google Business owner. A dentist, a plumber, a small hotel —
+pick one. Their day-to-day includes:</p>
+<ul>
+<li>Replying to Google reviews (there are 20 of them and they all sound
+similar).</li>
+<li>Posting weekly Google Business updates (they forget half the
+weeks).</li>
+<li>Triaging booking inquiries that come in through Google Maps (some
+are spam, some are real).</li>
+</ul>
+<p>They pay for a SaaS product to help. That SaaS product wants to ship
+an AI feature for each of those jobs.</p>
+<h2 id="the-engineering-cost-of-one-ai-feature">The engineering cost of
+one AI feature</h2>
+<p>The SaaS engineer building “AI-drafted review reply” has to write,
+from scratch:</p>
+<ol type="1">
+<li>A prompt. And a prompt versioning system, because prompts change
+weekly.</li>
+<li>A retry loop. Because the model provider will 503 on you.</li>
+<li>A rate limit. Because the customer plan has budget caps.</li>
+<li>A container image. Because the model runs in Kubernetes.</li>
+<li>A Helm chart. Because someone has to define the Deployment / Service
+/ HPA.</li>
+<li>A canary rollout. Because you cannot ship a new prompt to 100% of
+traffic the day you write it.</li>
+<li>A rollback path. Because the canary will sometimes fail.</li>
+<li>A GPU node request. <code>nvidia.com/gpu: 1</code>, node selector,
+tolerations.</li>
+<li>A smoke test. Because you need to know the canary works before
+promoting.</li>
+</ol>
+<p>Nine things. For one feature. Then they get asked to build “AI post
+generation,” which is the same nine things with a different prompt.</p>
+<h2 id="the-universal-pattern">The universal pattern</h2>
+<ul>
+<li>Every product team building AI features has the same nine hidden
+pieces.</li>
+<li>No two teams share them. There is no <code>create-react-app</code>
+for agent workflows.</li>
+<li>The pieces are boring, brittle, and easy to get wrong.</li>
+<li>The people building them do not want to be Kubernetes experts. They
+want to ship product.</li>
+</ul>
+<p><strong>plnt is the shared stack.</strong></p>
+<hr />
+<h1 id="solution">2. Solution</h1>
+<h2 id="the-three-layers">The three layers</h2>
+<pre><code>+-----------------------------------------------+
+|  google-business  — reference SaaS consumer   |
+|  (uses the runtime; ships the UI)             |
++-------------------- + ------------------------+
+                      |
+                      | invokes
+                      v
++-----------------------------------------------+
+|  microagents  — workflow recipe registry      |
+|  (S3-hosted; versioned; hash-verified)        |
++-------------------- + ------------------------+
+                      |
+                      | pulls
+                      v
++-----------------------------------------------+
+|  plnt  — orchestration runtime  (this repo)   |
+|  WorkflowRun CRD + Temporal saga + Helm       |
++-------------------- + ------------------------+
+                      |
+                      | Helm install
+                      v
++-----------------------------------------------+
+|  Kubernetes GPU backend (any cluster)         |
++-----------------------------------------------+</code></pre>
+<p>Bottom to top:</p>
+<h3 id="layer-1-plnt-runtime">Layer 1 — plnt (runtime)</h3>
+<p>An opinionated Helm-native runtime. Reads a <code>WorkflowRun</code>
+CRD, runs a durable Temporal saga:</p>
+<ol type="1">
+<li><code>pull_spec</code> — pull the recipe from the registry,
+hash-verify.</li>
+<li><code>resolve_backend</code> — validate the target cluster + GPU
+class exists.</li>
+<li><code>helm_install_canary</code> — install the workflow chart at 5%
+traffic.</li>
+<li><code>run_smoke_test</code> — N invocations through the canary;
+assert p95 gate.</li>
+<li><code>promote_or_rollback</code> — pass -&gt; 100% traffic; fail
+-&gt; <code>helm rollback</code>.</li>
+</ol>
+<p>Every step has its own retry policy. Non-retryable error types
+(<code>SpecInvalid</code>, <code>BackendUnavailable</code>)
+short-circuit obvious dead-ends. All state is Temporal-tracked; restarts
+resume from the last completed step.</p>
+<h3 id="layer-2-microagents-registry">Layer 2 — microagents
+(registry)</h3>
+<p>An open S3-hosted registry of workflow recipes. Each recipe is a
+self-describing bundle:</p>
+<pre><code>s3://microagents/review-responder/1.1.0/
+  workflow.yaml         # step DAG
+  prompts/              # per-step system prompts
+  tools.yaml            # tool bindings (HTTP endpoints, function schemas)
+  README.md
+  LICENSE</code></pre>
+<p>Recipes are versioned, referenced by <code>name@version</code>, and
+integrity-verified on pull. S3 today, OCI-registry backend on the v0.4
+roadmap.</p>
+<h3 id="layer-3-google-business-reference-consumer">Layer 3 —
+google-business (reference consumer)</h3>
+<p>The Google Business SaaS product built on plnt. It:</p>
+<ul>
+<li>Presents the review / post / booking-triage UI to end users.</li>
+<li>Pulls the relevant microagents recipe on customer signup.</li>
+<li>Calls plnt’s runtime API to invoke workflows on the shared
+cluster.</li>
+</ul>
+<p>This is the “does this stack actually let you ship a product?”
+proof.</p>
+<h2 id="one-command-deploy">One-command deploy</h2>
+<p>The whole flow is triggered by a single
+<code>kubectl apply</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> plnt.work/v1</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> WorkflowRun</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> review-responder-prod</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">workflow</span><span class="kw">:</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ref</span><span class="kw">:</span><span class="at"> review-responder@1.1.0</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">registry</span><span class="kw">:</span><span class="at"> s3://microagents</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">backend</span><span class="kw">:</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">cluster</span><span class="kw">:</span><span class="at"> gpu-cluster-01</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">gpuClass</span><span class="kw">:</span><span class="at"> nvidia.com/h100</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">gpuCount</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">replicas</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">min</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span><span class="kw">,</span><span class="at"> </span><span class="fu">max</span><span class="kw">:</span><span class="at"> </span><span class="dv">4</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">canary</span><span class="kw">:</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">trafficPercent</span><span class="kw">:</span><span class="at"> </span><span class="dv">5</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">smokeTest</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">invocations</span><span class="kw">:</span><span class="at"> </span><span class="dv">10</span><span class="kw">,</span><span class="at"> </span><span class="fu">p95BudgetMs</span><span class="kw">:</span><span class="at"> </span><span class="dv">2500</span><span class="at"> </span><span class="kw">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">kubectl</span> apply <span class="at">-f</span> review-responder.yaml</span></code></pre></div>
+<p>15 seconds later on a warm kind cluster, or ~3 minutes on a cold real
+GPU cluster, that workflow is serving traffic through the playground
+API. The end-user SaaS starts hitting it via its OpenAI-compatible
+endpoint.</p>
+<hr />
+<h1 id="playground">3. Playground</h1>
+<p><code>playground.plnt.work</code> is the live proof surface. It is a
+<strong>micro-agent orchestration backend</strong> that runs on real
+Kubernetes with real GPU nodes.</p>
+<p>A visitor lands, sees the model / workflow catalog, picks one, sends
+a prompt, watches tokens stream in. Under the hood: the request hits the
+playground FastAPI, which routes via <code>RuntimeAdapter</code> to the
+currently- promoted canary of whichever workflow was invoked, which
+forwards the request to the underlying GPU pod (vLLM / TGI / SGLang)
+with the recipe’s prompt + tool bindings applied.</p>
+<p>The visitor sees a chat panel. The evaluator sees the runtime
+working.</p>
+<hr />
+<h1 id="why-now">4. Why now</h1>
+<p><strong>The three assumptions we’re betting on:</strong></p>
+<ol type="1">
+<li><strong>Every product team is going to build AI features.</strong>
+Signal: it is already happening. Every SaaS incumbent has an AI
+announcement per quarter. Every early-stage founder is prototyping with
+the OpenAI SDK.</li>
+<li><strong>They are going to be stuck at the deploy layer.</strong>
+Signal: the OSS runtime ecosystem (vLLM, TGI, SGLang, llama.cpp-server)
+has converged on OpenAI wire compatibility in the last 18 months. The
+contract is stable enough to abstract over. The K8s deploy story is the
+next bottleneck.</li>
+<li><strong>Kubernetes is the terminal state.</strong> Signal: every
+mid-and-up team with GPU workloads either runs K8s or is migrating to
+K8s. Anything not K8s-native is a temporary bet.</li>
+</ol>
+<h2 id="why-this-team-why-this-month">Why this team, why this month</h2>
+<p>Sagar has been building AI infra as a solo engineer for the last
+several years. The three repos going live under
+<code>github.com/plnt-work</code> in one session are the artifact —
+runtime + registry + reference SaaS, all tested, all documented, all
+deployable.</p>
+<hr />
+<h1 id="market-context">5. Market context</h1>
+<h2 id="direct-competitors">Direct competitors</h2>
+<ul>
+<li><strong>KServe</strong> — the OSS K8s model-serving reference.
+General, unopinionated, supports many backends but you write
+InferenceService YAML per model. Great for infra-heavy teams. Wrong tool
+for a 4-person SaaS shop that wants a recipe-based UX.</li>
+<li><strong>NVIDIA / hyperscaler platforms</strong> — first-party
+per-runtime container programs. Closed-source,
+hyperscaler-lock-in-shaped. plnt is the small-team, open-source,
+BYO-cluster alternative.</li>
+</ul>
+<h2 id="adjacent-tools-complementary-not-competitive">Adjacent tools
+(complementary, not competitive)</h2>
+<ul>
+<li><strong>LangChain / LangGraph / CrewAI</strong> — Python libraries
+for composing agent logic. You could write a LangGraph agent, package it
+as a microagents recipe, deploy it with plnt. Different layer of the
+stack.</li>
+<li><strong>BentoML / Modal / Replicate</strong> — API-first,
+hosted-first. You upload code, they run it, you pay per second.
+Different customer, different price model. plnt is
+bring-your-own-cluster.</li>
+</ul>
+<h2 id="what-we-do-that-nobody-else-does">What we do that nobody else
+does</h2>
+<p>The <strong>recipe layer</strong>. There is no shared vocabulary
+today for agent workflow recipes the way Helm charts are the shared
+vocabulary for K8s apps. If microagents becomes that vocabulary, the
+runtime that ships the best pull path wins.</p>
+<hr />
+<h1 id="product">6. Product</h1>
+<h2 id="what-ships-today-v0.1">What ships today (v0.1)</h2>
+<ul>
+<li><strong>Playground API</strong> (<code>plnt/playground/</code>) —
+FastAPI, OpenAI-compat. <code>GET /v1/models</code>,
+<code>POST /v1/chat/completions</code> (SSE streaming),
+<code>/healthz</code>, <code>/readyz</code>. 15/15 contract tests
+passing on every commit.</li>
+<li><strong>Playground Helm chart</strong> — Deployment, Service,
+ConfigMap, Ingress (SSE-safe nginx), HPA, imagePullSecrets.</li>
+<li><strong>Container image</strong> — non-root, read-only rootfs,
+healthcheck. ~150 MB.</li>
+<li><strong>DigitalOcean K8s deploy overlay + cert-manager Let’s
+Encrypt</strong> — documented in an 11-step runbook. Cost: ~$24/mo,
+single-tenant footprint.</li>
+<li><strong>Fly.io alt deploy path</strong> — for teams that want a
+single-container proof surface without a full K8s cluster.</li>
+<li><strong>CLI</strong> —
+<code>plnt playground {up, models, chat, curl}</code>,
+<code>plnt deploy</code>.</li>
+<li><strong>Site + docs</strong> — <a href="https://plnt.work">plnt.work</a>, full docs portal, PRD, ERD,
+threat model, runbook.</li>
+<li><strong>4 GitHub repos live</strong> under <a href="https://github.com/plnt-work">plnt-work</a>.</li>
+</ul>
+<h2 id="whats-next-v0.2-2-weeks">What’s next (v0.2 — 2 weeks)</h2>
+<ul>
+<li>vLLM runtime chart green on a real single-GPU cluster.</li>
+<li>First 3 shipping recipes: <code>review-responder</code>,
+<code>post-generator</code>, <code>booking-triage</code>.</li>
+<li>Bench harness — TTFT p95, tokens/sec/GPU numbers.</li>
+<li>Runbook update: “adding a real model to the playground.”</li>
+</ul>
+<h2 id="v0.3-v1.0-roadmap">v0.3-v1.0 roadmap</h2>
+<ul>
+<li><strong>v0.3</strong> — TGI + SGLang runtime charts (same values
+contract).</li>
+<li><strong>v0.4</strong> — Prometheus metrics + Grafana dashboard;
+operator wires the CRD end-to-end to the deploy saga.</li>
+<li><strong>v0.5</strong> — TRT-LLM runtime + Triton-native
+adapter.</li>
+<li><strong>v1.0</strong> — Multi-cluster failover; hosted control
+plane; public launch.</li>
+</ul>
+<p>Full status: <a href="https://github.com/plnt-work/plnt/blob/main/ROADMAP.md">github.com/plnt-work/plnt/blob/main/ROADMAP.md</a>.</p>
+<hr />
+<h1 id="architecture">7. Architecture</h1>
+<h2 id="layered-view">Layered view</h2>
+<pre><code>+-------------------------------------------------------------+
+| Consumer plane                                              |
+|  google-business SaaS  |  any third-party consumer          |
++-------------------------------------------------------------+
+| API plane                                                   |
+|  playground-api (FastAPI, OpenAI-compat)                    |
+|  /v1/models  /v1/chat/completions  /healthz  /readyz        |
++-------------------------------------------------------------+
+| Runtime plane                                               |
+|  RuntimeAdapter (mock | HTTPBackend | TritonBackend future) |
+|  routes on model.id                                         |
++-------------------------------------------------------------+
+| Orchestration plane                                         |
+|  kopf operator watches WorkflowRun CRD                      |
+|  Temporal DeployModelWorkflow saga (5 activities)           |
++-------------------------------------------------------------+
+| Recipe plane                                                |
+|  microagents registry (S3 today, OCI planned)               |
+|  workflow.yaml + prompts + tools.yaml + version + hash      |
++-------------------------------------------------------------+
+| Cluster plane                                               |
+|  K8s + Helm + ingress-nginx + cert-manager + HPA + GPU nodes|
++-------------------------------------------------------------+</code></pre>
+<h2 id="data-model">Data model</h2>
+<p>The whole system has no relational database. State lives in three
+places:</p>
+<ol type="1">
+<li>Kubernetes resources — the <code>WorkflowRun</code> CRD + the
+standard Deployment/Service/Ingress/ConfigMap/Certificate that Helm
+charts render.</li>
+<li>Temporal workflow state — the deploy saga’s event history.</li>
+<li>Playground runtime memory — the <code>Registry</code> of
+<code>RuntimeAdapter</code>s held in the FastAPI process, mounted from a
+ConfigMap at startup.</li>
+</ol>
+<p>Everything is inspectable with <code>kubectl get events</code>,
+<code>helm history</code>, and <code>temporal workflow describe</code>.
+<code>git log</code>, <code>helm history</code>, and
+<code>kubectl get events</code> are the audit trails.</p>
+<p>Full ERD: <a href="https://github.com/plnt-work/plnt/blob/main/docs/ERD.md">github.com/plnt-work/plnt/blob/main/docs/ERD.md</a>.</p>
+<hr />
+<h1 id="deploy-story">8. Deploy story</h1>
+<h2 id="single-tenant-digitalocean-today">Single-tenant DigitalOcean
+today</h2>
+<p>The reference deploy is DigitalOcean Kubernetes. One node (~$12/mo),
+one load balancer (~$12/mo), cert-manager for Let’s Encrypt TLS,
+ingress-nginx for the playground route.</p>
+<p><strong>Single-tenant on purpose for v0.1.</strong> One customer per
+cluster keeps the security model simple (no shared-tenant blast radius)
+and gets us to shipping-code faster. The runbook is 11 steps, ~40 min
+end to end. Full recipe: <a href="https://github.com/plnt-work/plnt/blob/main/deploy/RUNBOOK-do-k8s.md">deploy/RUNBOOK-do-k8s.md</a>.</p>
+<h2 id="multi-tenant-later">Multi-tenant later</h2>
+<p>Multi-tenant is a v1.0 concern. When it lands, the model is a shared
+control plane per team + isolated runtime namespaces per tenant + a
+per-tenant CRD scope. Not shipped, not scheduled, not committed.</p>
+<h2 id="alternate-paths">Alternate paths</h2>
+<ul>
+<li><strong>Fly.io</strong> — single-container proof surface with
+<code>fly deploy</code>. Same Dockerfile, no K8s. Good for “I just want
+to see the API respond over HTTPS.”</li>
+<li><strong>Any K8s cluster</strong> — the Helm chart is
+provider-agnostic. EKS / GKE / AKS / bare-metal all work.</li>
+</ul>
+<hr />
+<h1 id="security-posture">9. Security posture</h1>
+<ul>
+<li>Playground API pod is non-root, read-only rootfs, no privileged
+capabilities, all Linux capabilities dropped.</li>
+<li>CORS is a browser-facing allowlist, not an auth mechanism (v1 has no
+per-user auth by design; add Cloudflare Access if you need it).</li>
+<li>Container image is minimal — only playground deps. Small blast
+radius on CVE.</li>
+<li>Secrets flow via Kubernetes <code>Secret</code> refs; never inlined
+in Helm values.</li>
+</ul>
+<p>Explicitly out of scope for v1: multi-tenant isolation, per-user
+auth, rate limiting, model weight provenance attestation. All in
+v1.0+.</p>
+<p>Full threat model: <a href="https://github.com/plnt-work/plnt/blob/main/docs/threat-model.md">github.com/plnt-work/plnt/blob/main/docs/threat-model.md</a>.</p>
+<hr />
+<h1 id="business-model">10. Business model</h1>
+<h2 id="layered-pricing">Layered pricing</h2>
+<ul>
+<li><strong>Runtime (this repo)</strong> — Apache-2.0, forever free. The
+moat is not the runtime; it is the recipe layer + hosted control
+plane.</li>
+<li><strong>Hosted control plane (v1.0+)</strong> — for teams that want
+plnt without operating the operator themselves. Usage-based pricing: per
+active <code>WorkflowRun</code> per hour, or per successful
+invocation.</li>
+<li><strong>Enterprise support (v1.0+)</strong> — for teams running plnt
+on-prem. Priority response, private-fork support, deploy help.</li>
+</ul>
+<h2 id="reference-consumer-as-flywheel">Reference consumer as
+flywheel</h2>
+<p><code>google-business</code> is a Google-Business SaaS built on plnt.
+It is both a paying customer (of itself) and the proof that the stack
+works end-to-end. Any Google Business owner using the SaaS is exercising
+the runtime in production every day.</p>
+<hr />
+<h1 id="team">11. Team</h1>
+<ul>
+<li><strong>Sagar Bonde</strong> — Founder. <a href="https://github.com/sagarb27">github.com/sagarb27</a></li>
+</ul>
+<p>Solo for now. Playground and runtime are running against real code
+today. Not a slide-deck company.</p>
+<hr />
+<h1 id="ask">12. Ask</h1>
+<p>Two things.</p>
+<h2 id="design-partners">Design partners</h2>
+<p>If you run agent workflows in production, or you’re about to, we want
+your feedback on the recipe format. Specifically: are
+<code>workflow.yaml</code> + <code>prompts/</code> +
+<code>tools.yaml</code> enough to capture what you actually deploy, or
+is there a fourth thing missing?</p>
+<h2 id="seed-capital-when-ready">Seed capital (when ready)</h2>
+<p>Enough to hire two engineers — one for the reference consumer
+buildout, one for the hosted control plane. Runway target: 18 months.
+Ask: TBD when we’re ready to close.</p>
+<hr />
+<h1 id="links">13. Links</h1>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Where</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Marketing</td>
+<td><a href="https://plnt.work">plnt.work</a></td>
+</tr>
+<tr>
+<td>Playground</td>
+<td><a href="https://plnt.work/playground">plnt.work/playground</a></td>
+</tr>
+<tr>
+<td>Runtime code</td>
+<td><a href="https://github.com/plnt-work/plnt">github.com/plnt-work/plnt</a></td>
+</tr>
+<tr>
+<td>Recipe registry</td>
+<td><a href="https://github.com/plnt-work/microagents">github.com/plnt-work/microagents</a></td>
+</tr>
+<tr>
+<td>Reference SaaS</td>
+<td><a href="https://github.com/plnt-work/google-business">github.com/plnt-work/google-business</a></td>
+</tr>
+<tr>
+<td>Site + docs</td>
+<td><a href="https://github.com/plnt-work/plnt-site">github.com/plnt-work/plnt-site</a></td>
+</tr>
+<tr>
+<td>Full docs portal</td>
+<td><a href="https://github.com/plnt-work/plnt/blob/main/docs/index.md">github.com/plnt-work/plnt/blob/main/docs/index.md</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="one-sentence">One sentence</h1>
+<blockquote>
+<p>plnt is the orchestration runtime for small-team agent workflows on
+Kubernetes.</p>
+</blockquote>
+</body>
+</html>

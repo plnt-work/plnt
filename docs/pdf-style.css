@@ -1,0 +1,199 @@
+/* PDF styling — YC-shape. Clean sans-serif, generous whitespace, one accent.
+ * Used by pandoc + weasyprint pipeline: `pandoc docs/FULL-PITCH.md
+ * --pdf-engine=weasyprint --css docs/pdf-style.css -o docs/pdf/full-pitch.pdf`.
+ */
+
+@page {
+  size: A4;
+  margin: 22mm 20mm 22mm 20mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #999;
+  }
+  @top-right {
+    content: "plnt";
+    font: 10px "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #999;
+    letter-spacing: 0.05em;
+  }
+}
+
+html, body {
+  font: 11pt/1.55 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* First page — title block */
+header#title-block-header {
+  margin: 0 0 2.5em 0;
+  padding: 0 0 1.5em 0;
+  border-bottom: 2px solid #111;
+  page-break-after: always;
+}
+header#title-block-header .title {
+  font-size: 42pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.1em 0;
+  line-height: 1.05;
+}
+header#title-block-header .subtitle {
+  font-size: 14pt;
+  font-weight: 400;
+  color: #555;
+  margin: 0.4em 0 0 0;
+  line-height: 1.4;
+}
+header#title-block-header .author,
+header#title-block-header .date {
+  font-size: 10pt;
+  color: #666;
+  margin: 1.5em 0 0.2em 0;
+}
+header#title-block-header .date {
+  margin-top: 0.2em;
+}
+
+/* Headings */
+h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 2em 0 0.6em 0;
+  padding: 0 0 0.25em 0;
+  border-bottom: 1px solid #ddd;
+  page-break-before: auto;
+  page-break-after: avoid;
+}
+h1:first-of-type {
+  margin-top: 0.5em;
+}
+h2 {
+  font-size: 15pt;
+  font-weight: 700;
+  margin: 1.5em 0 0.5em 0;
+  page-break-after: avoid;
+}
+h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 1.2em 0 0.4em 0;
+  page-break-after: avoid;
+}
+
+/* Paragraphs, lists */
+p {
+  margin: 0 0 0.8em 0;
+  orphans: 3;
+  widows: 3;
+}
+ul, ol {
+  margin: 0 0 0.8em 0;
+  padding-left: 1.4em;
+}
+li {
+  margin: 0.15em 0;
+}
+li > p {
+  margin: 0.15em 0;
+}
+
+/* Links */
+a {
+  color: #0057ff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 87, 255, 0.25);
+}
+
+/* Emphasis */
+strong {
+  font-weight: 700;
+  color: #111;
+}
+em {
+  font-style: italic;
+}
+
+/* Code */
+code {
+  font: 90% "SF Mono", Menlo, Consolas, monospace;
+  background: #f4f4f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #b13a00;
+}
+pre {
+  background: #f8f8fa;
+  border: 1px solid #eaeaee;
+  border-radius: 5px;
+  padding: 14px 16px;
+  margin: 0.6em 0 1em 0;
+  font: 9pt/1.4 "SF Mono", Menlo, Consolas, monospace;
+  overflow-x: hidden;
+  page-break-inside: avoid;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+  color: #222;
+  font-size: inherit;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.8em 0 1.2em 0;
+  font-size: 10pt;
+  page-break-inside: avoid;
+}
+th, td {
+  border: 1px solid #e5e5ea;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: #fafafc;
+  font-weight: 700;
+  color: #333;
+}
+tr:nth-child(even) td {
+  background: #fdfdfe;
+}
+
+/* Blockquote — used for pull quotes */
+blockquote {
+  margin: 1em 0;
+  padding: 0.6em 1.2em;
+  border-left: 3px solid #0057ff;
+  background: #f6f9ff;
+  color: #333;
+  font-style: italic;
+  page-break-inside: avoid;
+}
+blockquote p {
+  margin: 0.3em 0;
+}
+
+/* Horizontal rule */
+hr {
+  border: 0;
+  border-top: 1px solid #ddd;
+  margin: 2em 0;
+}
+
+/* First-page pull quote (one-pager style) */
+.hero {
+  font-size: 18pt;
+  font-weight: 500;
+  color: #111;
+  margin: 1.5em 0;
+  line-height: 1.35;
+}
