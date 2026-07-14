@@ -9,7 +9,7 @@ The live playground is at [plnt.work/playground](https://plnt.work/playground)
 — pick a workflow, watch the step DAG execute, invoke it against a live model
 endpoint.
 
-> **[Read the full business idea (Google Doc)](https://docs.google.com/document/d/REPLACE_WITH_YOUR_DOC_ID/edit)**
+> **[Read the full B-Plan (Google Doc)](https://docs.google.com/document/d/REPLACE_WITH_YOUR_DOC_ID/edit)**
 > — the long-form pitch: problem, market, product, roadmap, ask. Living
 > document; edit permission by request.
 
