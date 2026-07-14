@@ -1,0 +1,78 @@
+---
+title: InferenceModel CRD
+description: The declarative deploy contract. One kubectl apply triggers pull, deploy, smoke, promote.
+---
+
+`InferenceModel` is the plnt Custom Resource. Everything the operator, the workflow, and the Helm chart need is on the spec.
+
+## Full example
+
+```yaml
+apiVersion: plnt.work/v1
+kind: InferenceModel
+metadata:
+  name: llama-3.1-70b-instruct
+  namespace: default
+spec:
+  runtime: vllm                     # vllm | tgi | trt-llm | sglang
+  model:
+    name: meta-llama/Llama-3.1-70B-Instruct
+    storageUri: s3://plnt-models/llama-3.1-70b/fp16
+    quantization: fp16              # fp16 | fp8 | awq-4bit | gptq-4bit
+  resources:
+    gpu: 2
+    gpuClass: nvidia.com/h100
+    memoryGiB: 160
+  replicas:
+    min: 1
+    max: 4
+  autoscaling:
+    targetTokensPerSecond: 1500
+  canary:
+    trafficPercent: 5
+    smokeTest:
+      prompts: 10
+      ttftBudgetMs: 250
+      tpotBudgetMs: 40
+```
+
+## Apply
+
+```bash
+kubectl apply -f examples/llama-3.1-70b-instruct.yaml
+```
+
+The operator picks up the event, starts the [DeployModelWorkflow](/docs/concepts/deploy-saga/), and patches `.status.phase` as it progresses:
+
+```
+NAME                        RUNTIME   GPU               PHASE          ENDPOINT
+llama-3.1-70b-instruct      vllm      nvidia.com/h100   Validating
+llama-3.1-70b-instruct      vllm      nvidia.com/h100   PullingWeights
+llama-3.1-70b-instruct      vllm      nvidia.com/h100   Deploying
+llama-3.1-70b-instruct      vllm      nvidia.com/h100   SmokeTesting
+llama-3.1-70b-instruct      vllm      nvidia.com/h100   Promoting
+llama-3.1-70b-instruct      vllm      nvidia.com/h100   Ready          llama-3.1-70b-instruct.default.svc:8000
+```
+
+## Status subresource
+
+```yaml
+status:
+  phase: Ready                    # Pending | Validating | PullingWeights | Deploying |
+                                  # SmokeTesting | Promoting | Ready | RolledBack | Failed
+  endpoint: llama-3.1-70b-instruct.default.svc.cluster.local:8000
+  workflowRunId: r-9c4f218e0a
+  observedGeneration: 1
+```
+
+## Lifecycle
+
+| Kubernetes event | Operator action                                     |
+|------------------|-----------------------------------------------------|
+| `create`         | Start `DeployModelWorkflow`. Set `phase: Validating`. |
+| `update` (spec)  | Cancel the running workflow, start a fresh one. New canary at 5% traffic. |
+| `delete`         | Cancel workflow. Compensation activity `helm uninstall`s the release. |
+
+## Full CRD schema
+
+See [InferenceModel schema reference](/docs/reference/inferencemodel-crd/) for every field with type, default, and validation constraints. The CRD YAML lives at [`plnt/operators/crds/inferencemodel.yaml`](https://github.com/devdattatalele/plnt/blob/main/plnt/operators/crds/inferencemodel.yaml).

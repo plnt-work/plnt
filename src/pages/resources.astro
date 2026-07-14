@@ -2,26 +2,29 @@
 import Layout from '../layouts/Layout.astro';
 
 const title = 'Resources — plnt';
-const description = 'Documentation, source code, reading list, and a quick CLI / HTTP reference.';
-
-const docs = [
-  { k: 'README', v: 'What plnt is and the one-paragraph pitch.', href: 'https://github.com/devdattatalele/plnt/blob/main/README.md' },
-  { k: 'ARCHITECTURE.md', v: 'File-by-file mapping of the four planes.', href: 'https://github.com/devdattatalele/plnt/blob/main/ARCHITECTURE.md' },
-  { k: 'SETUP.md', v: 'Cross-platform install guide. macOS + Linux. Ollama + cloud backends.', href: 'https://github.com/devdattatalele/plnt/blob/main/SETUP.md' },
-  { k: 'IMPROVEMENTS.md', v: 'v0 → v0.1 punch list. Resident planner, streaming ACC, episodic memory, mTLS.', href: 'https://github.com/devdattatalele/plnt/blob/main/IMPROVEMENTS.md' },
-];
+const description = 'Repos, live playground, docker image, prior art. Where to start reading.';
 
 const source = [
-  { k: 'GitHub', v: '~4,800 LOC Python runtime + Go Bubble Tea TUI.', href: 'https://github.com/devdattatalele/plnt' },
-  { k: 'LICENSE', v: 'Apache 2.0. Permissive. Use commercially, fork, modify.', href: 'https://github.com/devdattatalele/plnt/blob/main/LICENSE' },
-  { k: 'Issues', v: 'Bugs, feature requests, design discussion. Pre-alpha — everything is fair game.', href: 'https://github.com/devdattatalele/plnt/issues' },
+  { k: 'plnt (platform)',     v: 'The Helm charts, Temporal workflows, CRD, operator, CLI, and playground API. Apache-2.0.', href: 'https://github.com/devdattatalele/plnt' },
+  { k: 'plnt-cloud (consumer)', v: 'A bookings product built on plnt. Proves the platform serves a real app end-to-end. LLM calls go through the plnt playground.', href: 'https://github.com/devdattatalele/plnt-cloud' },
+  { k: 'plnt-site (this)',    v: 'Astro static site. Marketing pages + playground UI. Deployed to Vercel.', href: 'https://github.com/devdattatalele/plnt-site' },
+];
+
+const artifacts = [
+  { k: 'Playground',   v: 'Talk to deployed models in-browser. Model picker, chat, briefing, manifest, metrics, logs tabs.', href: 'https://play.plnt.work' },
+  { k: 'Playground API',   v: 'OpenAI-shape HTTP endpoint. <code>/v1/models</code>, <code>/v1/chat/completions</code> (SSE), <code>/healthz</code>.', href: 'https://playground.plnt.work/v1/models' },
+  { k: 'Docker image', v: 'Multi-arch python:3.12-slim, ~150 MB, non-root, health-checked. Published to GHCR.', href: 'https://github.com/devdattatalele/plnt/pkgs/container/plnt-playground-api' },
 ];
 
 const reading = [
-  { k: 'Beyond Scaling', v: 'arXiv:2605.18535 — the thesis behind running agent runtimes on your own hardware.', href: 'https://arxiv.org/abs/2605.18535' },
-  { k: 'HearthNet', v: 'arXiv:2604.09618 — inspiration for the file-backed, audit-first memory model.', href: 'https://arxiv.org/abs/2604.09618' },
-  { k: 'exo', v: 'Federated local inference. plnt routes to exo by pointing PLNT_DEEP_URL at a cluster.', href: 'https://github.com/exo-explore/exo' },
-  { k: 'Firecracker / gVisor', v: 'The microVM and user-space-kernel sandboxes that future plnt rungs target.', href: 'https://firecracker-microvm.github.io/' },
+  { k: 'vLLM paper',           v: '<em>Efficient Memory Management for LLM Serving with PagedAttention.</em> Kwon et al., SOSP 2023. The paged-attention algorithm that vLLM implements.', href: 'https://arxiv.org/abs/2309.06180' },
+  { k: 'NVIDIA NIM',           v: 'NVIDIA Inference Microservices — the container-per-model factory model plnt is shaped around. Prebuilt runtimes for Llama, Mistral, DeepSeek, GLM, etc.', href: 'https://developer.nvidia.com/nim' },
+  { k: 'KServe',               v: 'The reference K8s CRD + controller for inference. plnt\'s InferenceModel CRD borrows heavily from the shape.', href: 'https://kserve.github.io/website/' },
+  { k: 'Temporal patterns',    v: 'Sagas, compensation, retry policies. The playbook for deploy workflows that survive process restarts.', href: 'https://docs.temporal.io/develop/python/failure-detection' },
+  { k: 'Google SRE — cascading failures', v: 'The reason retry budgets sit at the edge (Envoy), not per-hop. Chapter 22 of the SRE book.', href: 'https://sre.google/sre-book/addressing-cascading-failures/' },
+  { k: 'NVIDIA container toolkit', v: 'How CUDA workloads bind to GPU nodes on Kubernetes. Runtime hooks, device plugins, driver compat.', href: 'https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html' },
+  { k: 'MLflow model registry', v: 'The registry primitives plnt\'s model artifact store copies: hash-verified artifacts, version pins, promotion stages.', href: 'https://mlflow.org/docs/latest/model-registry.html' },
+  { k: 'SGLang',               v: 'RadixAttention for prefix caching + a structured-generation DSL. plnt\'s sglang-runtime chart wraps this.', href: 'https://github.com/sgl-project/sglang' },
 ];
 ---
 
@@ -30,10 +33,10 @@ const reading = [
   <section class="section" style="padding-top: clamp(5rem, 9vw, 7rem); padding-bottom: clamp(4rem, 6vw, 5rem);">
     <div class="container">
       <span class="eyebrow">00 / 04 — resources</span>
-      <h1 style="max-width: 22ch;">Read, install, hack.</h1>
-      <p class="lead mt-4" style="max-width: 56ch;">
-        The repository is the source of truth. This page is a map of where to start
-        and what to read.
+      <h1 style="max-width: 22ch;">Repos, artifacts, and the reading list behind the design.</h1>
+      <p class="lead mt-4" style="max-width: 60ch;">
+        Everything on this site is open source. The playground is live. The prior art
+        that shaped the design is linked, not assumed.
       </p>
     </div>
   </section>
@@ -41,14 +44,14 @@ const reading = [
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">01 <span class="of">/ 04</span> — DOCS</div>
-        <p class="lead-text">Project documentation lives in the repo.</p>
+        <div class="count">01 <span class="of">/ 04</span> — REPOS</div>
+        <p class="lead-text">Three repositories, one story.</p>
       </div>
       <div class="rows">
-        {docs.map((d) => (
+        {source.map((d) => (
           <a class="r r-link" href={d.href} target="_blank" rel="noopener">
             <div class="k">{d.k} ↗</div>
-            <p class="v">{d.v}</p>
+            <p class="v" set:html={d.v} />
           </a>
         ))}
       </div>
@@ -58,14 +61,14 @@ const reading = [
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">02 <span class="of">/ 04</span> — SOURCE</div>
-        <p class="lead-text">Code, license, issue tracker.</p>
+        <div class="count">02 <span class="of">/ 04</span> — ARTIFACTS</div>
+        <p class="lead-text">The things you can click, curl, and pull.</p>
       </div>
       <div class="rows">
-        {source.map((d) => (
-          <a class="r r-link" href={d.href} target="_blank" rel="noopener">
-            <div class="k">{d.k} ↗</div>
-            <p class="v">{d.v}</p>
+        {artifacts.map((a) => (
+          <a class="r r-link" href={a.href} target="_blank" rel="noopener">
+            <div class="k">{a.k} ↗</div>
+            <p class="v" set:html={a.v} />
           </a>
         ))}
       </div>
@@ -76,13 +79,13 @@ const reading = [
     <div class="container">
       <div class="sechead">
         <div class="count">03 <span class="of">/ 04</span> — READING</div>
-        <p class="lead-text">Papers and projects that shape plnt.</p>
+        <p class="lead-text">Prior art the design is built on.</p>
       </div>
       <div class="rows">
-        {reading.map((d) => (
-          <a class="r r-link" href={d.href} target="_blank" rel="noopener">
-            <div class="k">{d.k} ↗</div>
-            <p class="v">{d.v}</p>
+        {reading.map((r) => (
+          <a class="r r-link" href={r.href} target="_blank" rel="noopener">
+            <div class="k">{r.k} ↗</div>
+            <p class="v" set:html={r.v} />
           </a>
         ))}
       </div>
@@ -93,34 +96,32 @@ const reading = [
     <div class="container">
       <div class="sechead">
         <div class="count">04 <span class="of">/ 04</span> — QUICK REF</div>
-        <p class="lead-text">Two minutes, end to end.</p>
+        <p class="lead-text">Two minutes on a local kind cluster.</p>
       </div>
-      <div class="term" style="max-width: 760px;">
+      <div class="term" style="max-width: 780px;">
         <div class="chrome">
           <span class="dots"><span></span><span></span><span></span></span>
-          <span>plnt — bash</span>
+          <span>plnt — kind demo</span>
         </div>
         <div class="body">
-          <div><span class="cmt"># install</span></div>
-          <div><span class="prompt">$</span> git clone https://github.com/devdattatalele/plnt</div>
-          <div><span class="prompt">$</span> cd plnt && pip install -e <span class="str">"."</span></div>
-          <div style="margin-top: 0.85rem;"><span class="cmt"># CLI</span></div>
-          <div><span class="prompt">$</span> plnt submit <span class="str">"find anything on agent memory in my Documents"</span></div>
-          <div><span class="prompt">$</span> plnt up &</div>
-          <div><span class="prompt">$</span> plnt runs</div>
-          <div><span class="prompt">$</span> plnt tail r-XXXXXXXX --follow</div>
-          <div><span class="prompt">$</span> plnt skills list</div>
-          <div style="margin-top: 0.85rem;"><span class="cmt"># HTTP / SSE</span></div>
-          <div><span class="kw">POST</span> /v1/intents</div>
-          <div><span class="kw">GET</span>  /v1/runs</div>
-          <div><span class="kw">GET</span>  /v1/runs/&#123;id&#125;/stream</div>
-          <div><span class="kw">GET</span>  /v1/skills</div>
-          <div><span class="kw">GET</span>  /v1/health</div>
+          <div><span class="cmt"># create a local cluster</span></div>
+          <div><span class="prompt">$</span> kind create cluster --name plnt</div>
+          <div style="margin-top: 0.75rem;"><span class="cmt"># install the operator + playground API</span></div>
+          <div><span class="prompt">$</span> helm install plnt oci://ghcr.io/devdattatalele/charts/plnt --version 0.1.0</div>
+          <div style="margin-top: 0.75rem;"><span class="cmt"># define a model — the operator picks it up and starts the Temporal deploy saga</span></div>
+          <div><span class="prompt">$</span> kubectl apply -f examples/llama-3.1-70b-instruct.yaml</div>
+          <div style="margin-top: 0.75rem;"><span class="cmt"># watch the deploy workflow</span></div>
+          <div><span class="prompt">$</span> plnt logs llama-3.1-70b-instruct --follow</div>
+          <div style="margin-top: 0.75rem;"><span class="cmt"># chat</span></div>
+          <div><span class="prompt">$</span> curl -s https://playground.plnt.work/v1/chat/completions \</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;-H <span class="str">"content-type: application/json"</span> \</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;-d <span class="str">{`'{"model":"llama-3.1-70b-instruct","messages":[{"role":"user","content":"hi"}]}'`}</span></div>
         </div>
       </div>
       <div class="flex gap wrap mt-5">
-        <a class="btn primary" href="/docs/">Open the docs portal <span class="arrow">→</span></a>
+        <a class="btn primary" href="https://play.plnt.work" target="_blank" rel="noopener">Open playground <span class="arrow">→</span></a>
         <a class="btn" href="/architecture">Architecture</a>
+        <a class="btn" href="/roadmap">Roadmap</a>
       </div>
     </div>
   </section>

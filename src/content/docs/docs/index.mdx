@@ -1,16 +1,16 @@
 ---
 title: plnt docs
-description: Personal Local Native Twin — a local-first agent runtime. Documentation, install guide, architecture, and reference.
+description: Multi-model inference on Kubernetes. Helm charts per runtime, a Temporal deploy saga, an InferenceModel CRD.
 template: doc
 hero:
-  tagline: A local-first agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your own hardware.
+  tagline: Multi-model inference on Kubernetes. Helm charts per runtime, a Temporal deploy saga, an InferenceModel CRD.
   actions:
-    - text: Install
-      link: /docs/getting-started/install/
+    - text: Quickstart
+      link: /docs/getting-started/quickstart/
       icon: right-arrow
       variant: primary
-    - text: Architecture
-      link: /architecture
+    - text: Playground
+      link: https://play.plnt.work
       icon: external
       variant: secondary
     - text: GitHub
@@ -21,39 +21,48 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## What plnt is
-
-Plnt is a server you run on your own hardware. It hosts **one long-lived planner LLM** that owns
-your identity and memory, plus a few **named resident specialists** (research-librarian, code-shepherd,
-inbox-triage). When work arrives, the planner spawns **ephemeral micro-agents** in sandboxed compute
-units, each with just two tools — `search()` and `execute()` — over your filesystem.
-
-Memory is plain files: JSONL + markdown + a derived FAISS sidecar. No SQL, ever.
+plnt is a platform for deploying multi-model ML inference on Kubernetes.
+One Helm chart per runtime — vLLM, TGI, TRT-LLM, SGLang. A Temporal saga
+per deploy. A single `InferenceModel` CRD as the deploy contract.
 
 ## Where to start
 
 <CardGrid>
-  <Card title="Install" icon="rocket">
-    Clone, `pip install -e .`, submit your first intent in two minutes.
-    [Start here →](/docs/getting-started/install/)
+  <Card title="Quickstart" icon="rocket">
+    `pip install`, `plnt playground up`, first `curl`. 60 seconds.
+    [Start here →](/docs/getting-started/quickstart/)
   </Card>
-  <Card title="Quickstart" icon="open-book">
-    Submit → tail → result. Run the end-to-end flow with the offline echo backend.
-    [Walk it →](/docs/getting-started/quickstart/)
+  <Card title="Local dev" icon="laptop">
+    Run the playground API and the site's chat UI on the same laptop.
+    [Set it up →](/docs/getting-started/local-dev/)
   </Card>
-  <Card title="The four planes" icon="puzzle">
-    Surface · Control · Execution · Compute. The architectural backbone.
-    [Read →](/docs/concepts/four-planes/)
+  <Card title="Architecture" icon="puzzle">
+    Layered platform diagram — CRD, operator, Temporal, runtime charts.
+    [Read →](/docs/concepts/architecture/)
   </Card>
-  <Card title="AgentSpec" icon="setting">
-    The only object that crosses Control → Execution. The hard contract.
-    [Inspect →](/docs/concepts/agentspec/)
+  <Card title="InferenceModel CRD" icon="setting">
+    The declarative deploy contract. `kubectl apply` is the trigger.
+    [Inspect →](/docs/concepts/inferencemodel/)
   </Card>
 </CardGrid>
 
+## Concepts
+
+- [Architecture](/docs/concepts/architecture/) — layered diagram, where each component lives.
+- [InferenceModel CRD](/docs/concepts/inferencemodel/) — the deploy contract.
+- [Deploy saga](/docs/concepts/deploy-saga/) — the Temporal workflow that drives every deploy.
+- [Runtime adapter](/docs/concepts/runtime-adapter/) — one Protocol, four backends.
+- [Playground API](/docs/concepts/playground-api/) — the OpenAI-compatible gateway.
+- [Glossary](/docs/concepts/glossary/) — vocabulary used across the code and docs.
+
 ## Reference
 
-- [CLI](/docs/reference/cli/) — every `plnt` subcommand.
-- [HTTP API](/docs/reference/http-api/) — every `/v1/...` route.
-- [Environment variables](/docs/reference/env-vars/) — `PLNT_HOME`, backend picker vars, model defaults.
-- [Events schema](/docs/reference/events-schema/) — every `EventKind` literal with payload shape.
+- [API contract](/docs/reference/api-contract/) — the OpenAI subset the playground implements. Enforced by tests.
+- [InferenceModel schema](/docs/reference/inferencemodel-crd/) — every field on the CRD.
+
+## Operations
+
+- [Kind demo](/docs/operations/kind-demo/) — 60-second local-laptop demo, no cloud.
+- [DigitalOcean K8s runbook](/docs/operations/do-k8s/) — ship `playground.plnt.work` end-to-end.
+- [Fly.io (API only)](/docs/operations/fly-io/) — cheap-and-cheerful path for the API layer.
+- [CI/CD](/docs/operations/ci-cd/) — GitHub Actions running tests and publishing artifacts.

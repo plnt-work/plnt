@@ -15,11 +15,11 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'plnt',
-  description: 'A local-first agent runtime. One resident planner spawns a swarm of sandboxed micro-agents on your hardware.',
+  description: 'Multi-model inference on Kubernetes. Helm charts per runtime, a Temporal deploy saga, and an InferenceModel CRD.',
   applicationCategory: 'DeveloperApplication',
-  operatingSystem: 'macOS, Linux',
+  operatingSystem: 'Linux · Kubernetes',
   license: 'https://www.apache.org/licenses/LICENSE-2.0',
-  url: 'https://plnt.dev',
+  url: 'https://plnt.work',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 };
 ---
@@ -52,6 +52,10 @@ const jsonLd = {
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
+    <a class="announce" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">
+      New: plnt v0.1 — Helm charts + Temporal deploy saga + InferenceModel CRD
+      <span class="arrow">→</span>
+    </a>
     <header class="site-nav">
       <div class="container inner">
         <a href="/" class="brand bare">
@@ -63,16 +67,21 @@ const jsonLd = {
               <path d="M12 9 Q16 8.5 17 5 Q13 5.5 12 9 Z" />
             </svg>
           </span>
-          <span>plnt</span>
+          <span>PLNT</span>
         </a>
         <nav>
+          <a href="/playground">Playground</a>
           <a href="/architecture">Architecture</a>
           <a href="/docs/">Docs</a>
           <a href="/roadmap">Roadmap</a>
           <a href="/resources">Resources</a>
         </nav>
         <div class="right">
-          <a href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+          <a class="gh" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+          <a class="nav-cta" href="https://play.plnt.work" target="_blank" rel="noopener">
+            Open playground
+            <span class="dot" aria-hidden="true">↗</span>
+          </a>
         </div>
       </div>
     </header>
@@ -83,8 +92,9 @@ const jsonLd = {
 
     <footer class="site-footer">
       <div class="container inner">
-        <span>plnt — runs on your hardware. Apache-2.0.</span>
+        <span>plnt — multi-model inference on Kubernetes. Apache-2.0.</span>
         <div class="links">
+          <a href="/playground">Playground</a>
           <a href="/architecture">Architecture</a>
           <a href="/docs/">Docs</a>
           <a href="/roadmap">Roadmap</a>

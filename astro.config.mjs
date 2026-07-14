@@ -2,13 +2,15 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
+import preact from '@astrojs/preact';
 
 export default defineConfig({
-  site: 'https://plnt.dev',
+  site: 'https://plnt.work',
   integrations: [
+    preact({ compat: false }),
     starlight({
       title: 'plnt docs',
-      tagline: 'personal · local · native · twin',
+      tagline: 'Multi-model inference on Kubernetes',
       logo: { src: './src/assets/logo-mono.svg', replacesTitle: false },
       favicon: '/favicon.svg',
       customCss: [
@@ -23,27 +25,36 @@ export default defineConfig({
         {
           label: 'Getting started',
           items: [
-            { label: 'Install', slug: 'docs/getting-started/install' },
+            { label: 'Overview', slug: 'docs/getting-started/overview' },
             { label: 'Quickstart', slug: 'docs/getting-started/quickstart' },
+            { label: 'Local dev', slug: 'docs/getting-started/local-dev' },
           ],
         },
         {
           label: 'Concepts',
           items: [
-            { label: 'The four planes', slug: 'docs/concepts/four-planes' },
-            { label: 'AgentSpec', slug: 'docs/concepts/agentspec' },
-            { label: 'Blackboard', slug: 'docs/concepts/blackboard' },
-            { label: 'Skills', slug: 'docs/concepts/skills' },
-            { label: 'Sandbox ladder', slug: 'docs/concepts/sandbox-ladder' },
+            { label: 'Architecture', slug: 'docs/concepts/architecture' },
+            { label: 'InferenceModel CRD', slug: 'docs/concepts/inferencemodel' },
+            { label: 'Deploy saga', slug: 'docs/concepts/deploy-saga' },
+            { label: 'Runtime adapter', slug: 'docs/concepts/runtime-adapter' },
+            { label: 'Playground API', slug: 'docs/concepts/playground-api' },
+            { label: 'Glossary', slug: 'docs/concepts/glossary' },
+          ],
+        },
+        {
+          label: 'Operations',
+          items: [
+            { label: 'Kind demo', slug: 'docs/operations/kind-demo' },
+            { label: 'DigitalOcean K8s', slug: 'docs/operations/do-k8s' },
+            { label: 'Fly.io (API only)', slug: 'docs/operations/fly-io' },
+            { label: 'CI/CD', slug: 'docs/operations/ci-cd' },
           ],
         },
         {
           label: 'Reference',
           items: [
-            { label: 'CLI', slug: 'docs/reference/cli' },
-            { label: 'HTTP API', slug: 'docs/reference/http-api' },
-            { label: 'Environment variables', slug: 'docs/reference/env-vars' },
-            { label: 'Events schema', slug: 'docs/reference/events-schema' },
+            { label: 'API contract', slug: 'docs/reference/api-contract' },
+            { label: 'InferenceModel schema', slug: 'docs/reference/inferencemodel-crd' },
           ],
         },
       ],

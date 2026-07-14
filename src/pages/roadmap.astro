@@ -2,43 +2,66 @@
 import Layout from '../layouts/Layout.astro';
 
 const title = 'Roadmap — plnt';
-const description = 'What ships in v0, the 12-week plan to v0.1, the punch list, and the architectural choices being held.';
+const description = 'What ships today. What Phases 1–6 add. What we explicitly refuse to do.';
 
-const v0Ships = [
-  { k: 'Surface', v: 'REST + SSE. mTLS stub (loopback only).' },
-  { k: 'Control', v: 'Keyword-routed planner with LLM plug-in shape.' },
-  { k: 'Execution', v: 'Process + docker sandbox rungs. Full event stream.' },
-  { k: 'Compute', v: 'OpenAI-compatible router with offline-echo fallback.' },
-  { k: 'Memory', v: 'Per-run JSONL + artifacts. Episodic dir scaffolded.' },
-  { k: 'Skills', v: '8 seed bundles. Hot-reload. Installer for anthropic/skills + 4 others.' },
-  { k: 'TUI', v: 'Go / Bubble Tea client. Chat history. SSE event routing.' },
-  { k: 'Tests', v: '31 / 31 green. Offline echo means no LLM required.' },
+const shipping = [
+  { k: 'Playground API',   v: 'FastAPI, OpenAI wire format. <code>/v1/models</code>, <code>/v1/chat/completions</code> (SSE), <code>/healthz</code>, <code>/readyz</code>. Mock backend + HTTP-proxy backend. 7/7 tests passing.' },
+  { k: 'Helm chart',       v: '<code>plnt/charts/playground-api/</code> — Deployment + Service + Ingress + HPA + ConfigMap. Deployable to any Kubernetes cluster.' },
+  { k: 'Docker image',     v: '<code>docker/playground-api.Dockerfile</code>. 150 MB python:3.12-slim, non-root, healthcheck.' },
+  { k: 'Live playground',  v: '<a href="https://play.plnt.work">play.plnt.work</a> — browser UI with model picker, chat, briefing / manifest / metrics / logs tabs. Backend proxies to NVIDIA NIM hosted APIs.' },
+  { k: 'Marketing site',   v: '<a href="https://plnt.work">plnt.work</a> — this. Static Astro build on Vercel. <code>/architecture</code> and <code>/roadmap</code> tell the platform story.' },
 ];
 
-const weeks12 = [
-  { w: 'Weeks 01 — 02', label: 'Surface + mTLS', done: false },
-  { w: 'Weeks 03 — 04', label: 'Control plane + rung-0 sandbox', done: true },
-  { w: 'Week 05',       label: 'ACC + budget governance', done: true },
-  { w: 'Weeks 06 — 07', label: 'Five seed skills', done: true },
-  { w: 'Week 08',       label: 'exo router', done: false },
-  { w: 'Weeks 09 — 10', label: 'iOS client', done: false },
-  { w: 'Week 11',       label: 'Dashboard', done: false },
-  { w: 'Week 12',       label: 'Private beta', done: false },
+const phases = [
+  {
+    n: '00',
+    label: 'Skeleton + narrative',
+    status: 'shipped',
+    detail: 'Directory layout for <code>charts/</code>, <code>operators/</code>, <code>workflows/</code>, <code>runtime/</code>, <code>cli/</code>, <code>registry/</code>, <code>bench/</code>. README rewritten. <code>docs/architecture.md</code> with the platform diagram.',
+  },
+  {
+    n: '01',
+    label: 'First runtime Helm chart',
+    status: 'in progress',
+    detail: '<code>plnt/charts/vllm-runtime/</code> — Deployment + Service + HPA + ConfigMap. <code>values.yaml</code> parameterises model, storage URI, GPU class, replicas, runtime args. Installable on kind against a CPU-stub image; ready to drop into a real GPU node pool.',
+  },
+  {
+    n: '02',
+    label: 'Temporal deploy saga',
+    status: 'in progress',
+    detail: '<code>plnt/workflows/deploy_model.py</code> — five-step saga (validate → pull → helm install canary → smoke → promote). <code>RetryPolicy</code> per activity. <code>helm rollback</code> as compensation. <code>SandboxedWorkflowRunner</code> reused from plnt-cloud.',
+  },
+  {
+    n: '03',
+    label: 'InferenceModel CRD + operator',
+    status: 'planned',
+    detail: 'CRD spec at <code>plnt/operators/crds/inferencemodel.yaml</code>. Python <code>kopf</code> operator watches the CRD → starts <code>DeployModelWorkflow</code>. <code>kubectl apply -f llama-70b.yaml</code> becomes the entire deploy trigger.',
+  },
+  {
+    n: '04',
+    label: 'Python CLI',
+    status: 'planned',
+    detail: '<code>plnt deploy</code>, <code>plnt list-models</code>, <code>plnt scale</code>, <code>plnt rollback</code>, <code>plnt bench</code>. <code>typer</code>-based. Wraps <code>kubectl</code> + <code>helm</code> + Temporal client. Typed with pydantic, tested with pytest.',
+  },
+  {
+    n: '05',
+    label: 'plnt-cloud as consumer',
+    status: 'planned',
+    detail: 'Point <a href="https://github.com/devdattatalele/plnt-cloud">plnt-cloud</a>\'s LLM calls at a plnt-served endpoint. README note: "plnt-cloud is a bookings product built on plnt." Proof the platform serves a real app end-to-end.',
+  },
+  {
+    n: '06',
+    label: 'Benchmarking + dashboard',
+    status: 'planned',
+    detail: '<code>plnt/bench/harness.py</code> measures TTFT p50/p95/p99, TPOT, tokens/s/GPU, KV cache utilization. Prometheus scrape config in the Helm chart. One Grafana dashboard JSON committed.',
+  },
 ];
 
-const punchList = [
-  { title: 'Resident planner service', detail: 'Today the orchestrator materialises a planner per intent. Target: a long-lived process holding identity + warm state across days.' },
-  { title: 'Streaming ACC + budget tail', detail: 'Today the ACC runs post-hoc. Make runaway kills fire in real time.' },
-  { title: 'Resident specialist runtime', detail: 'Pool of pre-warmed processes per named role, vs. ephemeral spawns.' },
-  { title: 'Episodic memory append', detail: 'One JSONL line per completed run to <code>$PLNT_HOME/episodic/YYYY/MM/DD.jsonl</code>.' },
-  { title: 'mTLS + plnt enroll', detail: 'Make "your phone reaches the server" real. Today loopback only.' },
-  { title: 'De-duplicate finished events', detail: 'Three finished events fire at end of run. Consolidate to one.' },
-];
-
-const heldNonChanges = [
-  '<strong>No database.</strong> The filesystem is the memory.',
-  '<strong>No HTTP bus between planner and specialists.</strong> Function calls + in-process queues.',
-  '<strong>No MCP.</strong> The framework owns memory, skills, and the sandbox.',
+const held = [
+  { k: 'NO', v: '<strong>No proprietary wire format.</strong> Every runtime speaks OpenAI-shape at the pod boundary. Existing SDKs work.' },
+  { k: 'NO', v: '<strong>No custom deploy scripts.</strong> The saga is a Temporal workflow, not a bash pipeline. State is durable, resumable, and inspectable.' },
+  { k: 'NO', v: '<strong>No cloud lock-in.</strong> Helm + K8s + Temporal are all portable. Runs on kind, GKE, EKS, AKS, on-prem — same YAML.' },
+  { k: 'NO', v: '<strong>No mystery orchestration.</strong> The operator is small enough to read in one sitting. Every state transition emits a Kubernetes event.' },
 ];
 ---
 
@@ -47,10 +70,10 @@ const heldNonChanges = [
   <section class="section" style="padding-top: clamp(5rem, 9vw, 7rem); padding-bottom: clamp(4rem, 6vw, 5rem);">
     <div class="container">
       <span class="eyebrow">00 / 04 — roadmap</span>
-      <h1 style="max-width: 22ch;">v0 ships today. v0.1 is the next twelve weeks.</h1>
+      <h1 style="max-width: 22ch;">The platform in seven phases.</h1>
       <p class="lead mt-4" style="max-width: 60ch;">
-        plnt is pre-alpha. The four planes work end-to-end. The pieces explicitly
-        stubbed, and the architectural choices being held, are documented here.
+        Phase 0 shipped. Phases 1–2 in progress. Phases 3–6 are scoped and sequenced.
+        Progress tracked in the plnt repo.
       </p>
     </div>
   </section>
@@ -59,10 +82,10 @@ const heldNonChanges = [
     <div class="container">
       <div class="sechead">
         <div class="count">01 <span class="of">/ 04</span> — SHIPPING</div>
-        <p class="lead-text">What works end-to-end right now in v0.</p>
+        <p class="lead-text">What works end-to-end right now.</p>
       </div>
       <div class="rows">
-        {v0Ships.map((s) => (
+        {shipping.map((s) => (
           <div class="r">
             <div class="k">{s.k}</div>
             <p class="v" set:html={s.v} />
@@ -75,19 +98,26 @@ const heldNonChanges = [
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">02 <span class="of">/ 04</span> — 12 WEEKS</div>
-        <p class="lead-text">Path to v0.1. Eight pieces, in priority order.</p>
+        <div class="count">02 <span class="of">/ 04</span> — PHASES</div>
+        <p class="lead-text">Seven phases from skeleton to a benchmarked, canary-deployed multi-runtime platform.</p>
       </div>
       <div class="steps-list">
-        {weeks12.map((w) => (
-          <div class="li">
-            <div class="n" style={w.done ? 'color: var(--acc);' : 'color: var(--ink-4);'}>{w.done ? '◉' : '○'}</div>
-            <div class="body">
-              <strong>{w.label}</strong>
-              <p style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.14em;">{w.w}{w.done ? ' · shipped' : ''}</p>
+        {phases.map((p) => {
+          const color = p.status === 'shipped' ? 'var(--acc)' : p.status === 'in progress' ? 'var(--ink)' : 'var(--ink-4)';
+          const marker = p.status === 'shipped' ? '◉' : p.status === 'in progress' ? '◐' : '○';
+          return (
+            <div class="li">
+              <div class="n" style={`color: ${color};`}>{marker}</div>
+              <div class="body">
+                <strong>{p.label}</strong>
+                <p style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 0.5rem;">
+                  Phase {p.n} · {p.status}
+                </p>
+                <p set:html={p.detail} />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   </section>
@@ -95,38 +125,14 @@ const heldNonChanges = [
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">03 <span class="of">/ 04</span> — PUNCH LIST</div>
-        <p class="lead-text">
-          v0 → v0.1. Tracked in <code>IMPROVEMENTS.md</code>. Six concrete scoped changes.
-        </p>
-      </div>
-      <div class="steps-list">
-        {punchList.map((p, i) => (
-          <div class="li">
-            <div class="n">{String(i + 1).padStart(2, '0')}</div>
-            <div class="body">
-              <strong>{p.title}</strong>
-              <p set:html={p.detail} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">04 <span class="of">/ 04</span> — HELD</div>
-        <p class="lead-text">
-          Three architectural choices being held. Adding any of them would invert the project.
-        </p>
+        <div class="count">03 <span class="of">/ 04</span> — HELD</div>
+        <p class="lead-text">Four architectural choices being held. Reversing any of them would invert the project.</p>
       </div>
       <div class="rows">
-        {heldNonChanges.map((line) => (
+        {held.map((h) => (
           <div class="r">
-            <div class="k">NO</div>
-            <p class="v" set:html={line} />
+            <div class="k">{h.k}</div>
+            <p class="v" set:html={h.v} />
           </div>
         ))}
       </div>
@@ -135,12 +141,18 @@ const heldNonChanges = [
 
   <section class="section">
     <div class="container">
-      <p class="dim" style="font-size: 0.875rem; max-width: 60ch;">
-        Influences ·
-        Beyond Scaling (arXiv:<a href="https://arxiv.org/abs/2605.18535" target="_blank" rel="noopener">2605.18535</a>) ·
-        HearthNet (arXiv:<a href="https://arxiv.org/abs/2604.09618" target="_blank" rel="noopener">2604.09618</a>) ·
-        <a href="https://github.com/exo-explore/exo" target="_blank" rel="noopener">exo</a> ·
-        Agentnetes · Firecracker / gVisor consensus 2026.
+      <div class="sechead">
+        <div class="count">04 <span class="of">/ 04</span> — INFLUENCES</div>
+        <p class="lead-text">Prior art that shapes the design.</p>
+      </div>
+      <p class="dim" style="font-size: 0.9rem; max-width: 68ch;">
+        Google SRE (cascading failures chapter) ·
+        Temporal (deploy sagas, activity retries, compensation) ·
+        <a href="https://kserve.github.io/website/" target="_blank" rel="noopener">KServe</a> (CRD shape and inference protocol) ·
+        <a href="https://docs.vllm.ai/en/latest/" target="_blank" rel="noopener">vLLM</a> (paged attention, continuous batching) ·
+        <a href="https://developer.nvidia.com/nim" target="_blank" rel="noopener">NVIDIA NIM</a> (container-per-model factory model) ·
+        MLflow (model artifact registry) ·
+        Envoy VirtualService (canary weights).
       </p>
     </div>
   </section>

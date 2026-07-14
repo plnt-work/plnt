@@ -1,0 +1,91 @@
+---
+title: Playground API
+description: The OpenAI-compatible gateway. FastAPI, SSE, one URL — playground.plnt.work.
+---
+
+The playground API is the plnt platform's public surface. FastAPI, OpenAI wire format, SSE streaming, one URL: `playground.plnt.work`.
+
+## Why it exists
+
+Two very different consumers hit the same endpoint:
+
+1. **The site's chat panel** at [play.plnt.work](https://play.plnt.work) — visitors talk to whatever's deployed on the cluster without leaving the browser.
+2. **Any OpenAI client SDK** — because the wire format is compatible, existing code works unmodified:
+
+    ```python
+    from openai import OpenAI
+    client = OpenAI(base_url="https://playground.plnt.work/v1", api_key="not-required")
+    resp = client.chat.completions.create(
+        model="llama-3.1-70b-instruct",
+        messages=[{"role": "user", "content": "hi"}],
+    )
+    ```
+
+## Endpoints
+
+| Method | Path                    | Purpose                          |
+|--------|-------------------------|----------------------------------|
+| `GET`  | `/healthz`              | Liveness. Always 200 once up.    |
+| `GET`  | `/readyz`               | Readiness. 503 if no models.     |
+| `GET`  | `/v1/models`            | List registered models.          |
+| `POST` | `/v1/chat/completions`  | Chat completion (± SSE stream).  |
+| `GET`  | `/docs`                 | Swagger UI (FastAPI auto-gen).   |
+
+Full request/response shapes are in the [API contract reference](/docs/reference/api-contract/).
+
+## Where model config comes from
+
+Models are **configuration, not code**. Three sources, in order of precedence:
+
+1. **`PLNT_PLAYGROUND_MODELS`** env var — a JSON array. This is what the Helm chart injects via ConfigMap → env.
+2. **`PLNT_PLAYGROUND_CONFIG`** env var — a path to a JSON/YAML file with the same array. Useful for local dev.
+3. **Built-in default** — a single `plnt-mock-7b` model so `helm install` with no values still returns something usable.
+
+A spec:
+
+```json
+{
+  "id": "llama-3.1-70b-instruct",
+  "backend": "http",
+  "runtime": "vllm",
+  "upstream_url": "http://llama-3.1-70b-instruct.default.svc.cluster.local:8000",
+  "upstream_model": "meta-llama/Llama-3.1-70B-Instruct",
+  "api_key_env": "VLLM_API_KEY"
+}
+```
+
+## No runtime mutation
+
+There is no `POST /models` — model lifecycle is a Helm concern, not a REST call. `helm upgrade` with a new list, pod restart, new registry. The audit trail lives in `helm history`, where cluster operators expect it. Fewer surprises during an incident.
+
+## CORS
+
+Pre-configured for the plnt frontend hosts and common local ports:
+
+```python
+DEFAULT_CORS_ORIGINS = [
+    "https://plnt.work",
+    "https://play.plnt.work",
+    "https://playground.plnt.work",
+    "http://localhost:4321",   # Astro dev
+    "http://localhost:3000",
+    "http://localhost:8080",
+]
+```
+
+Override with `PLNT_PLAYGROUND_CORS_ORIGINS=<comma-sep>` or `PLNT_PLAYGROUND_CORS_ORIGINS=*`.
+
+## Backends
+
+Every model has a `backend` field selecting which [RuntimeAdapter](/docs/concepts/runtime-adapter/) implementation handles the request:
+
+- `"backend": "mock"` — `MockBackend`. Deterministic echo, streams word-by-word.
+- `"backend": "http"` — `HTTPBackend`. Proxies to any OpenAI-compatible upstream (vLLM, TGI, SGLang, TRT-LLM, llama.cpp).
+
+## Source
+
+- API: [`plnt/playground/api.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/playground/api.py)
+- Backends: [`plnt/playground/backends.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/playground/backends.py)
+- Discovery / registry: [`plnt/playground/discovery.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/playground/discovery.py)
+- Schemas: [`plnt/playground/schemas.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/playground/schemas.py)
+- Helm chart: [`plnt/charts/playground-api/`](https://github.com/devdattatalele/plnt/tree/main/plnt/charts/playground-api)

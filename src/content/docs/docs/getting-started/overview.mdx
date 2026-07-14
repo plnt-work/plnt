@@ -1,0 +1,33 @@
+---
+title: Overview
+description: What plnt is, what it isn't, and which page to read next.
+---
+
+**plnt is a playground platform for deploying multi-model ML inference on Kubernetes.** Everything is Helm charts, Temporal workflows, and a Python operator watching one CRD.
+
+## What you get
+
+- **One CRD** — [`InferenceModel`](/docs/concepts/inferencemodel/). `kubectl apply` is the entire deploy trigger.
+- **One saga** — a Temporal workflow drives every deploy: validate → pull weights → helm install canary → smoke test → promote or rollback.
+- **Four runtimes** — vLLM, TGI, TRT-LLM, SGLang. One Helm chart each. Same control API.
+- **One playground URL** — [play.plnt.work](https://play.plnt.work) — talk to whatever's deployed on the cluster, in-browser.
+- **OpenAI wire format** everywhere. Existing SDKs work unmodified.
+
+## What it isn't
+
+- **Not a serving framework.** plnt doesn't compete with vLLM, TGI, TRT-LLM, SGLang — it deploys and orchestrates them.
+- **Not a control plane SaaS.** Everything runs on your cluster. No plnt.com account.
+- **Not a model registry.** MLflow / HF Hub / S3 stay authoritative for weights.
+
+## Where to start
+
+- **Just want to try it locally?** [Quickstart](/docs/getting-started/quickstart/) — 60 seconds, no cluster.
+- **Building against it?** [Local dev](/docs/getting-started/local-dev/) — API + site side-by-side.
+- **Curious how it works?** [Architecture](/docs/concepts/architecture/).
+- **Ready to ship it?** [Kind demo](/docs/operations/kind-demo/) for laptop, [DO K8s runbook](/docs/operations/do-k8s/) for prod.
+
+## Related repos
+
+- **[plnt](https://github.com/devdattatalele/plnt)** — the platform.
+- **[plnt-site](https://github.com/devdattatalele/plnt-site)** — the marketing site + playground UI.
+- **[plnt-cloud](https://github.com/devdattatalele/plnt-cloud)** — a bookings product built on plnt (the "platform serves a real app" proof).

@@ -8,15 +8,20 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "dev:app": "astro dev --config astro.app.config.mjs --port 4322",
+    "build:app": "astro build --config astro.app.config.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/mdx": "^6.0.3",
+    "@astrojs/preact": "^5.1.5",
     "@astrojs/sitemap": "^3.7.3",
     "@astrojs/starlight": "^0.40.0",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "astro": "^6.4.6"
+    "@preact/signals": "^2.9.2",
+    "astro": "^6.4.6",
+    "preact": "^10.29.2"
   }
 }

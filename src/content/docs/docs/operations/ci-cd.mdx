@@ -1,0 +1,124 @@
+---
+title: CI/CD
+description: GitHub Actions running tests and publishing chart + container artifacts.
+---
+
+The plnt repo runs three GitHub Actions workflows: **test**, **build**, and **publish**. plnt-site (this repo) auto-deploys to Vercel on push to `main`.
+
+## plnt — three workflows
+
+### 1. `test.yml` — pytest + ruff on every PR
+
+Runs on every push and PR:
+
+```yaml
+name: test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -q
+```
+
+Gate: PRs can't merge with a red check. The `test_site_contract.py` suite here is what protects the [API contract](/docs/reference/api-contract/) from silent drift.
+
+### 2. `build.yml` — Docker image on push to `main`
+
+```yaml
+name: build
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/**'
+      - 'plnt/playground/**'
+      - 'pyproject.toml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/playground-api.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/devdattatalele/plnt-playground-api:latest
+            ghcr.io/devdattatalele/plnt-playground-api:${{ github.sha }}
+```
+
+Multi-arch (amd64 for cloud, arm64 for local M-series dev on kind).
+
+### 3. `publish-charts.yml` — Helm charts on tag
+
+```yaml
+name: publish-charts
+on:
+  push:
+    tags: ['v*']
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: |
+          for chart in plnt/charts/*/; do
+            helm package "$chart" -d /tmp/charts
+          done
+      - run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+          for pkg in /tmp/charts/*.tgz; do
+            helm push "$pkg" oci://ghcr.io/devdattatalele/charts
+          done
+```
+
+Tag `v0.3.1` publishes `oci://ghcr.io/devdattatalele/charts/vllm-runtime:0.3.1`, `.../playground-api:0.3.1`, etc.
+
+Users install by version:
+```bash
+helm install plnt oci://ghcr.io/devdattatalele/charts/vllm-runtime --version 0.3.1
+```
+
+## plnt-site — Vercel auto-deploy
+
+- Every push to `main` → production deploy on Vercel.
+- Every PR → preview deploy with its own URL.
+- `vercel.json` handles host-based rewrite: `play.plnt.work/` → `/playground`.
+- Zero GitHub Actions config needed — Vercel's GitHub integration handles it.
+
+## plnt-cloud — same shape as plnt
+
+- `test.yml`: pytest + ruff on every PR.
+- `build.yml`: Docker on push to `main` → GHCR.
+- Deploy is manual (`helm upgrade` from a laptop) — automating this belongs on the roadmap, not today.
+
+## Where secrets live
+
+| Secret | Where | Used by |
+|--------|-------|---------|
+| `GITHUB_TOKEN` | Auto-provided by Actions | build.yml, publish-charts.yml |
+| `NIM_API_KEY` | Fly.io secrets / K8s Secret | Runtime |
+| `VERCEL_TOKEN` | Vercel dashboard (not in Actions) | Vercel's own deploy |
+| DigitalOcean token | Local shell for `doctl auth init` | Manual `helm upgrade` |
+
+**No secrets in code.** No secrets in Actions env unless you can rotate them cheaply. When in doubt: OIDC to the cloud provider, not long-lived tokens.

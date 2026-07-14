@@ -1,0 +1,73 @@
+---
+title: Local dev
+description: Run the playground API and the plnt-site chat UI on the same laptop. CORS is pre-configured.
+---
+
+Run the plnt playground API and the plnt.work site on the same laptop.
+The site's chat panel talks to the API via `PUBLIC_PLNT_ENDPOINT` and CORS
+is pre-configured for the Astro dev port.
+
+## The two processes
+
+| Process        | Repo         | Port | Command                          |
+|----------------|--------------|------|----------------------------------|
+| Playground API | plnt         | 8080 | `plnt playground up`             |
+| Site (Astro)   | plnt-site    | 4321 | `npm run dev`                    |
+
+CORS is already open for `http://localhost:4321` — no proxy, no rewrite, no `--host` flag hackery. The browser can talk to both.
+
+## 1. Start the API
+
+```bash
+cd plnt/
+source .venv/bin/activate
+plnt playground up
+```
+
+Foreground process on `http://127.0.0.1:8080`. Verify:
+
+```bash
+curl -s http://127.0.0.1:8080/v1/models | jq
+```
+
+## 2. Point the site at it
+
+In another terminal:
+
+```bash
+cd plnt-site/
+PUBLIC_PLNT_ENDPOINT=http://127.0.0.1:8080 npm run dev
+```
+
+Open `http://localhost:4321/playground`. The chat panel:
+
+- Fetches `/v1/models` on load — you'll see whatever is in the API's registry.
+- Sends `POST /v1/chat/completions` when you hit Send.
+- Falls back to canned "stub" replies if the fetch fails, so the UI keeps working even when the API is down.
+
+## Troubleshooting
+
+If you see the stub reply and expected a real one, check:
+
+1. **API is up.** `curl -s http://127.0.0.1:8080/healthz` should return `{"status":"ok"}`.
+2. **CORS.** Open DevTools → Network → look for a red preflight (`OPTIONS`) request. If `Access-Control-Allow-Origin` is missing, `PLNT_PLAYGROUND_CORS_ORIGINS` in the API's env may have been set narrower than expected. Unset it and restart the API.
+3. **Model id.** The site's default `models.ts` uses the NIM-hosted catalog: `llama-3.1-70b-instruct`, `nemotron-70b-instruct`, `mixtral-8x22b-instruct`, `deepseek-r1`. If the API's registry uses different ids, the chat request returns `404 model not registered`.
+
+## 3. Load the site's model set locally
+
+If you want the local API to accept the site's default model ids, mount the matching registry:
+
+```bash
+cat > /tmp/site-models.json <<'EOF'
+[
+  {"id": "llama-3.1-70b-instruct",  "backend": "mock", "runtime": "vllm"},
+  {"id": "nemotron-70b-instruct",   "backend": "mock", "runtime": "trt-llm"},
+  {"id": "mixtral-8x22b-instruct",  "backend": "mock", "runtime": "tgi"},
+  {"id": "deepseek-r1",             "backend": "mock", "runtime": "sglang"}
+]
+EOF
+
+PLNT_PLAYGROUND_CONFIG=/tmp/site-models.json plnt playground up
+```
+
+Now `/playground` in the site can select any of the four models and get a live (mock) reply through the API.

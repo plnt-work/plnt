@@ -1,7 +1,10 @@
 # build output
 dist/
+dist-app/
 # generated types
 .astro/
+# vercel
+.vercel/
 
 # dependencies
 node_modules/
@@ -22,3 +25,4 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+.vercel

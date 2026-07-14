@@ -1,0 +1,179 @@
+---
+title: DigitalOcean K8s runbook
+description: Ship playground.plnt.work end-to-end on DOKS. ~40 min. ~$24/mo.
+---
+
+Prod deploy of the plnt playground API to `https://playground.plnt.work` on a DigitalOcean Kubernetes cluster.
+
+**Naming:**
+- `plnt.work` — static marketing site (Astro).
+- `plnt.work/playground` — the chat UI island.
+- `playground.plnt.work` — **this API**. Different origin from the UI on purpose.
+
+**Wall-clock:** ~40 min first try. **Monthly cost:** ~$24 (1× `s-1vcpu-2gb` node $12 + 1× LB $12; DOCR free tier).
+
+## 0. Prereqs (install once)
+
+```bash
+brew install doctl kubectl helm
+doctl auth init
+doctl account get
+```
+
+Cloudflare API token (optional — the dashboard works too):
+```bash
+export CF_API_TOKEN=...
+```
+
+## 1. Container registry — push the image
+
+```bash
+doctl registry create plnt --subscription-tier starter
+doctl registry login
+
+cd /Users/dev16/Documents/den-agent/plnt
+docker buildx build \
+  --platform linux/amd64 \
+  -f docker/playground-api.Dockerfile \
+  -t registry.digitalocean.com/plnt/playground-api:0.1.0 \
+  --push .
+
+doctl registry repository list-v2
+```
+
+If `plnt` is taken as a registry name, pick another (e.g. `plnt-<yourname>`) and update `image.repository` in `deploy/do-k8s/values-do.yaml`.
+
+## 2. Cluster — create DOKS
+
+```bash
+doctl kubernetes cluster create plnt \
+  --region sfo3 \
+  --version latest \
+  --node-pool "name=default;size=s-1vcpu-2gb;count=1;auto-scale=true;min-nodes=1;max-nodes=3" \
+  --wait
+
+kubectl config current-context           # do-sfo3-plnt
+kubectl get nodes                        # 1 node, Ready
+```
+
+## 3. Registry pull secret
+
+```bash
+kubectl create namespace plnt
+doctl registry kubernetes-manifest --namespace plnt --name docr-plnt | kubectl apply -f -
+kubectl -n plnt get secret docr-plnt
+```
+
+## 4. Ingress controller — ingress-nginx
+
+Provisions a DO LoadBalancer ($12/mo) as a side effect.
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx --create-namespace \
+  --set controller.publishService.enabled=true
+
+kubectl -n ingress-nginx get svc ingress-nginx-controller -w
+# ^C when EXTERNAL-IP is not <pending>
+```
+
+Copy the `EXTERNAL-IP` — call it `$LB_IP`.
+
+## 5. cert-manager — Let's Encrypt
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --set crds.enabled=true
+
+kubectl -n cert-manager rollout status deploy/cert-manager
+kubectl apply -f deploy/do-k8s/cert-issuer.yaml
+```
+
+> **Tip:** first deploy, flip `values-do.yaml` to `letsencrypt-staging`. Confirm the flow, then switch to `letsencrypt-prod`.
+
+## 6. DNS — Cloudflare
+
+- Cloudflare dashboard → `plnt.work` zone → **DNS** → **Add record**
+- Type `A`, Name `playground`, IPv4 `$LB_IP`, Proxy **DNS only** (grey cloud — orange proxy strips HTTP/1.1 upgrade for SSE)
+
+```bash
+dig +short playground.plnt.work           # should return $LB_IP within a minute
+```
+
+## 7. Ship the playground API
+
+```bash
+cd /Users/dev16/Documents/den-agent/plnt
+helm install plnt-playground plnt/charts/playground-api \
+  --namespace plnt \
+  -f deploy/do-k8s/values-do.yaml
+
+kubectl -n plnt rollout status deploy/plnt-playground-playground-api
+kubectl -n plnt get pods,svc,ingress
+kubectl -n plnt get certificate            # READY: True after 30-90s
+```
+
+## 8. Verify from the internet
+
+```bash
+curl -s https://playground.plnt.work/v1/models | jq
+
+curl -s https://playground.plnt.work/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d '{"model":"plnt-mock-7b","messages":[{"role":"user","content":"hello prod"}]}' | jq
+
+# streaming
+curl -sN https://playground.plnt.work/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d '{"model":"plnt-mock-7b","messages":[{"role":"user","content":"stream me"}],"stream":true}' \
+  | head -20
+```
+
+Streaming response should arrive chunk-by-chunk (not batched — proves SSE passes through).
+
+## 9. Point the site at the API
+
+In [plnt-site](https://github.com/devdattatalele/plnt-site), set `PUBLIC_PLNT_ENDPOINT=https://playground.plnt.work` as a Vercel env var and redeploy. The playground island falls back to a stub if the env var isn't set, so the site is usable even when the API is down.
+
+## 10. Upgrade / rollback
+
+```bash
+docker buildx build --platform linux/amd64 \
+  -f docker/playground-api.Dockerfile \
+  -t registry.digitalocean.com/plnt/playground-api:0.1.1 \
+  --push .
+
+helm upgrade plnt-playground plnt/charts/playground-api \
+  -n plnt -f deploy/do-k8s/values-do.yaml \
+  --set image.tag=0.1.1
+
+# rollback
+helm history plnt-playground -n plnt
+helm rollback plnt-playground <revision> -n plnt
+```
+
+## 11. Teardown
+
+```bash
+helm uninstall plnt-playground -n plnt
+helm uninstall ingress-nginx -n ingress-nginx        # frees the LB
+helm uninstall cert-manager -n cert-manager
+doctl kubernetes cluster delete plnt                 # frees the node
+doctl registry delete plnt
+```
+
+## Common failures
+
+| Symptom                                                | Fix                                                                                 |
+|--------------------------------------------------------|-------------------------------------------------------------------------------------|
+| `exec format error` in pod logs                        | Image built for arm64 on Apple silicon — rebuild with `--platform linux/amd64`.     |
+| `ImagePullBackOff` for `registry.digitalocean.com/...` | `docr-plnt` secret missing in `plnt` namespace. Re-run step 3.                      |
+| `certificate` stuck `Ready: False`                     | DNS not resolving yet — Let's Encrypt HTTP-01 needs `playground.plnt.work` reachable. |
+| SSE responses arrive all at once                       | Cloudflare orange-cloud proxy buffering. Flip to grey.                              |

@@ -1,79 +1,88 @@
 ---
 title: Quickstart
-description: Submit → tail → result. The end-to-end flow in five minutes.
+description: pip install → plnt playground up → first curl. Sixty seconds.
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+Boot the plnt playground locally in under 60 seconds. No cluster, no GPU, no signup.
 
-This walks the full lifecycle with the **offline echo backend**, so no LLM is required.
-Switch to Ollama or a cloud endpoint once you've seen the pipeline run.
-
-## Five-minute tour
-
-<Steps>
-
-1. **Submit an intent inline (no server)**
-
-   ```bash
-   plnt submit "find anything on agent memory in my Documents"
-   ```
-
-   You will see triage, plan, spawn, model_call, tool_call, result, finished events
-   stream to your terminal. The final markdown lands at `~/Desktop/plnt-r-XXXXXXXX.md`.
-
-2. **Or run the surface server**
-
-   ```bash
-   plnt up &        # starts FastAPI on 127.0.0.1:7777
-   plnt status      # confirm
-   ```
-
-3. **Submit via HTTP and tail the SSE stream**
-
-   ```bash
-   plnt submit --remote "catch me up on the latest in agent memory"
-   plnt runs                              # list recent runs
-   plnt tail r-XXXXXXXX --follow          # stream events live
-   ```
-
-4. **List the installed skills**
-
-   ```bash
-   plnt skills list
-   plnt skills show literature-scout
-   ```
-
-5. **Drive the Bubble Tea TUI**
-
-   ```bash
-   ./plnt-tui-bin
-   ```
-
-   The TUI holds an SSE connection to the surface and routes events by `run_id`,
-   so multiple concurrent runs stay clean.
-
-</Steps>
-
-## What just happened
-
-Every step you ran wrote one or more JSONL lines to `$PLNT_HOME/runs/<run_id>/events.jsonl`.
-That file is the source of truth — every UI, every dashboard, every replay walks it.
+## 1. Install
 
 ```bash
-jq -r 'select(.kind == "tool_call") | .payload.tool' \
-  ~/.plnt/runs/r-XXXXXXXX/events.jsonl | sort | uniq -c
+git clone https://github.com/devdattatalele/plnt && cd plnt
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
-That one-liner tells you which tools the agents actually called. No database needed.
+The `.[dev]` extra pulls pytest and ruff. Skip it if you're just running, not editing.
 
-<Aside type="note">
-If you set <code>PLNT_LOCAL_URL</code> and a real model, the planner will write a richer
-plan; without it the offline echo planner emits a deterministic single-agent plan and
-finishes in milliseconds.
-</Aside>
+## 2. Start the playground
+
+```bash
+plnt playground up
+```
+
+You'll see:
+
+```
+plnt playground on http://127.0.0.1:8080 — mock backend, ctrl+C to stop.
+  models:  http://127.0.0.1:8080/v1/models
+  chat:    POST http://127.0.0.1:8080/v1/chat/completions
+  docs:    http://127.0.0.1:8080/docs
+```
+
+The default backend is a `mock` that echoes your prompt with fake streaming — enough to verify the wire is intact. Real vLLM comes later ([Local dev](/docs/getting-started/local-dev/)).
+
+## 3. Talk to it
+
+In a second terminal:
+
+```bash
+# list models
+plnt playground models
+
+# one-shot chat, streams to stdout
+plnt playground chat plnt-mock-7b "hello, plnt"
+
+# same but non-streaming
+plnt playground chat plnt-mock-7b "hello" --no-stream
+
+# copy-paste curl examples for anywhere else
+plnt playground curl
+```
+
+Or directly with `curl`:
+
+```bash
+curl -s http://127.0.0.1:8080/v1/models | jq
+
+curl -s http://127.0.0.1:8080/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d '{"model":"plnt-mock-7b","messages":[{"role":"user","content":"hi"}]}' \
+  | jq
+```
+
+## 4. Add your own models
+
+Point the API at a config file:
+
+```bash
+cat > /tmp/models.json <<'EOF'
+[
+  {"id": "gpt-echo", "backend": "mock", "runtime": "mock"},
+  {"id": "local-vllm",
+   "backend": "http",
+   "runtime": "vllm",
+   "upstream_url": "http://127.0.0.1:8000"}
+]
+EOF
+
+PLNT_PLAYGROUND_CONFIG=/tmp/models.json plnt playground up
+```
+
+Now `plnt playground models` shows both entries. Anything with `"backend": "http"` proxies to the URL you gave it — any OpenAI-compatible upstream (real vLLM, TGI, SGLang, llama.cpp) works.
 
 ## Next
 
-- [The four planes](/docs/concepts/four-planes/) — what every module does
-- [Blackboard](/docs/concepts/blackboard/) — the JSONL audit log in detail
-- [CLI reference](/docs/reference/cli/) — every subcommand
+- [Local dev](/docs/getting-started/local-dev/) — wire the site's chat UI to your local API.
+- [Kind demo](/docs/operations/kind-demo/) — the full K8s + Temporal flow, on your laptop.
+- [Architecture](/docs/concepts/architecture/) — the layered platform view.

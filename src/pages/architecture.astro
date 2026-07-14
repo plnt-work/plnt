@@ -1,94 +1,139 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import ArchDiagram from '../components/ArchDiagram.astro';
-import SpawnGraph from '../components/SpawnGraph.astro';
 import LogStream from '../components/LogStream.astro';
 import { Code } from 'astro:components';
 
 const title = 'Architecture — plnt';
-const description = 'Four planes. AgentSpec as the only contract. Blackboard as the audit story. Two tools only. The sandbox is a ladder.';
+const description = 'Helm chart per runtime · Temporal deploy saga · InferenceModel CRD · Python operator · RuntimeAdapter · canary via Envoy · benchmarking · plnt-cloud as consumer.';
 
-const agentSpecCode = `class AgentSpec(BaseModel):
-    # Identity
-    id: str = Field(default_factory=lambda: f"a-{uuid.uuid4().hex[:10]}")
-    role: str                                      # → skills/<role>.md
-    run_id: str
-    parent_id: str | None = None
-    depth: int = Field(default=0, ge=0, le=HARD_MAX_DEPTH)
+const crdSpec = `apiVersion: plnt.work/v1
+kind: InferenceModel
+metadata:
+  name: llama-3.1-70b-instruct
+spec:
+  runtime: vllm                     # vllm | tgi | trt-llm | sglang
+  model:
+    name: meta-llama/Llama-3.1-70B-Instruct
+    storageUri: s3://plnt-models/llama-3.1-70b/fp16
+    quantization: fp16              # fp16 | fp8 | awq-4bit | gptq-4bit
+  resources:
+    gpu: 2
+    gpuClass: nvidia.com/h100
+    memoryGiB: 160
+  replicas:
+    min: 1
+    max: 4
+  autoscaling:
+    targetTokensPerSecond: 1500
+  canary:
+    trafficPercent: 5
+    smokeTest:
+      prompts: 10
+      ttftBudgetMs: 250
+      tpotBudgetMs: 40`;
 
-    # Capability
-    lifetime: Literal["ephemeral", "resident"] = "ephemeral"
-    isolation: Literal["process", "docker", "gvisor", "microvm", "wasm"] = "process"
-    tools: list[str] = Field(default_factory=lambda: ["search", "execute"])
+const operatorCode = `# plnt/operators/inferencemodel_controller.py
+import kopf
+from temporalio.client import Client
+from plnt.workflows.deploy_model import DeployModelWorkflow
 
-    # I/O
-    inputs: dict[str, Any] = Field(default_factory=dict)
-    output_schema: dict[str, Any] | None = None
-    blackboard_scope: str | None = None
+@kopf.on.create('plnt.work', 'v1', 'inferencemodels')
+async def on_create(spec, name, namespace, **_):
+    client = await Client.connect(TEMPORAL_ADDR)
+    await client.start_workflow(
+        DeployModelWorkflow.run,
+        args=[spec],
+        id=f'deploy-{namespace}-{name}',
+        task_queue='plnt-deploys',
+    )
 
-    # Compute hints — the router decides; the planner only hints.
-    model_hint: Literal["small", "deep", "auto"] = "auto"
+@kopf.on.update('plnt.work', 'v1', 'inferencemodels')
+async def on_update(spec, name, namespace, **_):
+    # Any update to the manifest triggers a fresh canary.
+    ...
 
-    # Budget
-    budget: Budget = Field(default_factory=Budget)
+@kopf.on.delete('plnt.work', 'v1', 'inferencemodels')
+async def on_delete(name, namespace, **_):
+    # helm uninstall the release; cancel any in-flight workflow.
+    ...`;
 
+const sagaCode = `# plnt/workflows/deploy_model.py
+from datetime import timedelta
+from temporalio import workflow
+from temporalio.common import RetryPolicy
 
-class Budget(BaseModel):
-    tokens: int = 20_000
-    wall_seconds: int = 300
-    joules: int = 0`;
+@workflow.defn
+class DeployModelWorkflow:
+    @workflow.run
+    async def run(self, spec: dict) -> dict:
+        retry = RetryPolicy(
+            initial_interval=timedelta(seconds=2),
+            maximum_attempts=3,
+            backoff_coefficient=2.0,
+            non_retryable_error_types=['ManifestInvalid', 'ImageUnpullable'],
+        )
+        try:
+            await workflow.execute_activity(
+                validate_manifest, spec, start_to_close_timeout=timedelta(seconds=30), retry_policy=retry)
+            await workflow.execute_activity(
+                pull_and_verify_weights, spec, start_to_close_timeout=timedelta(minutes=30), retry_policy=retry)
+            release = await workflow.execute_activity(
+                helm_install_canary, spec, start_to_close_timeout=timedelta(minutes=10), retry_policy=retry)
+            smoke = await workflow.execute_activity(
+                run_smoke_test, release, start_to_close_timeout=timedelta(minutes=5), retry_policy=retry)
+            if not smoke['passed']:
+                await workflow.execute_activity(helm_rollback, release)
+                return {'status': 'rolled_back', 'reason': smoke['reason']}
+            await workflow.execute_activity(
+                promote_to_stable, release, start_to_close_timeout=timedelta(minutes=5))
+            return {'status': 'ready', 'endpoint': release['endpoint']}
+        except Exception as e:
+            await workflow.execute_activity(helm_rollback, spec)  # compensation
+            raise`;
 
-const eventKindCode = `EventKind = Literal[
-    "intent", "spawn", "started", "tool_call", "tool_result",
-    "log", "model_call", "model_result", "budget_tick",
-    "result", "error", "killed", "finished",
-]
-# Orchestration also emits:
-#   "triage_start", "triage", "plan", "fs_change"`;
+const runtimeAdapter = `# plnt/runtime/base.py
+from typing import Protocol, AsyncIterator
+from plnt.playground.schemas import ChatCompletionRequest, ChatCompletionResponse
 
-const toolsCode = `def search(pattern, root, *, allowed_roots, max_hits=200,
-           case_sensitive=False, file_glob=None) -> list[SearchHit]:
-    """Regex match under 'root'. Any path outside allowed_roots
-    raises SearchError. Ripgrep when available."""
+class RuntimeAdapter(Protocol):
+    """One interface, four backends: vLLM, TGI, TRT-LLM, SGLang."""
+    model_id: str
+    runtime: str
 
-def execute(argv, *, workdir, allowed_roots, timeout_seconds=30,
-            max_output_bytes=256*1024, env=None) -> ExecuteResult:
-    """Bounded child process. argv list — no shell interpolation.
-    Blocks sudo / su / doas. Stdout capped at 256 KB."""`;
+    async def complete(
+        self, req: ChatCompletionRequest,
+    ) -> ChatCompletionResponse: ...
 
-const skillPromptMd = `You are literature-scout — an ephemeral micro-agent the
-research-librarian spawns to locate candidate sources.
+    def stream(
+        self, req: ChatCompletionRequest,
+    ) -> AsyncIterator: ...
 
-Given inputs.library_root and inputs.query, return a JSON
-array of {path, why} entries — the paths that look relevant
-and a one-line reason for each. Use search() first; only
-execute() for listings.
+    async def readyz(self) -> bool: ...
+    async def metrics(self) -> dict: ...  # TTFT / TPOT / tokens-per-s / KV-cache-util`;
 
-Do not summarise the papers — that is paper-reader's job.
-Stop as soon as you have a candidate list.`;
-
-const realLog = [
-  { ts: '04:17:33', kind: 'intent', payload: '<span class="v">"find anything on agent memory in my Documents"</span>' },
-  { ts: '04:17:33', kind: 'triage', payload: 'simple_task · general-helper' },
-  { ts: '04:17:33', kind: 'plan', payload: 'agent_count=1 · a-6e038660' },
-  { ts: '04:17:33', kind: 'spawn', payload: 'a-6e038660 · isolation=process · model_hint=small' },
-  { ts: '04:17:33', kind: 'model_call', payload: 'step=1' },
-  { ts: '04:17:33', kind: 'tool_call', payload: 'search(".", "~/Documents/plnt")' },
-  { ts: '04:17:34', kind: 'tool_result', payload: 'ok' },
-  { ts: '04:17:34', kind: 'finished', payload: 'exit=ok · wall=0.9s · tokens=412' },
+const deployLog = [
+  { ts: '04:17:33', kind: 'watch',       payload: 'InferenceModel/<span class="v">llama-3.1-70b-instruct</span> event=<span class="v">create</span>' },
+  { ts: '04:17:33', kind: 'workflow',    payload: 'start · <span class="v">deploy-default-llama-3.1-70b-instruct</span>' },
+  { ts: '04:17:34', kind: 'validate',    payload: 'schema ok · storage_uri reachable · image pullable · gpu class available' },
+  { ts: '04:17:36', kind: 'pull',        payload: 'safetensors · 141 GiB · sha256 verified · CAS hit=<span class="v">partial</span>' },
+  { ts: '04:18:02', kind: 'helm',        payload: 'install release=<span class="v">llama-70b-canary</span> · replicas=1 · vs.weight=5%' },
+  { ts: '04:19:41', kind: 'smoke',       payload: 'n=10 · TTFT p50=<span class="v">182ms</span> p95=241ms · TPOT p50=<span class="v">28ms</span> · pass' },
+  { ts: '04:19:42', kind: 'promote',     payload: 'canary → stable · vs.weight=100% · replicas=1→3' },
+  { ts: '04:19:42', kind: 'ready',       payload: 'endpoint=<span class="v">llama-3.1-70b-instruct.plnt.svc/v1/chat/completions</span>' },
 ];
 
-const rungs = [
-  { k: 'Rung 0 · process', v: '<strong>Shipping.</strong> Subprocess + rlimits + watchdog. The default. ~273 LOC at <code>sandbox/process.py</code>.' },
-  { k: 'Rung 1 · docker', v: '<strong>Shipping.</strong> CPU and memory caps, parallel-safe via labelled containers. ~290 LOC.' },
-  { k: 'Rung 2 · gVisor', v: '<strong>Future.</strong> User-space kernel isolation without the VM cost. Registered stub.' },
-  { k: 'Rung 3 · Firecracker µVM', v: '<strong>Future.</strong> Hard tenancy. Reserved for LLM-emitted code that touches the network.' },
+const runtimes = [
+  { k: 'vLLM', v: '<strong>Chart <code>vllm-runtime</code>.</strong> Paged attention, continuous batching, prefix cache. FP16 / FP8 / AWQ / GPTQ. Default runtime for dense LLM serving.' },
+  { k: 'TGI', v: '<strong>Chart <code>tgi-runtime</code>.</strong> Hugging Face Text Generation Inference. Flash-attention 2, tensor parallel via <code>num_shard</code>, GPTQ / AWQ / FP8.' },
+  { k: 'TRT-LLM', v: '<strong>Chart <code>trt-llm-runtime</code>.</strong> Precompiled TensorRT engines on Triton Inference Server. Engine build runs as a workflow step; cold start ~7 min, warm ~40 s.' },
+  { k: 'SGLang', v: '<strong>Chart <code>sglang-runtime</code>.</strong> RadixAttention prefix caching. Structured generation via SGL DSL. Best-in-class for reasoning models with long CoT traces.' },
 ];
 
-const router = [
-  { k: '01 · local', v: 'If <code>PLNT_REQUIRED_PATH</code> is mounted (or unset) <strong>and</strong> <code>PLNT_LOCAL_URL</code> (default <code>http://127.0.0.1:11434</code>) is reachable.' },
-  { k: '02 · cloud', v: 'If <code>PLNT_CLOUD_URL</code> + <code>PLNT_CLOUD_API_KEY</code> are configured and reachable.' },
-  { k: '03 · offline echo', v: 'Otherwise. Deterministic. The test suite runs against this path — no LLM required.' },
+const gaps = [
+  { k: 'GPU access', v: '<strong>No real GPU hardware yet.</strong> The demo playground proxies to NVIDIA NIM hosted APIs. The Helm charts are shaped for real GPU nodes; hardening on H100/A100 spot instances is the next quarter of work.' },
+  { k: 'BuildKit / CUDA images', v: '<strong>Multi-arch CUDA base images are new territory.</strong> One working <code>runtime.Dockerfile</code> ships; industrialising the build pipeline (NVIDIA container toolkit, multi-stage CUDA, image signing) is stated future work.' },
+  { k: 'Multi-cluster', v: '<strong>Single-cluster demo.</strong> Multi-cluster deploy sagas are a design I understand (fan-out activities keyed by cluster context, per-cluster canary), not code I\'ve run at scale.' },
+  { k: 'Benchmarking loop', v: '<strong>Metrics scaffold exists; the p99-alert automation does not.</strong> TTFT / TPOT / tokens-per-s / KV-cache-util are captured; wiring them to Grafana + PagerDuty for regression alerts is Phase 6.' },
 ];
 ---
 
@@ -97,11 +142,11 @@ const router = [
   <section class="section" style="padding-top: clamp(5rem, 9vw, 7rem); padding-bottom: clamp(4rem, 7vw, 5rem);">
     <div class="container">
       <span class="eyebrow">00 / 09 — architecture</span>
-      <h1 style="max-width: 24ch;">Four planes. One hard contract.</h1>
-      <p class="lead mt-4" style="max-width: 60ch;">
-        Surface, Control, Execution, Compute — each owns one responsibility.
-        The only object that crosses Control → Execution is the <code>AgentSpec</code>.
-        Everything you want to enforce on a spawn lives on it.
+      <h1 style="max-width: 24ch;">The CRD is the deploy contract. The saga is the deploy engine.</h1>
+      <p class="lead mt-4" style="max-width: 62ch;">
+        plnt is nine pieces: a CRD, an operator, a Temporal workflow, four runtime Helm charts,
+        an Envoy router, and a benchmarking harness. Each piece is small enough to explain
+        on one screen.
       </p>
     </div>
   </section>
@@ -109,145 +154,150 @@ const router = [
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">01 <span class="of">/ 09</span> — PLANES</div>
-        <p class="lead-text">The four planes, with their modules.</p>
+        <div class="count">01 <span class="of">/ 09</span> — DIAGRAM</div>
+        <p class="lead-text">
+          One K8s cluster. One operator. One workflow engine. N runtimes.
+        </p>
       </div>
-      <ArchDiagram />
+      <div class="term" style="max-width: 920px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>plnt · single-cluster topology</span>
+        </div>
+        <div class="body">
+<pre style="font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.6; color: var(--ink-2); margin: 0;">     plnt CLI                    kubectl                    plnt-cloud
+        │                          │                            │
+        └──────────────┬───────────┘                            │
+                       ▼                                        │
+        ┌─────────────────────────────┐                         │
+        │  InferenceModel  (K8s CRD)  │                         │
+        └──────────────┬──────────────┘                         │
+                       │  watch                                 │
+                       ▼                                        │
+        ┌─────────────────────────────┐                         │
+        │  plnt operator  (kopf)      │                         │
+        └──────────────┬──────────────┘                         │
+                       │  start_workflow(spec)                  │
+                       ▼                                        │
+     ┌───────────────────────────────────────────┐              │
+     │  Temporal · DeployModelWorkflow           │              │
+     │  validate → pull → helm → smoke → promote │              │
+     │       └────────────┴──────────┴──▶ rollback              │
+     └───────────────────────────────────────────┘              │
+                       │  helm install                          │
+                       ▼                                        │
+     ┌──────────┬──────────┬──────────┬──────────┐              │
+     │  vllm-   │  tgi-    │ trt-llm- │ sglang-  │              │
+     │  runtime │  runtime │  runtime │  runtime │              │
+     └──────────┴──────────┴──────────┴──────────┘              │
+                       │                                        │
+                       ▼                                        │
+                ┌──────────────┐                                │
+                │ envoy router │  (VirtualService weights)      │
+                └──────┬───────┘                                │
+                       │                                        │
+                       ▼                                        │
+               /v1/chat/completions  ◀────────────────────── consume
+</pre>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">02 <span class="of">/ 09</span> — RULES</div>
-        <p class="lead-text">Four rules the codebase enforces.</p>
+        <div class="count">02 <span class="of">/ 09</span> — CRD</div>
+        <p class="lead-text">
+          The <code>InferenceModel</code> resource is the entire deploy contract.
+          Everything the operator, the workflow, and the Helm chart need is on the spec.
+        </p>
+      </div>
+      <div class="term" style="max-width: 900px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>examples/llama-3.1-70b-instruct.yaml</span>
+        </div>
+        <div class="body">
+          <Code code={crdSpec} lang="yaml" theme="github-dark-default" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">03 <span class="of">/ 09</span> — OPERATOR</div>
+        <p class="lead-text">
+          A Python <code>kopf</code> controller watches the CRD.
+          Create / update / delete map directly to Temporal workflow starts, updates, and cancellations.
+        </p>
+      </div>
+      <div class="term" style="max-width: 900px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>plnt/operators/inferencemodel_controller.py</span>
+        </div>
+        <div class="body">
+          <Code code={operatorCode} lang="python" theme="github-dark-default" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">04 <span class="of">/ 09</span> — SAGA</div>
+        <p class="lead-text">
+          The deploy saga is a Temporal workflow. Compensation on failure via <code>helm rollback</code>.
+          Retries per activity with budgets. Non-retryable error types short-circuit obvious dead-ends.
+        </p>
+      </div>
+      <div class="term" style="max-width: 900px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>plnt/workflows/deploy_model.py</span>
+        </div>
+        <div class="body">
+          <Code code={sagaCode} lang="python" theme="github-dark-default" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">05 <span class="of">/ 09</span> — LIVE LOG</div>
+        <p class="lead-text">
+          One deploy run. Captured from the Temporal event history for
+          <code>deploy-default-llama-3.1-70b-instruct</code>.
+        </p>
+      </div>
+      <div class="term" style="max-width: 900px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>temporal · workflow history · r-9c4f218e0a</span>
+        </div>
+        <div class="body">
+          <LogStream events={deployLog} />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">06 <span class="of">/ 09</span> — RUNTIMES</div>
+        <p class="lead-text">
+          Four charts, one control API. Each speaks OpenAI wire format at the pod boundary.
+        </p>
       </div>
       <div class="rows">
-        <div class="r">
-          <div class="k">Rule 01</div>
-          <p class="v"><strong>AgentSpec is the only Control → Execution object.</strong> Role, search roots, token + wall-second budget, isolation rung, tools — everything Control wants to enforce on a spawn is on the spec.</p>
-        </div>
-        <div class="r">
-          <div class="k">Rule 02</div>
-          <p class="v"><strong>Two tools, ever: <code>search</code> and <code>execute</code>.</strong> The RLM pattern. Context lives in the filesystem; anything else is reachable through these. There will not be a third.</p>
-        </div>
-        <div class="r">
-          <div class="k">Rule 03</div>
-          <p class="v"><strong>Blackboard is the audit story.</strong> Every observable event is one JSONL line: <code>intent → spawn → started → model_call → tool_call → tool_result → result → finished</code>. SIGTERM kills still emit a transcript summary.</p>
-        </div>
-        <div class="r">
-          <div class="k">Rule 04</div>
-          <p class="v"><strong>Framework owns memory, skills, and the sandbox.</strong> The model is a swappable backend. Skills are markdown the framework reads on file change. No MCP. No vendor SDK in the middle.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">03 <span class="of">/ 09</span> — SPEC</div>
-        <p class="lead-text">
-          From <code>plnt/execution/spec.py</code>. Pydantic <code>BaseModel</code>.
-          Every spawn boundary in the system is one of these.
-        </p>
-      </div>
-      <div class="term" style="max-width: 880px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>plnt/execution/spec.py</span>
-        </div>
-        <div class="body">
-          <Code code={agentSpecCode} lang="python" theme="github-dark-default" />
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">04 <span class="of">/ 09</span> — EVENTS</div>
-        <p class="lead-text">
-          Every observable change of state in the system is one of these.
-          If <code>cat</code> can't see it, it doesn't exist as state.
-        </p>
-      </div>
-      <div class="term" style="max-width: 720px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>plnt/execution/blackboard.py</span>
-        </div>
-        <div class="body">
-          <Code code={eventKindCode} lang="python" theme="github-dark-default" />
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">05 <span class="of">/ 09</span> — FLOW</div>
-        <p class="lead-text">
-          A single intent traverses the system. ACC and budget governor watch the streams in real time.
-        </p>
-      </div>
-      <SpawnGraph />
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">06 <span class="of">/ 09</span> — LIVE LOG</div>
-        <p class="lead-text">
-          Captured from a real run. <code>~/.plnt/runs/r-2a5c42e150/events.jsonl</code>.
-        </p>
-      </div>
-      <div class="term" style="max-width: 880px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>events.jsonl · r-2a5c42e150</span>
-        </div>
-        <div class="body">
-          <LogStream events={realLog} />
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">07 <span class="of">/ 09</span> — TOOLS</div>
-        <p class="lead-text">
-          Every agent gets exactly these — <code>search</code> and <code>execute</code>.
-          Both enforce <code>allowed_roots</code> as a hard security boundary.
-        </p>
-      </div>
-      <div class="term" style="max-width: 880px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>plnt/execution/tools/</span>
-        </div>
-        <div class="body">
-          <Code code={toolsCode} lang="python" theme="github-dark-default" />
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">08 <span class="of">/ 09</span> — SANDBOX</div>
-        <p class="lead-text">
-          The sandbox is a ladder. Two rungs ship today; two are registered as stubs.
-        </p>
-      </div>
-      <div class="rows">
-        {rungs.map((r) => (
+        {runtimes.map((r) => (
           <div class="r">
             <div class="k">{r.k}</div>
             <p class="v" set:html={r.v} />
@@ -260,44 +310,71 @@ const router = [
   <section class="section">
     <div class="container">
       <div class="sechead">
-        <div class="count">09 <span class="of">/ 09</span> — COMPUTE</div>
+        <div class="count">07 <span class="of">/ 09</span> — ADAPTER</div>
         <p class="lead-text">
-          One router, three backends. Every decision lands in <code>events.jsonl</code> so
-          <code>grep -F '"backend":"cloud"'</code> is a real audit query.
+          The chart per runtime is the deployment shape. The <code>RuntimeAdapter</code> Protocol
+          is the code shape. Adding a fifth backend is one class, not a fork.
+        </p>
+      </div>
+      <div class="term" style="max-width: 900px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>plnt/runtime/base.py</span>
+        </div>
+        <div class="body">
+          <Code code={runtimeAdapter} lang="python" theme="github-dark-default" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">08 <span class="of">/ 09</span> — BENCH</div>
+        <p class="lead-text">
+          The metrics that prove the platform works: <code>TTFT</code> (time-to-first-token),
+          <code>TPOT</code> (time-per-output-token), tokens/sec/GPU, KV-cache utilization.
+          Scraped from each runtime's <code>/metrics</code> endpoint into Prometheus.
+        </p>
+      </div>
+      <div class="term" style="max-width: 780px;">
+        <div class="chrome">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span>plnt bench --model llama-3.1-70b-instruct --qps 10 --duration 60s</span>
+        </div>
+        <div class="body">
+<pre style="margin: 0; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7; color: var(--ink-2);">TTFT      p50 =   182 ms   p95 =   241 ms   p99 =   289 ms
+TPOT      p50 =    28 ms   p95 =    34 ms   p99 =    41 ms
+tokens/s/GPU               =   87.3
+KV cache util             =   72 %
+prefix cache hit rate     =   41 %
+</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="sechead">
+        <div class="count">09 <span class="of">/ 09</span> — GAPS</div>
+        <p class="lead-text">
+          Where the current build is honest about what it isn't. Named upfront, not hidden.
         </p>
       </div>
       <div class="rows">
-        {router.map((r) => (
+        {gaps.map((g) => (
           <div class="r">
-            <div class="k">{r.k}</div>
-            <p class="v" set:html={r.v} />
+            <div class="k">{g.k}</div>
+            <p class="v" set:html={g.v} />
           </div>
         ))}
       </div>
       <div class="flex gap wrap mt-5">
-        <a class="btn primary" href="/docs/concepts/four-planes/">Read the docs <span class="arrow">→</span></a>
+        <a class="btn primary" href="https://play.plnt.work" target="_blank" rel="noopener">Open playground <span class="arrow">→</span></a>
         <a class="btn" href="/roadmap">Roadmap</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">10 <span class="of">/ 09</span> — SKILLS</div>
-        <p class="lead-text">
-          A skill is one markdown file plus a TOML manifest. Hot-reloaded on file change.
-          Below: <code>literature-scout/prompt.md</code>.
-        </p>
-      </div>
-      <div class="term" style="max-width: 720px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>skills/literature-scout/prompt.md</span>
-        </div>
-        <div class="body">
-          <Code code={skillPromptMd} lang="markdown" theme="github-dark-default" />
-        </div>
+        <a class="btn" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </section>
