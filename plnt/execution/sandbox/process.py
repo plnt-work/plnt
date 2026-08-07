@@ -21,6 +21,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from typing import Callable
 
 from plnt.execution.blackboard import Blackboard
 from plnt.execution.sandbox.base import SandboxResult
@@ -85,7 +86,11 @@ class ProcessSandbox:
 
     # ---------------------------------------------------------- lifecycle
 
-    def run(self, spec: AgentSpec) -> SandboxResult:
+    def run(
+        self,
+        spec: AgentSpec,
+        on_event: Callable[[dict], None] | None = None,
+    ) -> SandboxResult:
         started = time.monotonic()
 
         # 1. Pick a workdir.
@@ -188,6 +193,10 @@ class ProcessSandbox:
                 events_out.append(evt)
                 if evt.get("kind") == "result":
                     output = evt.get("payload")
+                # Live governance hook: callers (orchestrator ACC/budget) see
+                # each event as it arrives and may call kill() from here.
+                if on_event is not None:
+                    on_event(evt)
 
             # 5. Wait for exit.
             rc = self._proc.wait()

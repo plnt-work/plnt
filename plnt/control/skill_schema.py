@@ -17,6 +17,11 @@ The TOML carries:
   [output]    JSON-Schema-ish description of the agent's structured output
   [graph]     which child skills this skill is allowed to spawn
 
+Optional sections (all default to empty):
+  [triggers]               event kinds / cron schedule that wake the skill
+  [integrations_required]  map of integration name -> required?
+  [install]                install-time hooks (config_schema path)
+
 Old-format markdown skills (`~/.plnt/skills/<role>.md`) keep working — the
 loader probes for both forms.
 
@@ -111,6 +116,36 @@ class SkillOutput(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class SkillTriggers(BaseModel):
+    """What wakes this skill up besides a direct user intent."""
+
+    kinds: list[str] = Field(default_factory=list)
+    schedule: str = ""
+
+    @field_validator("schedule")
+    @classmethod
+    def _check_schedule(cls, v: str) -> str:
+        # Loose shape check only: 5 whitespace-separated cron fields.
+        if v and len(v.split()) != 5:
+            raise ValueError(f"schedule must have 5 cron fields, got {v!r}")
+        return v
+
+
+class SkillInstall(BaseModel):
+    """Install-time hooks — paths are relative to the skill directory."""
+
+    config_schema: str = ""
+
+    @field_validator("config_schema")
+    @classmethod
+    def _check_config_schema(cls, v: str) -> str:
+        if not v:
+            return v
+        if v.startswith("/") or ".." in v.split("/"):
+            raise ValueError(f"config_schema must be a relative path without '..', got {v!r}")
+        return v
+
+
 class SkillGraph(BaseModel):
     """Static bound on what this skill is allowed to spawn.
 
@@ -130,6 +165,9 @@ class SkillManifest(BaseModel):
     requires: SkillRequires = Field(default_factory=SkillRequires)
     output: SkillOutput = Field(default_factory=SkillOutput)
     graph: SkillGraph = Field(default_factory=SkillGraph)
+    triggers: SkillTriggers = Field(default_factory=SkillTriggers)
+    integrations_required: dict[str, bool] = Field(default_factory=dict)
+    install: SkillInstall = Field(default_factory=SkillInstall)
 
     # The markdown body — system prompt the agent sees.
     prompt: str = ""

@@ -140,16 +140,23 @@ class Orchestrator:
         sandbox = sandbox_cls(blackboard=bb)
         kill_target["kill"] = sandbox.kill
 
-        # Feed the ACC the events we just appended (the runner will emit more
-        # via the subprocess; those land in the same file, so ACC will see
-        # them on the post-hoc re-read if we want batch mode).
+        # Feed the ACC the events emitted so far (intent, budget pre-check).
         for evt in bb.read_all():
             acc.observe(evt)
 
-        result = sandbox.run(spec)
-        # Post-run: replay events into ACC so any deferred detections record.
-        for evt in result.events:
+        # Live governance: the sandbox calls back per event while the child
+        # runs, so ACC detections (and budget ceilings) kill in real time
+        # instead of after the fact. acc.observe() invokes kill_fn itself.
+        def on_event(evt: dict) -> None:
             acc.observe(evt)
+            if evt.get("kind") == "model_result":
+                tokens = int((evt.get("payload") or {}).get("tokens") or 0)
+                try:
+                    budget.tick_tokens(tokens)
+                except BudgetExceeded as e:
+                    sandbox.kill(evt.get("agent_id") or spec.id, f"budget:{e}")
+
+        result = sandbox.run(spec, on_event=on_event)
 
         bb.emit("finished")
         return RunHandle(run_id, intent, bb, budget, acc, result=result)

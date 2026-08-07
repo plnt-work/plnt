@@ -23,6 +23,9 @@ htmlcov/
 var/
 .plnt/
 
+# Benchmark output
+bench/results/
+
 # OS
 .DS_Store
 plnt-tui-bin

@@ -92,6 +92,75 @@ def test_registry_supports_both_formats(tmp_path):
     assert reg.get("new-style").manifest is not None
 
 
+def test_optional_sections_absent_defaults_empty(tmp_path):
+    _write_skill(
+        tmp_path,
+        "plain",
+        '[meta]\nname = "plain"\n',
+        "x",
+    )
+    sk = parse_manifest_dir("plain", tmp_path / "plain")
+    assert sk.manifest is not None
+    assert sk.manifest.triggers.kinds == []
+    assert sk.manifest.triggers.schedule == ""
+    assert sk.manifest.integrations_required == {}
+    assert sk.manifest.install.config_schema == ""
+
+
+def test_optional_sections_present_and_valid(tmp_path):
+    _write_skill(
+        tmp_path,
+        "wired",
+        """
+[meta]
+name = "wired"
+
+[triggers]
+kinds = ["user_query:reviews", "review_ingest"]
+schedule = "0 */6 * * *"
+
+[integrations_required]
+google_business_profile = true
+zomato = false
+
+[install]
+config_schema = "config_schema.json"
+""",
+        "x",
+    )
+    sk = parse_manifest_dir("wired", tmp_path / "wired")
+    m = sk.manifest
+    assert m is not None
+    assert m.triggers.kinds == ["user_query:reviews", "review_ingest"]
+    assert m.triggers.schedule == "0 */6 * * *"
+    assert m.integrations_required == {"google_business_profile": True, "zomato": False}
+    assert m.install.config_schema == "config_schema.json"
+
+
+def test_invalid_cron_rejected(tmp_path):
+    _write_skill(
+        tmp_path,
+        "badcron",
+        """
+[meta]
+name = "badcron"
+[triggers]
+schedule = "0 */6 * *"
+""",
+        "x",
+    )
+    with pytest.raises(ValueError, match="5 cron fields"):
+        parse_manifest_dir("badcron", tmp_path / "badcron")
+
+
+@pytest.mark.parametrize("bad", ["../secrets.json", "/etc/passwd", "a/../../b.json"])
+def test_config_schema_path_traversal_rejected(bad):
+    with pytest.raises(ValueError, match="relative path"):
+        SkillManifest.model_validate(
+            {"meta": {"name": "badpath"}, "install": {"config_schema": bad}}
+        )
+
+
 def test_clarification_when_required_input_missing(tmp_path):
     _write_skill(
         tmp_path,
