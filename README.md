@@ -1,15 +1,17 @@
 # plnt
-
-**The orchestration runtime for micro-agent workflows.** Pick a workflow spec
+**Plnt is one of the subproducts of Maps based Micro SAAS. It orchestrates the runtime for micro-agent workflows**. Pick a workflow spec
 from a registry (S3 or OCI), pick a Kubernetes GPU backend, and plnt handles
 the Helm deploy, the canary, the smoke test, and the promote-or-rollback — as
 a durable Temporal saga.
+
+[Plnt Platform](https://play.plnt.work/)
+
 
 The live playground is at [plnt.work/playground](https://plnt.work/playground)
 — pick a workflow, watch the step DAG execute, invoke it against a live model
 endpoint.
 
-> **[Read the full business idea (Google Doc)](https://docs.google.com/document/d/REPLACE_WITH_YOUR_DOC_ID/edit)**
+> **[Read the full B-Plan (Google Doc)](https://docs.google.com/document/d/REPLACE_WITH_YOUR_DOC_ID/edit)**
 > — the long-form pitch: problem, market, product, roadmap, ask. Living
 > document; edit permission by request.
 
