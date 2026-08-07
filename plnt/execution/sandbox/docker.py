@@ -23,6 +23,7 @@ import shutil
 import threading
 import time
 from pathlib import Path
+from typing import Callable
 
 from plnt.execution.blackboard import Blackboard
 from plnt.execution.sandbox.base import SandboxResult
@@ -68,7 +69,11 @@ class DockerSandbox:
 
     # ------------------------------------------------------------- run
 
-    def run(self, spec: AgentSpec) -> SandboxResult:
+    def run(
+        self,
+        spec: AgentSpec,
+        on_event: Callable[[dict], None] | None = None,
+    ) -> SandboxResult:
         if shutil.which("docker") is None:
             raise RuntimeError("`docker` not on PATH; install Docker Desktop or colima")
 
@@ -175,6 +180,8 @@ class DockerSandbox:
                     events_out.append(evt)
                     if evt.get("kind") == "result":
                         output = evt.get("payload")
+                    if on_event is not None:
+                        on_event(evt)
         except Exception as e:
             self.bb.emit("log", agent_id=spec.id, payload={"stream_err": str(e)})
 

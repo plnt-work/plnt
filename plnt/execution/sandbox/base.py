@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from plnt.execution.spec import AgentSpec
 
@@ -37,6 +37,10 @@ class Sandbox(Protocol):
       - leak file descriptors or zombie processes when killed.
     """
 
-    def run(self, spec: AgentSpec) -> SandboxResult: ...
+    def run(
+        self,
+        spec: AgentSpec,
+        on_event: Callable[[dict[str, Any]], None] | None = None,
+    ) -> SandboxResult: ...
 
     def kill(self, agent_id: str, reason: str) -> bool: ...
