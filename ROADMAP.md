@@ -10,12 +10,12 @@ automation agencies who build an agent once and deploy it to many customers.
 The previous roadmap (Kubernetes inference playground) is retired; it is in
 git history.
 
-## Phase 0 — Consolidate  `[wip]`
+## Phase 0 — Consolidate  `[done]`
 
 - `[done]` Import maps-micro-saas → `examples/booking`, plnt-site → `site`, microagents → `registry`, history preserved
 - `[done]` Reference app builds from the monorepo root (Dockerfile, compose)
 - `[done]` One CI for runtime, reference app, console and site
-- `[next]` Remove retired code: K8s operator/charts/deploy, mock inference playground, Go TUI, Expo app
+- `[done]` Remove retired code: K8s operator/charts/deploy, mock inference playground, Go TUI, Expo app
 
 ## Phase 1 — Model layer: local models that actually work  `[next]`
 

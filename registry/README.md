@@ -3,9 +3,9 @@
 The public index of plnt agent bundles. It was imported from
 `github.com/plnt-work/microagents` with full history.
 
-> **Status: not built yet.** This directory holds only the pre-consolidation
-> scaffold: `sdk/` (decorators with no behaviour) and one `workflows/` recipe
-> in a retired YAML format. Neither is used by the runtime. The real registry
+> **Status: not built yet.** This directory holds only one `workflows/` recipe
+> from the pre-consolidation scaffold, in a retired YAML format that the
+> runtime does not use. The real registry
 > is roadmap Phase 5 (see `../ROADMAP.md`).
 
 ## Target shape (Phase 5)
