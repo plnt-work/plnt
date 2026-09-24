@@ -1,9 +1,9 @@
 # Single image for both `api` (uvicorn) and `worker` (Temporal worker).
-# Build context MUST be the umbrella `den-agent/` directory so this can
-# COPY both ../plnt and ./plnt-cloud — see docker-compose.yml.
+# Build context MUST be the monorepo root so this can COPY both the plnt
+# runtime (plnt/) and this example (examples/booking/) — see docker-compose.yml.
 #
-# Source is also bind-mounted at runtime (../plnt → /src/plnt,
-# ./plnt-cloud → /src/plnt-cloud), so editing Python files on the host
+# Source is also bind-mounted at runtime (../../plnt → /src/plnt,
+# . → /src/examples/booking), so editing Python files on the host
 # is picked up by uvicorn --reload / a worker restart without rebuilding.
 # The COPY here only exists so `pip install -e` has something to install
 # against at image-build time; the bind mounts override it at run time.
@@ -23,21 +23,21 @@ RUN apt-get update \
 
 WORKDIR /src
 
-# plnt (the runtime) and plnt-cloud (this repo) are both installed
-# editable. Order matters: plnt-cloud's pyproject pulls plnt by name, so
+# plnt (the runtime, monorepo root) and this example are both installed
+# editable. Order matters: the example's pyproject pulls plnt by name, so
 # plnt must already be importable.
+COPY pyproject.toml README.md LICENSE /src/
 COPY plnt/ /src/plnt/
-RUN pip install --no-cache-dir -e /src/plnt
+RUN pip install --no-cache-dir -e /src
 
-COPY plnt-cloud/pyproject.toml /src/plnt-cloud/pyproject.toml
-COPY plnt-cloud/ /src/plnt-cloud/
-RUN pip install --no-cache-dir -e /src/plnt-cloud
+COPY examples/booking/ /src/examples/booking/
+RUN pip install --no-cache-dir -e /src/examples/booking
 
 # Worker entrypoint enforces the .env sourcing discipline from CLAUDE.md.
-COPY plnt-cloud/scripts/worker-entrypoint.sh /usr/local/bin/worker-entrypoint.sh
+COPY examples/booking/scripts/worker-entrypoint.sh /usr/local/bin/worker-entrypoint.sh
 RUN chmod +x /usr/local/bin/worker-entrypoint.sh
 
-WORKDIR /src/plnt-cloud
+WORKDIR /src/examples/booking
 
 # Default to the api command; the worker service overrides with
 # entrypoint: ["/usr/local/bin/worker-entrypoint.sh"].

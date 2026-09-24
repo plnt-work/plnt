@@ -29,7 +29,7 @@ slot suggestions stream back over the same socket.
 
 ```bash
 # 1. Install
-pip install -e ../plnt
+pip install -e ../..   # the plnt runtime at the monorepo root
 pip install -e .[dev]
 
 # 2. Bring up Temporal + Postgres

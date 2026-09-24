@@ -17,8 +17,8 @@
 # on the host as documented in CLAUDE.md. The api/worker images are
 # pure conveniences; nothing else in the stack depends on them.
 #
-# Build context is the umbrella `den-agent/` so the Dockerfile can COPY
-# both ../plnt and ./plnt-cloud — keep them as siblings on disk.
+# Build context is the monorepo root (../..) so the Dockerfile can COPY
+# both the plnt runtime and this example.
 
 services:
   postgres:
@@ -63,8 +63,8 @@ services:
 
   api:
     build:
-      context: ..
-      dockerfile: plnt-cloud/Dockerfile
+      context: ../..
+      dockerfile: examples/booking/Dockerfile
     depends_on:
       - temporal
     env_file: .env
@@ -77,9 +77,9 @@ services:
     volumes:
       # Live source overrides the image's COPYed copies. Editable
       # installs from the Dockerfile keep working because the paths
-      # match (/src/plnt, /src/plnt-cloud).
-      - ../plnt:/src/plnt
-      - .:/src/plnt-cloud
+      # match (/src/plnt, /src/examples/booking).
+      - ../../plnt:/src/plnt
+      - .:/src/examples/booking
       # Per-tenant data lives at ~/.plnt-cloud/ on the host (see
       # CLAUDE.md "Per-tenant data layout"). Share it with the host
       # so the bare-metal fallback sees the same bookings/memori dbs.
@@ -91,15 +91,15 @@ services:
 
   worker:
     build:
-      context: ..
-      dockerfile: plnt-cloud/Dockerfile
+      context: ../..
+      dockerfile: examples/booking/Dockerfile
     depends_on:
       - temporal
     environment:
       TEMPORAL_ADDRESS: temporal:7233
     volumes:
-      - ../plnt:/src/plnt
-      - .:/src/plnt-cloud
+      - ../../plnt:/src/plnt
+      - .:/src/examples/booking
       - ${HOME}/.plnt-cloud:/root/.plnt-cloud
       # The entrypoint sources this; if missing, the worker exits 1
       # rather than silently falling back to Ollama.

@@ -49,7 +49,7 @@ docker compose logs -f api             # tail uvicorn
 
 # ─── Bare-metal fallback — when iterating fast on Python ────────────
 # Skip the api+worker containers, run them on the host instead.
-pip install -e ../plnt
+pip install -e ../..   # the plnt runtime at the monorepo root
 pip install -e .[dev]
 docker compose up -d postgres temporal temporal-ui
 # Worker — MUST have .env sourced or it falls back to local Ollama and 400s.

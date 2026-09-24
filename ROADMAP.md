@@ -1,105 +1,57 @@
 # Roadmap
 
-Public status of every plnt platform component. Updated per merged PR.
+**Direction:** an open-source runtime for shipping one agent to many isolated
+tenants, on any model — local or cloud. Audience: SaaS builders and AI
+automation agencies who build an agent once and deploy it to many customers.
 
-**Legend:** `[done]` shipped and green in CI · `[wip]` under active work ·
-`[next]` starts within two weeks · `[planned]` on the map, no start date ·
-`[idea]` still under debate
+**Legend:** `[done]` merged and green in CI · `[wip]` in progress ·
+`[next]` starts after the current phase · `[planned]` sequenced, not started
 
----
+The previous roadmap (Kubernetes inference playground) is retired; it is in
+git history.
 
-## v0.1 — Playground foundation (shipped 2026-07)
+## Phase 0 — Consolidate  `[wip]`
 
-The proof surface. Anyone can boot the API, hit `plnt playground chat`,
-or curl `playground.plnt.work` and get a reply.
+- `[done]` Import maps-micro-saas → `examples/booking`, plnt-site → `site`, microagents → `registry`, history preserved
+- `[done]` Reference app builds from the monorepo root (Dockerfile, compose)
+- `[done]` One CI for runtime, reference app, console and site
+- `[next]` Remove retired code: K8s operator/charts/deploy, mock inference playground, Go TUI, Expo app
 
-| Item                                                                          | Status    |
-|-------------------------------------------------------------------------------|-----------|
-| FastAPI playground (`GET /v1/models`, `POST /v1/chat/completions`, SSE)       | `[done]`  |
-| MockBackend + HTTPBackend + `RuntimeAdapter` protocol                         | `[done]`  |
-| ConfigMap-driven model registry                                               | `[done]`  |
-| Docker image (non-root, read-only rootfs, healthcheck)                        | `[done]`  |
-| Helm chart `plnt/charts/playground-api` (Deployment/Service/Ingress/HPA)      | `[done]`  |
-| DigitalOcean K8s deploy overlay + cert-manager Let's Encrypt                  | `[done]`  |
-| Deploy runbook (11 steps, ~40 min, ~$24/mo)                                   | `[done]`  |
-| Fly.io deploy path (alt to DOKS)                                              | `[done]`  |
-| CLI: `plnt playground {up,models,chat,curl}` + `plnt deploy`                  | `[done]`  |
-| Contract test vs plnt-site's `api.ts`                                         | `[done]`  |
-| CORS env-driven allowlist (defaults cover Astro dev + prod origins)           | `[done]`  |
-| Docs: getting-started, api-contract, local-dev, architecture, PRD, ERD        | `[done]`  |
+## Phase 1 — Model layer: local models that actually work  `[next]`
 
-## v0.2 — vLLM real end-to-end (target: 2 weeks)
+- Provider interface (`plnt/models/`): OpenAI-compatible + native Ollama
+- Native tool calling (`tools` / `tool_calls`); JSON-schema shim for models without it
+- Fail loudly: no silent "echo" fallback when a model call fails
+- Health check that the model is actually pulled; `num_ctx` / temperature / max_tokens sent
+- `plnt models doctor`
+- Token + cost accounting on every call
+- Published turn-latency numbers from `bench/turn_latency.py`
 
-Get one real GPU-backed model serving through the playground.
+## Phase 2 — Bundles, tenancy, API core  `[planned]`
 
-| Item                                                                          | Status    |
-|-------------------------------------------------------------------------------|-----------|
-| `plnt/charts/vllm-runtime` chart green on a CPU-stub image (kind demo)        | `[wip]`   |
-| Same chart green on a single-GPU DOKS node (or lambda-labs / vast)            | `[next]`  |
-| Playground registers the vLLM model via HTTPBackend -> real inference         | `[next]`  |
-| `plnt bench` MVP — TTFT p50/p95, tokens/sec/GPU probe                         | `[next]`  |
-| Runbook update: "adding a real vLLM model" section                            | `[next]`  |
+- One bundle format: `skill.toml` + `prompt.md` + `config_schema.json` + tools
+- Tenancy in the core: per-tenant store, audit, memory, secrets, usage
+- Per-tenant bundle loader (shadowing, semver, disable) and installer with config validation
+- In-process executor with a durable SQLite event log; Temporal as an optional extra
+- HTTP API: tenants, installs, sessions (SSE), runs, kill, audit, usage
+- CLI: `plnt init | dev | run | install | serve | tenants`
 
-## v0.3 — Multi-runtime (target: 4 weeks)
+## Phase 3 — Console + reference app on the public API  `[planned]`
 
-Prove the RuntimeAdapter abstraction across three backends.
+- Generic console: usage/cost overview, live runs with kill, transcripts, installs with generated config forms, models/secrets/keys
+- `examples/booking` uses only public APIs; merchant-configured availability replaces LLM-generated slots
 
-| Item                                                                          | Status    |
-|-------------------------------------------------------------------------------|-----------|
-| `plnt/charts/tgi-runtime` chart, same values contract                         | `[planned]` |
-| `plnt/charts/sglang-runtime` chart, same values contract                      | `[planned]` |
-| Side-by-side model registration (same weights, different runtimes)            | `[planned]` |
-| `plnt bench compare` — TTFT/TPOT table per runtime                            | `[planned]` |
-| Playground UI: runtime badge on each model card                               | `[planned]` |
+## Phase 4 — Site, real playground, docs, v0.1.0 on PyPI  `[planned]`
 
-## v0.4 — Observability + operator (target: 6-8 weeks)
+- Site rewritten for the platform
+- Playground runs real bundles on a hosted `plnt serve`: tenant switcher, live event trace, kill button, isolation demo
+- Docs: quickstart, bundle spec, local models guide, deploy guide
 
-Make the platform self-describing.
+## Phase 5 — Registry  `[planned]`
 
-| Item                                                                          | Status    |
-|-------------------------------------------------------------------------------|-----------|
-| Prometheus `/metrics` endpoint on playground pod (RED signals)                | `[planned]` |
-| Grafana dashboard JSON committed                                              | `[planned]` |
-| kopf controller for `InferenceModel` CRD (scaffold shipped in v0.1)           | `[wip]`   |
-| Controller -> Temporal `DeployModelWorkflow` (scaffold shipped in v0.1)       | `[wip]`   |
-| End-to-end `kubectl apply -f llama.yaml` triggers full saga                   | `[planned]` |
-| MLflow client wrapper for hash-verified weight pulls (optional)               | `[idea]`  |
+- `registry/index.json` generated in CI; `plnt install <slug>` with sha256 verification; `plnt publish`
+- OpenTelemetry traces; Postgres store
 
-## v0.5 — TRT-LLM + full runtime coverage (target: quarter end)
+## Phase 6 — Hardening  `[planned]`
 
-| Item                                                                          | Status    |
-|-------------------------------------------------------------------------------|-----------|
-| `plnt/charts/trt-llm-runtime` chart                                           | `[planned]` |
-| `TritonBackend` RuntimeAdapter (Triton-native, not OpenAI-HTTP)               | `[planned]` |
-| Precompiled engine caching path                                               | `[planned]` |
-| Runbook: "picking a runtime" decision tree                                    | `[planned]` |
-
-## v1.0 — Public release
-
-| Item                                                                          | Status    |
-|-------------------------------------------------------------------------------|-----------|
-| Cross-cluster failover for playground API (active-active)                     | `[idea]`  |
-| Hosted DNS at plnt.work with region-aware routing                             | `[idea]`  |
-| First-party CI images (GHCR) + provenance attestations                        | `[planned]` |
-| Blog post + launch on HN                                                      | `[planned]` |
-| Contributing guide finalised + first outside contributor merged               | `[planned]` |
-
----
-
-## Deliberately not on the roadmap
-
-- Training / fine-tuning UI.
-- Hosted model marketplace.
-- Multi-tenant billing / metering.
-- Windows support.
-- SageMaker parity.
-
-See [`docs/PRD.md` section 5](docs/PRD.md#5-non-goals) for the reasoning.
-
----
-
-## How this is maintained
-
-Every merged PR that ships a listed item flips its status in the same
-commit. `main` should always be an accurate picture. If you see drift,
-open a PR — it counts as a doc fix.
+- Per-tenant Docker rung by default, egress allowlists, rate limits, gVisor rung, eval harness

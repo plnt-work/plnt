@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "plnt"
 version = "0.0.1"
-description = "Plnt — Personal Local Native Twin. A local-first runtime where one resident planner spawns a swarm of sandboxed micro-agents on your own hardware."
+description = "Open-source runtime for shipping one agent to many isolated tenants — per-tenant sandbox, budgets, memory, secrets and audit, on any model, local or cloud."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [{ name = "Plnt" }]
-keywords = ["agents", "local-first", "swarm", "sandbox", "ollama", "exo", "personal-ai"]
+keywords = ["agents", "multi-tenant", "sandbox", "ollama", "local-llm", "tool-calling", "agent-runtime"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
@@ -40,6 +40,12 @@ dev = [
     "pytest-mock>=3.12",
     "ruff>=0.4",
     "mypy>=1.9",
+]
+docker = [
+    "docker>=7.0",
+]
+temporal = [
+    "temporalio>=1.7",
 ]
 semantic = [
     "fastembed>=0.3",
