@@ -1,0 +1,48 @@
+apiVersion: microagents.dev/v1
+kind: Workflow
+metadata:
+  name: review-responder
+  version: 1.2.0
+  description: Draft an on-brand reply to a Google Business review.
+  license: Apache-2.0
+spec:
+  runtime:
+    image: ghcr.io/microagents/runner:0.4.0
+    entrypoint: python -m review_responder
+
+  steps:
+    - id: classify_intent
+      tool: llm.classify
+      description: Sentiment (positive|neutral|negative) + topic tags.
+
+    - id: retrieve_brand_voice
+      tool: rag.query
+      description: Pull the tenant's brand voice guidelines + past replies.
+      deps: [classify_intent]
+
+    - id: draft_reply
+      tool: llm.generate
+      description: Draft a reply in the merchant's voice.
+      deps: [retrieve_brand_voice]
+
+    - id: safety_check
+      tool: policy.moderate
+      description: Reject if the draft violates safety or brand policy.
+      deps: [draft_reply]
+
+  requirements:
+    gpuClass: nvidia.com/h100
+    gpuCount: 2
+    memoryGiB: 40
+
+  budgets:
+    p95LatencyMs: 2500
+    maxTokensPerRun: 4000
+
+  outputs:
+    - name: reply_text
+      type: string
+    - name: sentiment
+      type: string
+    - name: safe
+      type: boolean
