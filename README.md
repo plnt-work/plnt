@@ -29,7 +29,8 @@ hosted model or a model running on the tenant's own hardware.
 plnt/                 the runtime (Python package `plnt`)
   control/            planner, budgets, streaming kill switch (ACC), DAG, skill schema
   execution/          sandbox rungs (process, docker), agent runner, blackboard audit log
-  compute/            model backend selection  (being replaced in roadmap Phase 1)
+  models/             model providers: Ollama (native), OpenAI-compatible, JSON tool shim, doctor
+  agent/              the tool-calling agent loop
   surface/            local HTTP server + CLI surface
 skills/               built-in agent bundles
 tests/                runtime tests
@@ -50,10 +51,32 @@ pip install -e ".[dev]"
 pytest -q
 
 # Local model (Ollama):
-ollama pull llama3.2:3b
-plnt up                                   # local surface on 127.0.0.1:7777
+ollama pull qwen2.5:7b
+export PLNT_PLANNER_MODEL=qwen2.5:7b
+plnt models doctor                        # reachable? pulled? tool calling? JSON? context?
 plnt submit "summarise the TODOs in this repo"
 ```
+
+## Models
+
+plnt picks a model per call: the local endpoint if it is reachable, otherwise the
+configured cloud model, otherwise it **fails with a fix-it message**. It never
+invents an answer when a model call fails.
+
+| Variable | Meaning |
+|---|---|
+| `PLNT_LOCAL_URL` | Local server. `http://127.0.0.1:11434` → Ollama native API; a URL ending in `/v1` → OpenAI-compatible (llama.cpp, vLLM, LM Studio) |
+| `PLNT_PLANNER_MODEL` / `PLNT_DEEP_MODEL` | Local small / deep model |
+| `PLNT_CLOUD_URL`, `PLNT_CLOUD_API_KEY`, `PLNT_CLOUD_SMALL_MODEL`, `PLNT_CLOUD_DEEP_MODEL` | Hosted fallback (any OpenAI-compatible API, e.g. Gemini) |
+| `PLNT_FORCE` | `local`, `cloud`, or `offline` (deterministic stub for tests) |
+| `PLNT_NUM_CTX` | Context window requested from Ollama (default 8192; Ollama's own default silently truncates agent prompts) |
+| `PLNT_NATIVE_TOOLS` | `auto` (default: native tool calling, JSON-schema shim if the model rejects tools), `1`, `0` |
+| `PLNT_MODEL_TIMEOUT`, `PLNT_TEMPERATURE`, `PLNT_MAX_TOKENS` | Per-call settings; the timeout is also capped by the agent's remaining wall budget |
+| `PLNT_COST_IN_PER_M` / `PLNT_COST_OUT_PER_M` | USD per 1M tokens, for cost accounting in run events |
+
+Tool-calling quality varies a lot between local models, and small ones are
+often unreliable. Before relying on one, run `plnt models doctor --model <name>`. It runs
+a tool-call probe and a JSON probe against the model you have.
 
 ## Quickstart (reference app)
 

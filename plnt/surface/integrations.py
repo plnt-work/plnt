@@ -6,7 +6,7 @@ values once; the orchestrator merges them into AgentSpec.inputs at spawn
 time. Persisted to ~/.plnt/integrations.toml:
 
     [<skill_role>]
-    library_root = "/Users/dev16/Documents/research"
+    library_root = "~/Documents/research"
     arxiv_api_key = "..."
 """
 

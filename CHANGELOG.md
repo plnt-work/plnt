@@ -9,7 +9,34 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
-Nothing yet — next release in progress.
+### Changed
+
+- **Direction:** plnt is now an open-source runtime for shipping one agent to many
+  isolated tenants. The repository is a monorepo: `examples/booking`
+  (was maps-micro-saas), `site` (was plnt-site), and `registry` (was microagents),
+  each imported with full history.
+- **Model layer rewritten** (`plnt/models/`). There are native Ollama (`/api/chat`, with
+  `num_ctx`) and OpenAI-compatible providers. Tools use native calling, with a
+  JSON-schema shim for models that reject tools. Errors are typed and carry a fix-it hint.
+  Every call records tokens and cost.
+- **Agent loop** (`plnt/agent/`) follows the tool-calling message protocol and
+  caps each model call by the remaining wall budget. `execution/runner.py` uses it.
+- Model selection honours `PLNT_FORCE`. The Docker sandbox rewrites loopback model
+  URLs to `host.docker.internal`.
+
+### Added
+
+- `plnt models doctor` and `plnt models list`.
+- CI (`ci.yml`), and a real-Ollama job (`local-models.yml`).
+
+### Removed
+
+- The silent "echo" fallback when a model call fails. With no model configured,
+  runs now emit `model_error`. `PLNT_FORCE=offline` selects the deterministic stub
+  explicitly.
+- The free-text `TOOL:` / `FINAL:` tool protocol.
+- The K8s inference playground, operator, Helm charts, deploy overlays, Fly config,
+  Go TUI, Expo app, and `plnt deploy` / `plnt playground` commands (recoverable from git history).
 
 ## [0.1.0] — 2026-07-14
 

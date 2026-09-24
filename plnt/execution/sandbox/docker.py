@@ -31,6 +31,18 @@ from plnt.execution.spec import AgentSpec
 
 DEFAULT_IMAGE = os.environ.get("PLNT_DOCKER_IMAGE", "plnt/runtime:latest")
 DEN_LABEL = "dev.plnt.agent"
+HOST_GATEWAY = "host.docker.internal"
+
+
+def container_url(url: str) -> str:
+    """Rewrite a host-loopback URL so it is reachable from inside a container."""
+    from urllib.parse import urlparse, urlunparse
+
+    u = urlparse(url)
+    if u.hostname in ("127.0.0.1", "localhost", "0.0.0.0", "::1"):
+        netloc = HOST_GATEWAY + (f":{u.port}" if u.port else "")
+        return urlunparse(u._replace(netloc=netloc))
+    return url
 
 
 class DockerSandbox:
@@ -128,6 +140,9 @@ class DockerSandbox:
                 nano_cpus=int(cpu_quota * 1e9),
                 mem_limit=mem_limit,
                 network_mode=os.environ.get("PLNT_DOCKER_NETWORK", "bridge"),
+                # Docker Desktop defines host.docker.internal; on Linux it must
+                # be mapped to the host gateway explicitly.
+                extra_hosts={HOST_GATEWAY: "host-gateway"},
                 working_dir="/work",
             )
         except Exception as e:
@@ -285,13 +300,19 @@ class DockerSandbox:
             "PLNT_WORKDIR": "/work",
             "PLNT_BLACKBOARD_DIR": "/blackboard",
             "PLNT_SEARCH_ROOTS": ":".join(container_roots),
-            "PLNT_COMPUTE_URL": os.environ.get("PLNT_COMPUTE_URL", "http://host.docker.internal:11434"),
             "PLNT_PLANNER_MODEL": os.environ.get("PLNT_PLANNER_MODEL", "llama3.2:3b"),
             "PLNT_DEEP_MODEL": os.environ.get("PLNT_DEEP_MODEL", "llama3.1:8b"),
         }
-        # Forward every other PLNT_* var (URLs, force flags, required path,
-        # cloud keys) so the container's backend_picker matches the host.
+        # Forward every other PLNT_* var (URLs, force flags, cloud keys) so the
+        # container resolves the same model as the host.
         for k, v in os.environ.items():
             if k.startswith("PLNT_") and k not in env:
                 env[k] = v
+        # A host-loopback model URL is unreachable from inside the container;
+        # point it at the host gateway instead.
+        local = env.get("PLNT_LOCAL_URL") or env.get("PLNT_COMPUTE_URL") or "http://127.0.0.1:11434"
+        env["PLNT_LOCAL_URL"] = container_url(local)
+        env.pop("PLNT_COMPUTE_URL", None)
+        # The host-side drive check makes no sense inside the container.
+        env.pop("PLNT_REQUIRED_PATH", None)
         return env

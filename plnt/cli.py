@@ -320,6 +320,84 @@ def skills_install(source: str, dry_run: bool) -> None:
     console.print(f"[dim]installed to {result['target']}[/dim]")
 
 
+# ----------------------------------------------------------------------- models
+
+
+@cli.group()
+def models() -> None:
+    """Inspect and diagnose the model backends plnt will use."""
+
+
+def _profiles_for(model: str | None, url: str | None, provider: str | None, force: str | None):
+    from dataclasses import replace
+
+    from plnt.models import ModelError, resolve_profile
+    from plnt.models.profiles import guess_local_provider, local_profile
+
+    if url:
+        base = local_profile("small")
+        p = replace(base, base_url=url, provider=provider or guess_local_provider(url),
+                    model=model or base.model, source="explicit", reason="--url")
+        return [p]
+    out = []
+    for hint in ("small", "deep"):
+        try:
+            p = resolve_profile(hint, force)  # type: ignore[arg-type]
+        except ModelError as e:
+            console.print(f"[red]✗ no model:[/red] {e}")
+            sys.exit(1)
+        if model:
+            p = replace(p, model=model)
+        if all((q.base_url, q.model) != (p.base_url, p.model) for q in out):
+            out.append(p)
+    return out
+
+
+@models.command("doctor")
+@click.option("--model", default=None, help="Model name to check (default: resolved small + deep).")
+@click.option("--url", default=None, help="Check this endpoint instead of the resolved one.")
+@click.option("--provider", type=click.Choice(["ollama", "openai"]), default=None)
+@click.option("--force", type=click.Choice(["local", "cloud"]), default=None,
+              help="Check the local or cloud slot regardless of PLNT_FORCE.")
+@click.option("--no-probe", is_flag=True, help="Skip the tool-calling / JSON test prompts.")
+def models_doctor(model, url, provider, force, no_probe) -> None:
+    """Check reachability, pulled model, tool calling, JSON output, context size."""
+    from plnt.models.doctor import diagnose
+
+    all_ok = True
+    for profile in _profiles_for(model, url, provider, force):
+        console.print(
+            f"\n[bold]{profile.model}[/bold]  [dim]{profile.provider} · {profile.base_url} · "
+            f"{profile.source}{' — ' + profile.reason if profile.reason else ''}[/dim]"
+        )
+        rep = diagnose(profile, probe=not no_probe)
+        for c in rep.checks:
+            mark = {True: "[green]✓[/green]", False: "[red]✗[/red]", None: "[dim]–[/dim]"}[c.ok]
+            console.print(f"  {mark} {c.name:<15} {c.detail}")
+            if c.hint and c.ok is False:
+                console.print(f"      [yellow]fix:[/yellow] {c.hint}")
+        all_ok = all_ok and rep.ok
+    sys.exit(0 if all_ok else 1)
+
+
+@models.command("list")
+@click.option("--url", default=None, help="Endpoint to list (default: resolved small model's).")
+@click.option("--provider", type=click.Choice(["ollama", "openai"]), default=None)
+def models_list(url, provider) -> None:
+    """List the models an endpoint serves."""
+    from plnt.models import ModelError, get_provider
+
+    for profile in _profiles_for(None, url, provider, None)[:1]:
+        try:
+            names = get_provider(profile).list_models()
+        except ModelError as e:
+            console.print(f"[red]✗[/red] {e}")
+            sys.exit(1)
+        console.print(f"[dim]{profile.provider} · {profile.base_url}[/dim]")
+        for n in names:
+            console.print(f"  {'[green]●[/green]' if n == profile.model else '·'} {n}")
+
+
 def main() -> None:
     cli()
 

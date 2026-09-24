@@ -17,17 +17,19 @@ git history.
 - `[done]` One CI for runtime, reference app, console and site
 - `[done]` Remove retired code: K8s operator/charts/deploy, mock inference playground, Go TUI, Expo app
 
-## Phase 1 — Model layer: local models that actually work  `[next]`
+## Phase 1 — Model layer: local models that actually work  `[done]`
 
-- Provider interface (`plnt/models/`): OpenAI-compatible + native Ollama
-- Native tool calling (`tools` / `tool_calls`); JSON-schema shim for models without it
-- Fail loudly: no silent "echo" fallback when a model call fails
-- Health check that the model is actually pulled; `num_ctx` / temperature / max_tokens sent
-- `plnt models doctor`
-- Token + cost accounting on every call
-- Published turn-latency numbers from `bench/turn_latency.py`
+- `[done]` Provider interface (`plnt/models/`): OpenAI-compatible + native Ollama (`/api/chat`)
+- `[done]` Native tool calling (`tools` / `tool_calls`); JSON-schema shim when a model rejects tools
+- `[done]` Fail loudly: no silent "echo" fallback; errors carry a fix-it hint
+- `[done]` Model-pulled check; `num_ctx` / temperature / max_tokens sent; timeout capped by wall budget
+- `[done]` `plnt models doctor` and `plnt models list`
+- `[done]` Token + cost accounting on every model call (`model_result` events, run `usage`)
+- `[done]` Docker sandbox reaches a host-local model (`host.docker.internal` rewrite)
+- `[done]` CI job running a real Ollama model (`.github/workflows/local-models.yml`)
+- `[done]` Runtime overhead measured: p50 256 ms / p95 284 ms per single-agent run, no model (`bench/turn_latency.py`, 4 vCPU)
 
-## Phase 2 — Bundles, tenancy, API core  `[planned]`
+## Phase 2 — Bundles, tenancy, API core  `[next]`
 
 - One bundle format: `skill.toml` + `prompt.md` + `config_schema.json` + tools
 - Tenancy in the core: per-tenant store, audit, memory, secrets, usage

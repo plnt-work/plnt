@@ -20,6 +20,9 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
+      # Lint is enforced on modules rewritten for the platform; older modules
+      # are brought under it as they are touched.
+      - run: ruff check plnt/models plnt/agent plnt/compute
       - run: pytest -q
 
   booking:
