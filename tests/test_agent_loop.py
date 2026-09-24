@@ -163,3 +163,14 @@ def test_shim_roundtrip():
     assert final.content == "answer" and not final.tool_calls
     prose = parse_shim_reply(ChatResult(content="just text"))
     assert prose.content == "just text"
+
+
+def test_filesystem_search_resolves_relative_root_against_workdir(tmp_path, monkeypatch):
+    from plnt.agent import filesystem_tools
+
+    (tmp_path / "notes.txt").write_text("the word is PLNT_MARKER\n")
+    monkeypatch.chdir("/")  # process cwd deliberately differs from the workdir
+    search = filesystem_tools(tmp_path, [tmp_path])["search"]
+    hits = search.fn({"pattern": "PLNT_MARKER", "root": "."})
+    assert hits and hits[0]["path"].endswith("notes.txt")
+    assert search.fn({"pattern": "PLNT_MARKER"})  # root omitted → workdir

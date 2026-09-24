@@ -37,9 +37,14 @@ def filesystem_tools(workdir: Path, allowed_roots: list[Path]) -> dict[str, Tool
     from plnt.execution.tools import execute, search
 
     def _search(args: dict[str, Any]) -> Any:
+        # Relative roots ("." / "src") mean the agent's workdir, not the
+        # process cwd — the two differ when the loop runs in-process.
+        root = Path(str(args.get("root") or ".")).expanduser()
+        if not root.is_absolute():
+            root = workdir / root
         hits = search(
             str(args.get("pattern", "")),
-            args.get("root") or str(workdir),
+            root,
             allowed_roots=allowed_roots,
             max_hits=int(args.get("max_hits", 50)),
         )
