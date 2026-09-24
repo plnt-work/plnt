@@ -1,0 +1,150 @@
+/* =====================================================================
+   Design tokens — single source of truth.
+   ---------------------------------------------------------------------
+   New components (Tailwind v4) consume these via @theme below; existing
+   hand-written CSS in styles.css consumes them via the legacy aliases
+   at the bottom. Don't fork values — edit here.
+   ===================================================================== */
+
+:root {
+  /* ─── color: paper / surface ─── */
+  --color-paper-50:  #FFFCF4;
+  --color-paper-100: #FBF7EE;   /* primary surface (light theme) */
+  --color-paper-200: #F8F2E0;
+  --color-paper-300: #F4EEDF;
+  --color-paper-400: #F1ECDC;
+  --color-paper-500: #E4DCC6;   /* hairline */
+  --color-paper-600: #D8CFB4;   /* hairline-strong */
+  --color-paper-700: #B6AE96;
+  --color-paper-800: #8A8472;
+  --color-paper-900: #5F5B4E;
+
+  /* ─── color: ink (text on paper) ─── */
+  --color-ink-50:  #6C6A60;
+  --color-ink-100: #9A968C;
+  --color-ink-200: #6C6A60;
+  --color-ink-300: #5A584F;
+  --color-ink-400: #4A4843;
+  --color-ink-500: #3A3A36;
+  --color-ink-600: #2A2A28;
+  --color-ink-700: #1C1E22;
+  --color-ink-800: #0E1116;     /* primary text */
+  --color-ink-900: #07090C;
+
+  /* ─── color: coal (dark / operator theme) ─── */
+  --color-coal-50:  #D6D2C4;
+  --color-coal-100: #BCB8AB;
+  --color-coal-200: #7A786E;
+  --color-coal-300: #4F4E47;
+  --color-coal-400: #34353B;
+  --color-coal-500: #23262C;    /* coal-line */
+  --color-coal-600: #15171B;    /* coal-soft */
+  --color-coal-700: #0A0B0D;    /* coal */
+  --color-coal-800: #06070A;
+  --color-coal-900: #030405;
+
+  /* ─── color: functional ─── */
+  --color-sage-500: #5E8B5E;
+  --color-amber-500: #C97B2A;
+  --color-rust-500: #B5572E;
+  --color-sky-500: #3B6EA8;
+
+  /* ─── color: brand iridescent ─── */
+  --color-iri-blue:   #1A73E8;
+  --color-iri-violet: #A672E0;
+  --color-iri-rose:   #E26478;
+  --gradient-iri: linear-gradient(135deg, #1A73E8 0%, #6A8DE0 28%, #A672E0 58%, #E26478 100%);
+  --gradient-iri-soft: linear-gradient(135deg, rgba(26,115,232,0.10), rgba(166,114,224,0.10) 55%, rgba(226,100,120,0.10));
+
+  /* ─── color: map ─── */
+  --color-map-land:     #F1ECDC;
+  --color-map-park:     #CFE0B0;
+  --color-map-water:    #A6CFE3;
+  --color-map-road:     #FFFAEC;
+  --color-map-road-dim: #F5EFDC;
+
+  /* ─── space (4px grid) ─── */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ─── radius ─── */
+  --radius-xs:    4px;
+  --radius-sm:    8px;
+  --radius-md:    12px;
+  --radius-lg:    16px;
+  --radius-xl:    20px;
+  --radius-pill:  999px;
+  --radius-input: 12px;
+  --radius-card:  16px;
+  --radius-tile:  12px;
+
+  /* ─── shadow ─── */
+  --shadow-xs:    0 1px 2px rgba(14,17,22,0.04);
+  --shadow-sm:    0 1px 2px rgba(14,17,22,0.04), 0 2px 6px rgba(14,17,22,0.06);
+  --shadow-md:    0 1px 2px rgba(14,17,22,0.04), 0 8px 24px rgba(14,17,22,0.08);
+  --shadow-lg:    0 2px 6px rgba(14,17,22,0.05), 0 24px 64px rgba(14,17,22,0.14);
+  --shadow-float: var(--shadow-md);
+  --shadow-deep:  var(--shadow-lg);
+  --shadow-ring:  0 0 0 3px rgba(26,115,232,0.18);
+
+  /* ─── motion ─── */
+  --motion-fast:    140ms;
+  --motion-base:    200ms;
+  --motion-slow:    320ms;
+  --motion-slower:  480ms;
+  --ease-out:       cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in-out:    cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── layout ─── */
+  --sidebar-w: 340px;
+  --chat-w:    400px;
+  --nav-h:     64px;
+
+  /* ─── type ─── */
+  --font-sans:  "Geist Variable", "Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ─── legacy aliases (consumed by hand-written styles.css) ─── */
+  --paper:        var(--color-paper-100);
+  --paper-deep:   var(--color-paper-300);
+  --paper-warm:   var(--color-paper-200);
+  --surface:      #FFFFFF;
+  --surface-2:    #F7F4EC;
+  --ink:          var(--color-ink-800);
+  --ink-soft:     var(--color-ink-500);
+  --ink-mute:     var(--color-ink-200);
+  --ink-faint:    var(--color-ink-100);
+  --hairline:     var(--color-paper-500);
+  --hairline-2:   var(--color-paper-600);
+  --sage:         var(--color-sage-500);
+  --amber:        var(--color-amber-500);
+  --rust:         var(--color-rust-500);
+  --sky:          var(--color-sky-500);
+  --map-land:     var(--color-map-land);
+  --map-park:     var(--color-map-park);
+  --map-water:    var(--color-map-water);
+  --map-road:     var(--color-map-road);
+  --map-road-dim: var(--color-map-road-dim);
+  --iri-blue:     var(--color-iri-blue);
+  --iri-violet:   var(--color-iri-violet);
+  --iri-rose:     var(--color-iri-rose);
+  --iridescent:        var(--gradient-iri);
+  --iridescent-soft:   var(--gradient-iri-soft);
+  --coal:         var(--color-coal-700);
+  --coal-soft:    var(--color-coal-600);
+  --coal-line:    var(--color-coal-500);
+  --coal-text:    var(--color-coal-50);
+  --coal-mute:    var(--color-coal-200);
+  --coal-mute-2:  var(--color-coal-300);
+}

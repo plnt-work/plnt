@@ -1,0 +1,59 @@
+{
+  "agents": [
+    {
+      "slug": "booking-restaurant",
+      "version": "0.9.1",
+      "display_name": "Table Booking (Restaurant)",
+      "description": "Conversational table booking: resolves the restaurant, checks availability, and confirms a slot after an explicit user yes.",
+      "vertical": "restaurant",
+      "publisher": "plnt-official",
+      "tools": ["check_availability", "create_booking", "cancel_booking"],
+      "default_config": {"confirm_before_mutation": true, "party_size_default": 2},
+      "available": true
+    },
+    {
+      "slug": "booking-salon",
+      "version": "0.9.0",
+      "display_name": "Appointment Booking (Salon & Spa)",
+      "description": "Service-duration-aware appointment booking for salons and spas. Weekly schedule slots instead of nightly tables.",
+      "vertical": "salon,spa",
+      "publisher": "plnt-official",
+      "tools": ["check_availability", "create_booking", "cancel_booking"],
+      "default_config": {"confirm_before_mutation": true},
+      "available": true
+    },
+    {
+      "slug": "intake-clinic",
+      "version": "0.1.0",
+      "display_name": "Clinic Intake",
+      "description": "Appointment intake for small clinics: collects reason-for-visit, preferred window, and insurance before booking.",
+      "vertical": "clinic",
+      "publisher": "plnt-official",
+      "tools": ["check_availability", "create_booking"],
+      "default_config": {"confirm_before_mutation": true},
+      "available": false
+    },
+    {
+      "slug": "enquiry-generic",
+      "version": "0.1.0",
+      "display_name": "General Enquiries",
+      "description": "Catch-all Q&A over the merchant's business profile and optional uploaded menu / service-list PDF.",
+      "vertical": "any",
+      "publisher": "plnt-official",
+      "tools": [],
+      "default_config": {},
+      "available": true
+    },
+    {
+      "slug": "review-responder",
+      "version": "0.1.0",
+      "display_name": "Review Responder",
+      "description": "Drafts responses to new reviews for merchant approval. Cron-triggered background agent.",
+      "vertical": "any",
+      "publisher": "plnt-official",
+      "tools": ["fetch_reviews"],
+      "default_config": {"tone": "warm"},
+      "available": false
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+[meta]
+name = "resolve_business"
+version = "0.3"
+description = "Resolve a free-text business query to real candidates via Places, falling back to LLM knowledge"
+tags = ["booking", "lookup"]
+
+[runtime]
+model_hint = "small"
+tools = ["places_text_search"]
+max_steps = 3
+default_isolation = "process"
+
+[budget]
+tokens = 4_000
+wall_seconds = 25
+joules = 0
+
+[[requires.inputs]]
+name = "business_query"
+type = "string"
+description = "Free-text name or description of the business to find"
+example = "pizza places in mumbai"
+
+[[requires.inputs]]
+name = "user_text"
+type = "string"
+description = "Full original user message; usually richer than business_query"
+example = "find me pizza places near mumbai"
+
+[response_schema]
+type = "object"
+required = ["candidates", "best_match", "confidence", "needs_disambiguation", "source"]
+additionalProperties = false
+
+[response_schema.properties.candidates]
+type = "array"
+description = "0..5 real plausible business matches"
+
+[response_schema.properties.candidates.items]
+type = "object"
+required = ["name"]
+
+[response_schema.properties.candidates.items.properties.name]
+type = "string"
+
+[response_schema.properties.candidates.items.properties.neighborhood]
+type = "string"
+
+[response_schema.properties.candidates.items.properties.city]
+type = "string"
+
+[response_schema.properties.candidates.items.properties.category]
+type = "string"
+
+[response_schema.properties.candidates.items.properties.place_id]
+type = "string"
+
+[response_schema.properties.candidates.items.properties.address]
+type = "string"
+
+[response_schema.properties.candidates.items.properties.lat]
+type = "number"
+
+[response_schema.properties.candidates.items.properties.lng]
+type = "number"
+
+[response_schema.properties.candidates.items.properties.platform]
+type = "string"
+description = "Provider adapter tag (google | resy | opentable | zomato | swiggy | district). Defaults to google when absent."
+
+[response_schema.properties.best_match]
+type = ["object", "null"]
+description = "Single best candidate when confident; null when user must disambiguate"
+
+[response_schema.properties.confidence]
+type = "number"
+description = "0..1 — how confident the match is"
+
+[response_schema.properties.needs_disambiguation]
+type = "boolean"
+description = "True when the orchestrator should ask the user to pick from candidates"
+
+[response_schema.properties.source]
+type = "string"
+description = "places | llm"
+
+[graph]
+can_spawn = []

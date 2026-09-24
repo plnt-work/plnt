@@ -1,0 +1,52 @@
+[meta]
+name = "enquiry-generic"
+version = "0.1.0"
+description = "Catch-all Q&A grounded in the merchant's business profile plus uploaded doc chunks. Single-shot, never invents facts."
+tags = ["enquiry", "qa", "marketplace"]
+
+[runtime]
+model_hint = "small"
+tools = []
+max_steps = 1
+default_isolation = "process"
+
+[budget]
+tokens = 2_500
+wall_seconds = 15
+joules = 0
+
+[[requires.inputs]]
+name = "question"
+type = "string"
+description = "The customer's question, verbatim"
+example = "do you have gluten-free pizza?"
+
+[[requires.inputs]]
+name = "business_profile"
+type = "object"
+description = "Whatever resolve/places data is available for this merchant (may be empty)"
+example = "{name: \"Joe's Pizza\", category: \"restaurant\", phone: \"+91...\"}"
+
+[[requires.inputs]]
+name = "doc_context"
+type = "list"
+description = "Top chunks from the merchant's uploaded docs, as [{doc, chunk, text}]; empty when no docs"
+example = "[{doc: \"menu.pdf\", chunk: 0, text: \"...\"}]"
+
+[response_schema]
+type = "object"
+required = ["say", "grounded", "source"]
+additionalProperties = false
+
+[response_schema.properties.say]
+type = "string"
+
+[response_schema.properties.grounded]
+type = "boolean"
+
+[response_schema.properties.source]
+type = "string"
+enum = ["docs", "profile", "none"]
+
+[graph]
+can_spawn = []

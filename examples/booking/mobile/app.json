@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "plnt",
+    "slug": "plnt-cloud-mobile",
+    "version": "0.1.0",
+    "scheme": "plnt",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "cloud.plnt.mobile",
+      "supportsTablet": false,
+      "config": {
+        "googleMapsApiKey": "REPLACE_WITH_IOS_MAPS_KEY"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to find venues nearby.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "cloud.plnt.mobile",
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_ANDROID_MAPS_KEY"
+        }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "url": "https://u.expo.dev/ac5d5217-ad5d-4b7a-8ca5-7751abb95cf4",
+      "requestHeaders": {
+        "expo-channel-name": "preview"
+      }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ac5d5217-ad5d-4b7a-8ca5-7751abb95cf4"
+      }
+    },
+    "owner": "devdatta123"
+  }
+}

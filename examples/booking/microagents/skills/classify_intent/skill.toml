@@ -1,0 +1,43 @@
+[meta]
+name = "classify_intent"
+version = "0.2"
+description = "Classify a user message into a booking intent kind. Single-shot, structured."
+tags = ["booking", "router"]
+
+[runtime]
+model_hint = "small"
+tools = []
+max_steps = 1
+default_isolation = "process"
+
+[budget]
+tokens = 2_000
+wall_seconds = 15
+joules = 0
+
+[[requires.inputs]]
+name = "text"
+type = "string"
+description = "Raw user message text to classify"
+example = "find me an appointment at Joe's Pizza tomorrow at 7pm"
+
+[response_schema]
+type = "object"
+required = ["kind", "business_query", "service", "date_hint"]
+additionalProperties = false
+
+[response_schema.properties.kind]
+type = "string"
+enum = ["book", "query", "question", "cancel", "confirm", "smalltalk"]
+
+[response_schema.properties.business_query]
+type = "string"
+
+[response_schema.properties.service]
+type = "string"
+
+[response_schema.properties.date_hint]
+type = "string"
+
+[graph]
+can_spawn = []
