@@ -1,0 +1,8 @@
+# The sister "app" build (vendored into plnt's FastAPI) is unrelated to the Vercel deploy.
+src-app/
+public-app/
+dist-app/
+astro.app.config.mjs
+
+# Handoff / planning docs
+HANDOFF.md

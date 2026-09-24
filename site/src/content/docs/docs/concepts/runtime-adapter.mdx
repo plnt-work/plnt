@@ -1,0 +1,82 @@
+---
+title: Runtime adapter
+description: One Protocol, four backends. vLLM · TGI · TRT-LLM · SGLang share a control API.
+---
+
+The Helm chart per runtime is the **deployment shape**. The `RuntimeAdapter` Protocol is the **code shape**. Adding a fifth backend is one class, not a fork.
+
+## The Protocol
+
+```python
+# plnt/runtime/base.py
+
+from collections.abc import AsyncIterator
+from typing import Protocol
+from plnt.playground.schemas import (
+    ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse,
+)
+
+
+class RuntimeAdapter(Protocol):
+    model_id: str
+    runtime: str
+
+    async def complete(
+        self, req: ChatCompletionRequest,
+    ) -> ChatCompletionResponse: ...
+
+    def stream(
+        self, req: ChatCompletionRequest,
+    ) -> AsyncIterator[ChatCompletionChunk]: ...
+```
+
+That's the whole interface. Two methods (non-streaming + streaming) plus two identity fields.
+
+## Shipping implementations
+
+Live in [`plnt/playground/backends.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/playground/backends.py):
+
+### MockBackend
+
+Echoes the last user message word-by-word via SSE. No network, no GPU, no vibes. Used on kind and in tests — the UI behaves identically to a real model.
+
+### HTTPBackend
+
+Proxies to any OpenAI-compatible upstream. **vLLM, TGI (`--openai-api`), SGLang, TRT-LLM/Triton with the OpenAI compat layer, and llama.cpp server all satisfy this contract.**
+
+Instantiated per model from the ConfigMap:
+
+```json
+{
+  "id": "llama-3.1-70b-instruct",
+  "backend": "http",
+  "runtime": "vllm",
+  "upstream_url": "http://llama-3.1-70b-instruct.default.svc.cluster.local:8000",
+  "upstream_model": "meta-llama/Llama-3.1-70B-Instruct",
+  "api_key_env": "VLLM_API_KEY"
+}
+```
+
+The `upstream_model` field lets a single upstream serve multiple aliases (e.g. `llama-3.1-70b-instruct` and `llama-3.1-70b-instruct-fp8` both point at the same pod, distinguished by wire-level `model` field).
+
+## The four runtimes
+
+Each runs behind its own Helm chart. From the pod boundary out, they all look the same (OpenAI `/v1/chat/completions`); how they get there differs.
+
+| Runtime | Chart | Notable trait |
+|---------|-------|---------------|
+| **vLLM**    | `plnt/charts/vllm-runtime`    | Paged attention, continuous batching, prefix cache. Default runtime for dense LLM serving. |
+| **TGI**     | `plnt/charts/tgi-runtime`     | Hugging Face Text Generation Inference. Flash-attention 2, tensor parallel via `num_shard`. |
+| **TRT-LLM** | `plnt/charts/trt-llm-runtime` | Precompiled TensorRT engines on Triton. Engine build is a workflow step; cold ~7 min, warm ~40 s. |
+| **SGLang**  | `plnt/charts/sglang-runtime`  | RadixAttention prefix caching. Structured generation via SGL DSL. |
+
+## Adding a runtime
+
+Adding a fifth runtime (say, `llama-cpp`) is:
+
+1. **New Helm chart** at `plnt/charts/llama-cpp-runtime/` with Deployment + Service + HPA + ConfigMap.
+2. **CRD enum bump** — add `llama-cpp` to `spec.runtime`'s enum in [`plnt/operators/crds/inferencemodel.yaml`](https://github.com/devdattatalele/plnt/blob/main/plnt/operators/crds/inferencemodel.yaml).
+3. **No code change** — if the runtime speaks OpenAI wire format (llama.cpp's server does), `HTTPBackend` handles it as-is.
+4. **Chart selection** — the [deploy saga](/docs/concepts/deploy-saga/)'s `helm_install_canary` activity picks the chart by `spec.runtime`.
+
+No fork, no vendored SDK, no proprietary wire format.

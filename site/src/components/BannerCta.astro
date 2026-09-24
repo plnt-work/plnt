@@ -1,0 +1,14 @@
+---
+export interface Props {
+  tagline: string;
+  ctaText: string;
+  ctaHref: string;
+  inverted?: boolean;
+}
+const { tagline, ctaText, ctaHref, inverted = true } = Astro.props;
+---
+
+<div class="banner">
+  <p class="tag">{tagline}</p>
+  <a class={`btn ${inverted ? 'inverted' : ''}`} href={ctaHref}>{ctaText}</a>
+</div>

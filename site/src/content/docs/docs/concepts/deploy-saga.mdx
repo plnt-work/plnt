@@ -1,0 +1,130 @@
+---
+title: Deploy saga
+description: The Temporal workflow that drives every deploy. Five steps. Compensation on failure.
+---
+
+Every model deploy is a Temporal `DeployModelWorkflow`. Five activities, with `helm rollback` as the compensating action on any failure.
+
+## The workflow
+
+```python
+# plnt/workflows/deploy_model.py
+
+@workflow.defn
+class DeployModelWorkflow:
+    @workflow.run
+    async def run(self, req: DeployRequest) -> DeployResult:
+        release_info = None
+        try:
+            await workflow.execute_activity(
+                validate_manifest, req.spec,
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=DEFAULT_RETRY,
+            )
+            await workflow.execute_activity(
+                pull_and_verify_weights, req.spec,
+                start_to_close_timeout=timedelta(minutes=30),
+                retry_policy=DEFAULT_RETRY,
+                heartbeat_timeout=timedelta(seconds=60),
+            )
+            release_info = await workflow.execute_activity(
+                helm_install_canary,
+                {"namespace": req.namespace, "name": req.name, "spec": req.spec},
+                start_to_close_timeout=timedelta(minutes=10),
+                retry_policy=DEFAULT_RETRY,
+            )
+            smoke = await workflow.execute_activity(
+                run_smoke_test,
+                {"release": release_info, "spec": req.spec},
+                start_to_close_timeout=timedelta(minutes=5),
+                retry_policy=DEFAULT_RETRY,
+            )
+            if not smoke["passed"]:
+                await workflow.execute_activity(helm_rollback, release_info)
+                return DeployResult(status="rolled_back", reason=smoke["reason"], ...)
+            await workflow.execute_activity(promote_to_stable, release_info)
+            return DeployResult(status="ready", endpoint=release_info["endpoint"], ...)
+        except Exception as exc:
+            if release_info is not None:
+                await workflow.execute_activity(helm_rollback, release_info)
+            return DeployResult(status="failed", reason=str(exc), ...)
+```
+
+## The five activities
+
+### 1. `validate_manifest`
+
+- Schema-validates the InferenceModel spec.
+- Confirms `storageUri` is reachable.
+- Confirms the image tag is pullable.
+- Confirms `gpuClass` exists on the cluster's node pool.
+- **Non-retryable failures**: `ManifestInvalidError`, `ImageUnpullableError`, `GpuClassUnavailableError`.
+
+### 2. `pull_and_verify_weights`
+
+- Streams safetensors from the storage URI to a content-addressable cache.
+- Hash-verifies against the manifest.
+- Emits heartbeats every 60s so the workflow knows the activity isn't stuck.
+- Idempotent — a partial pull resumes.
+
+### 3. `helm_install_canary`
+
+- Runs `helm upgrade --install <name>-canary plnt/charts/<runtime>-runtime` with values from the spec.
+- Sets router traffic weight to `spec.canary.trafficPercent` (default 5%).
+- Returns the release name + endpoint for downstream activities.
+
+### 4. `run_smoke_test`
+
+- Sends N test prompts (default 10) to the canary endpoint.
+- Measures TTFT (time-to-first-token) and TPOT (time-per-output-token).
+- Compares against `spec.canary.smokeTest.ttftBudgetMs` and `tpotBudgetMs`.
+- Returns `{ passed, reason, metrics }`.
+
+### 5. `promote_or_rollback`
+
+- If smoke passed: patch the Envoy `VirtualService` weight from 5% → 100%; scale the deployment to `replicas.min`.
+- If smoke failed: `helm uninstall <name>-canary`.
+
+## Compensation
+
+Every activity that mutates cluster state has a compensating activity. If any step in the try-block raises, `helm_rollback` runs with best-effort semantics — it can't itself raise, because the workflow needs to complete with a `failed` status.
+
+## Retry policy
+
+```python
+DEFAULT_RETRY = RetryPolicy(
+    initial_interval=timedelta(seconds=2),
+    maximum_interval=timedelta(seconds=30),
+    maximum_attempts=3,
+    backoff_coefficient=2.0,
+    non_retryable_error_types=[
+        "ManifestInvalidError",
+        "ImageUnpullableError",
+        "GpuClassUnavailableError",
+    ],
+)
+```
+
+Retries are **per activity with budgets**, not per HTTP hop. Non-retryable error types short-circuit obvious dead-ends — a bad spec doesn't get better on retry.
+
+## Inspecting a run
+
+Every workflow shows up in the Temporal UI with its full event history:
+
+```bash
+open http://localhost:7233        # if running locally
+```
+
+Or via CLI:
+
+```bash
+temporal workflow show \
+  --workflow-id deploy-default-llama-3.1-70b-instruct
+```
+
+## Source
+
+- Workflow: [`plnt/workflows/deploy_model.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/workflows/deploy_model.py)
+- Activities: [`plnt/workflows/activities.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/workflows/activities.py)
+- Worker: [`plnt/workflows/worker.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/workflows/worker.py)
+- Operator: [`plnt/operators/inferencemodel_controller.py`](https://github.com/devdattatalele/plnt/blob/main/plnt/operators/inferencemodel_controller.py)

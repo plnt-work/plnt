@@ -1,0 +1,64 @@
+---
+// Plnt's hero centerpiece — a stylized "spawn tree" growing upward
+// from the filesystem (soil) through the planner (trunk) into
+// resident specialists (branches) and ephemeral micro-agents (leaves).
+// Hand-laid ASCII so token alignment stays crisp.
+---
+
+<pre class="spawntree" aria-hidden="true"><span class="leaf">◦  ◦   ◦   ◦   ◦   ◦   ◦   ◦   ◦   ◦   ◦  ◦</span>
+<span class="leaf">◦ </span><span class="evt">finished</span><span class="leaf">  ◦  </span><span class="evt">tool_call</span><span class="leaf">  ◦  </span><span class="evt">spawn</span><span class="leaf">  ◦   ◦   ◦</span>
+<span class="dim">     \     |     |     |    /        \    |    |   /</span>
+<span class="dim">      \    |     |     |   /          \   |    |  /</span>
+<span class="brand">  paper-reader  paper-reader  paper-reader</span>      <span class="brand">code-shepherd</span>
+<span class="dim">          \         |         /                  /</span>
+<span class="dim">           \        |        /                  /</span>
+<span class="brand">     [ AgentSpec · literature-scout ]</span>           <span class="brand">[ AgentSpec · code-shepherd ]</span>
+<span class="dim">                  \             /                     /</span>
+<span class="dim">                   \           /                     /</span>
+<span class="brand">           research-librarian  </span><span class="dim">·</span>  <span class="brand">inbox-triage  </span><span class="dim">·</span>  <span class="brand">code-shepherd</span>
+<span class="dim">                          \         |         /</span>
+<span class="dim">                           \        |        /</span>
+<span class="dim">                            \       |       /</span>
+                              <span class="trunk-strong">planner LLM</span>
+                              <span class="dim">resident process</span>
+                                  <span class="trunk-line">│</span>
+                                  <span class="trunk-line">│</span>
+                          <span class="rule">══════════════</span>
+                          <span class="rule">[ </span><span class="brand">blackboard</span><span class="rule"> ]</span>     <span class="dim">one JSONL line per event</span>
+                          <span class="rule">══════════════</span>
+                                  <span class="trunk-line">│</span>
+                          <span class="soil">▒▒▒▒▒▒▒▒▒▒▒▒▒▒</span>
+                          <span class="soil">$PLNT_HOME</span>           <span class="dim">cat · grep · jq · git</span>
+                          <span class="soil">▒▒▒▒▒▒▒▒▒▒▒▒▒▒</span>
+</pre>
+
+<style>
+  .spawntree {
+    font-family: var(--font);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--ink-dim);
+    white-space: pre;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    overflow-x: auto;
+    user-select: none;
+  }
+  .spawntree .leaf { color: var(--brand-dim); }
+  .spawntree .brand { color: var(--brand); font-weight: 500; }
+  .spawntree .evt { color: var(--brand); font-weight: 500; font-style: normal; }
+  .spawntree .dim { color: var(--ink-faint); }
+  .spawntree .trunk-strong { color: var(--ink); font-weight: 700; letter-spacing: 0.08em; }
+  .spawntree .trunk-line { color: var(--brand); }
+  .spawntree .rule { color: var(--brand-dim); }
+  .spawntree .soil { color: var(--ink-faint); letter-spacing: 0.05em; }
+
+  @media (max-width: 880px) {
+    .spawntree { font-size: 0.66rem; line-height: 1.5; }
+  }
+  @media (max-width: 560px) {
+    .spawntree { font-size: 0.55rem; }
+  }
+</style>

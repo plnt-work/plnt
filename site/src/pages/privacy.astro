@@ -1,0 +1,82 @@
+---
+import Layout from '../layouts/Layout.astro';
+const title = 'Privacy — Plnt';
+const description = 'Privacy policy for the Plnt project and website. Local-first means no data leaves your machine by default.';
+---
+
+<Layout title={title} description={description} path="/privacy">
+  <section class="section">
+    <div class="container prose" style="max-width: 760px;">
+      <span class="eyebrow">privacy</span>
+      <h1>Privacy</h1>
+      <p class="muted">Last updated: June 15, 2026</p>
+
+      <h2>The short version</h2>
+      <p class="lead">
+        Plnt is local-first. The software runs on your machine, reads files you point it at,
+        and writes its state to <code>$PLNT_HOME</code>. <strong>No telemetry. No analytics.
+        No account.</strong> Nothing is sent to us, because there is no "us" infrastructure
+        to send it to.
+      </p>
+
+      <h2>1. The software</h2>
+      <p>
+        Plnt does not phone home. It does not collect crash reports, usage stats, or any
+        identifier. There is no built-in network call to a Plnt-controlled endpoint.
+      </p>
+
+      <h3>What happens to your data locally</h3>
+      <ul>
+        <li><strong>Files you let agents read</strong> are read by tools running on your machine.</li>
+        <li><strong>The blackboard</strong> (<code>$PLNT_HOME/runs/&lt;id&gt;/events.jsonl</code>) records every tool call, model call, and result. You own these files. Delete them at any time.</li>
+        <li><strong>Skill files</strong> live in <code>$PLNT_HOME/skills/</code>. Skills you install from external catalogs are versioned by git so you can audit and revert.</li>
+      </ul>
+
+      <h2>2. When you use a cloud LLM backend</h2>
+      <p>
+        If you configure <code>PLNT_DEEP_URL</code> or a cloud API key, Plnt will send the
+        prompts and context required for inference to that provider. The provider's privacy
+        policy then applies to that data. Plnt does not proxy, intercept, or store these calls
+        on any Plnt-controlled server — the request goes from your machine to the provider
+        directly.
+      </p>
+      <p>
+        Every backend selection is logged in <code>events.jsonl</code> with a <code>"backend"</code>
+        field, so you can audit which calls went where with one <code>grep</code>.
+      </p>
+
+      <h2>3. This website</h2>
+      <p>
+        <code>plnt.dev</code> is a static site. No cookies, no analytics scripts, no fingerprinting.
+        Your browser fetches HTML, CSS, and a tiny amount of JS — nothing else.
+      </p>
+      <p>
+        Standard server access logs (IP, user-agent, requested path, timestamp) may exist on
+        the hosting provider's edge for short periods as part of normal operations and DDoS
+        protection. These are not used for tracking or shared with third parties.
+      </p>
+
+      <h2>4. Outbound links</h2>
+      <p>
+        The site links to GitHub and the project repository. Once you click such a link, the
+        target site's privacy policy applies.
+      </p>
+
+      <h2>5. Children</h2>
+      <p>
+        Plnt is a developer tool. It is not directed at children under 13 and we do not
+        knowingly collect information from them.
+      </p>
+
+      <h2>6. Changes</h2>
+      <p>
+        We will note material changes to this policy at the top of the page.
+      </p>
+
+      <hr/>
+      <p class="dim">
+        Questions? Open an issue on <a href="https://github.com/devdattatalele/plnt/issues" target="_blank" rel="noopener">GitHub</a>.
+      </p>
+    </div>
+  </section>
+</Layout>

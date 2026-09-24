@@ -1,0 +1,80 @@
+---
+title: Fly.io (playground API only)
+description: The cheap-and-cheerful path if you only need the API layer, not a real K8s cluster.
+---
+
+The [DO K8s runbook](/docs/operations/do-k8s/) ships the platform end-to-end on real Kubernetes. If you only need the playground **API** to be reachable — no cluster, no Helm, no CRDs — Fly.io deploys the same Dockerfile directly for ~$0–2/month.
+
+**Trade-off:** you lose the Helm/Temporal/operator story. Keep this path for the always-on demo URL; use kind for the [full deploy-saga demo](/docs/operations/kind-demo/).
+
+## Prereqs
+
+```bash
+brew install flyctl
+fly auth login              # OAuth in browser
+```
+
+Fly requires a credit card on file even for the free tier — add one at https://fly.io/dashboard/YOUR-ORG/billing.
+
+## fly.toml (in the plnt repo root)
+
+Already committed at [`plnt/fly.toml`](https://github.com/devdattatalele/plnt/blob/main/fly.toml). Points at `docker/playground-api.Dockerfile` and pre-configures the NVIDIA NIM proxy registry.
+
+## Deploy
+
+```bash
+cd /Users/dev16/Documents/den-agent/plnt
+
+# create the app
+fly apps create plnt-playground
+
+# NVIDIA NIM key — never a file, always a secret
+fly secrets set NIM_API_KEY=nvapi-... --app plnt-playground
+
+# build + push + boot the machine
+fly deploy --app plnt-playground
+
+# verify
+curl -s https://plnt-playground.fly.dev/v1/models | jq
+```
+
+## Custom domain
+
+```bash
+fly certs add playground.plnt.work --app plnt-playground
+# Prints a CNAME target. In Cloudflare DNS:
+#   Type CNAME · Name playground · Target <printed value> · Proxy DNS only
+
+# once DNS propagates:
+fly certs check playground.plnt.work --app plnt-playground     # → issued
+```
+
+## What lives where
+
+- **Image**: built from `docker/playground-api.Dockerfile`, ~150 MB.
+- **Model registry**: `PLNT_PLAYGROUND_MODELS` env in `fly.toml` — a JSON array with `"api_key_env": "NIM_API_KEY"` on each entry.
+- **NIM key**: `fly secrets set NIM_API_KEY=...` — the discovery layer reads it at startup.
+- **CORS**: pre-configured for `https://plnt.work`, `https://play.plnt.work`, `https://playground.plnt.work`.
+
+## Point the site at it
+
+```bash
+cd /Users/dev16/Documents/den-agent/plnt-site
+vercel env add PUBLIC_PLNT_ENDPOINT production
+# paste: https://playground.plnt.work
+vercel --prod
+```
+
+## Logs / debugging
+
+```bash
+fly logs --app plnt-playground
+fly ssh console --app plnt-playground
+fly status --app plnt-playground
+```
+
+## Cost
+
+- 1× `shared-cpu-1x` VM, 512 MB RAM: $1.94/mo (24/7) or $0 with `auto_stop_machines = "stop"` and no traffic.
+- Bandwidth: 160 GB/mo free.
+- Custom cert: free.

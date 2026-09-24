@@ -1,0 +1,24 @@
+---
+export interface Props {
+  step: string;
+  detail?: string;
+  pipe?: boolean;
+}
+const { step, detail = '', pipe = true } = Astro.props;
+---
+
+<div class="flow-step">
+  <div class="line">
+    <span class="step">{step}</span>
+    {detail && <span class="label">  {detail}</span>}
+  </div>
+  {pipe && <div class="pipe-line"><span class="pipe">│</span></div>}
+</div>
+
+<style>
+.flow-step { font-family: var(--font); }
+.flow-step .line { display: flex; flex-wrap: wrap; gap: 0 1rem; font-size: 0.875rem; }
+.flow-step .step { color: var(--ink); font-weight: 500; min-width: 16rem; }
+.flow-step .label { color: var(--ink-dim); }
+.flow-step .pipe-line { font-size: 0.875rem; color: var(--ink-faint); padding: 0.15rem 0 0.15rem 5rem; line-height: 1.2; }
+</style>

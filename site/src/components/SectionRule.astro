@@ -1,0 +1,12 @@
+---
+export interface Props {
+  num: string;
+  title: string;
+}
+const { num, title } = Astro.props;
+---
+
+<div class="section-rule">
+  <span class="num">§ {num}</span>
+  <span class="title">{title}</span>
+</div>

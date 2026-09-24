@@ -1,0 +1,62 @@
+---
+import asciiRaw from '../data/hero-ascii.txt?raw';
+
+const lines = asciiRaw.split('\n');
+const W = Math.max(...lines.map((l) => l.length));
+const H = lines.length;
+
+// Deterministic pseudo-random for bright/color highlights — seeded by index
+// so the texture is stable across builds (avoids hydration mismatch / diff churn).
+function rand(seed: number) {
+  const x = Math.sin(seed * 9301.0 + 49297.0) * 233280.0;
+  return x - Math.floor(x);
+}
+
+const COLOR_CHARS = new Map<string, string>();
+// 8% of non-space chars become bright
+// ~6 individual chars get accent colors
+let placed = 0;
+const accents: Array<'red' | 'cyan' | 'amber'> = ['red', 'cyan', 'amber', 'red', 'cyan', 'amber'];
+for (let i = 0; i < W * H; i++) {
+  const r = rand(i + 1);
+  if (r > 0.92) COLOR_CHARS.set(`${i}`, 'bright');
+}
+// place 6 accent pinpricks at well-spaced positions
+for (let a = 0; a < accents.length; a++) {
+  const idx = Math.floor((a + 0.5) * (W * H) / accents.length) + Math.floor(rand(a + 11) * 100);
+  COLOR_CHARS.set(`${idx}`, accents[a]);
+}
+
+// Render with spans only where needed, plain text otherwise (smaller HTML, faster paint).
+type Chunk = { cls: string | null; text: string };
+const chunks: Chunk[] = [];
+let buf = '';
+let bufCls: string | null = null;
+let flatIdx = 0;
+for (let y = 0; y < H; y++) {
+  const line = lines[y];
+  for (let x = 0; x < line.length; x++) {
+    const ch = line[x];
+    const cls = COLOR_CHARS.get(`${flatIdx}`) ?? null;
+    if (cls !== bufCls) {
+      if (buf) chunks.push({ cls: bufCls, text: buf });
+      buf = ch;
+      bufCls = cls;
+    } else {
+      buf += ch;
+    }
+    flatIdx++;
+  }
+  // newline char
+  if (bufCls !== null) {
+    if (buf) chunks.push({ cls: bufCls, text: buf });
+    buf = '\n';
+    bufCls = null;
+  } else {
+    buf += '\n';
+  }
+}
+if (buf) chunks.push({ cls: bufCls, text: buf });
+---
+
+<pre class="ascii" aria-hidden="true">{chunks.map((c) => c.cls ? <span class={c.cls}>{c.text}</span> : c.text)}</pre>

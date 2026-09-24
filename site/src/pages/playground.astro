@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Playground from '../islands/playground/Playground';
+import '../styles/playground.css';
+
+const title = 'plnt — playground';
+const description = 'Chat with models deployed on plnt. Each entry is a live InferenceModel resource — vLLM, TGI, TRT-LLM, or SGLang — running behind an OpenAI-compatible endpoint.';
+---
+
+<Layout title={title} description={description} path="/playground">
+  <Playground client:load />
+</Layout>
+
+<style is:global>
+  /* Playground uses full viewport width — remove default main padding. */
+  main { padding: 0; }
+</style>

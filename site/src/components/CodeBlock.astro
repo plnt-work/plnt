@@ -1,0 +1,10 @@
+---
+import { Code } from 'astro:components';
+export interface Props {
+  code: string;
+  lang?: string;
+}
+const { code, lang = 'plaintext' } = Astro.props;
+---
+
+<Code code={code} lang={lang} theme="vesper" />
