@@ -30,9 +30,12 @@ def cli() -> None:
     """plnt — open-source runtime for shipping one agent to many isolated tenants.
 
     \b
-      plnt up             start the local surface server
-      plnt submit …       send an intent and stream the run
-      plnt skills …       list / show / install agent bundles
+      plnt init <slug>             scaffold an agent bundle
+      plnt run <bundle> "msg"      install it for a tenant and send one message
+      plnt dev [bundle]            local API server (no auth, loopback)
+      plnt serve                   multi-tenant API server
+      plnt tenants | install       manage tenants and their installs
+      plnt models doctor           check that your model works for agents
     """
 
 
@@ -396,6 +399,11 @@ def models_list(url, provider) -> None:
         console.print(f"[dim]{profile.provider} · {profile.base_url}[/dim]")
         for n in names:
             console.print(f"  {'[green]●[/green]' if n == profile.model else '·'} {n}")
+
+
+from plnt.cli_platform import register as _register_platform  # noqa: E402
+
+_register_platform(cli)
 
 
 def main() -> None:

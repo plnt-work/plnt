@@ -26,6 +26,15 @@ Dates are ISO-8601, UTC.
 
 ### Added
 
+- **Multi-tenant platform core.**
+  - Bundles (`plnt/bundles`): manifest, JSON-Schema tenant config, `{{config.x}}` prompts, and an
+    `@tool` SDK with `ToolContext` for config and secrets.
+  - Tenancy (`plnt/tenancy`): tenants, hashed API keys, secrets, per-tenant model, installs,
+    SQLite sessions, event log, usage ledger, and audit.
+  - `LocalExecutor`: budgets, loop detector and kill.
+  - HTTP API (`plnt serve`) with fail-closed auth and SSE.
+- CLI: `plnt init`, `plnt run`, `plnt install`, `plnt tenants`, `plnt serve`, `plnt dev`.
+- Example bundle `registry/bundles/support-desk`, and an end-to-end check `scripts/smoke_platform.py`.
 - `plnt models doctor` and `plnt models list`.
 - CI (`ci.yml`), and a real-Ollama job (`local-models.yml`).
 

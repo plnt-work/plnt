@@ -31,6 +31,10 @@ plnt/                 the runtime (Python package `plnt`)
   execution/          sandbox rungs (process, docker), agent runner, blackboard audit log
   models/             model providers: Ollama (native), OpenAI-compatible, JSON tool shim, doctor
   agent/              the tool-calling agent loop
+  bundles/            bundle format, @tool SDK, catalog
+  tenancy/            tenants, keys, secrets, per-tenant model, installs, sessions, usage, audit
+  executors/          runs tenant sessions (in-process, durable SQLite event log)
+  server/             multi-tenant HTTP API (`plnt serve`)
   surface/            local HTTP server + CLI surface
 skills/               built-in agent bundles
 tests/                runtime tests
@@ -43,6 +47,75 @@ bench/                runtime overhead benchmark
 
 All four former repositories were imported with full git history
 (`git log -- examples/booking`, `git log -- site`, `git log -- registry`).
+
+## Quickstart: one agent, many tenants
+
+```bash
+pip install -e ".[dev]"
+
+plnt init hello-desk                     # scaffold a bundle: skill.toml, prompt.md,
+                                         # config_schema.json, tools/hours.py
+plnt run ./hello-desk "when are you open?" --config business_name=Acme
+```
+
+Serve it to many customers, each with its own config, secrets, model and data:
+
+```bash
+export PLNT_ADMIN_TOKEN=$(openssl rand -hex 16)
+plnt serve --port 8787 &
+
+H="Authorization: Bearer $PLNT_ADMIN_TOKEN"
+curl -s -X POST localhost:8787/v1/tenants -H "$H" -d '{"id":"bistro"}' -H 'content-type: application/json'
+#  -> {"tenant": {...}, "api_key": "pk_..."}   the tenant's own key, shown once
+
+K="Authorization: Bearer pk_..."
+curl -s -X POST localhost:8787/v1/tenants/bistro/installs -H "$K" -H 'content-type: application/json' \
+  -d '{"bundle":"support-desk","config":{"business_name":"Luigi'"'"'s","handoff_contact":"hi@luigis.example",
+       "faq":[{"q":"When are you open?","a":"Tue-Sun 5-11pm"}]}}'
+curl -s -X POST localhost:8787/v1/tenants/bistro/sessions -H "$K" -H 'content-type: application/json' \
+  -d '{"bundle":"support-desk"}'                                   # -> {"session_id": "s_..."}
+curl -s -X POST localhost:8787/v1/tenants/bistro/sessions/s_.../messages -H "$K" \
+  -H 'content-type: application/json' -d '{"text":"When are you open?"}'
+curl -N localhost:8787/v1/tenants/bistro/sessions/s_.../stream -H "$K"   # live events (SSE)
+```
+
+Every route is listed in [`plnt/server/app.py`](plnt/server/app.py). `plnt dev [bundle]`
+runs the same API on loopback with auth disabled. `python scripts/smoke_platform.py`
+runs the whole flow for two tenants end to end.
+
+### Bundles
+
+```
+my-agent/
+  skill.toml           [meta] name/version · [runtime] tools, max_steps, model_hint ·
+                       [budget] tokens, wall_seconds · [secrets] required
+  prompt.md            system prompt; {{config.key}} is filled per tenant
+  config_schema.json   JSON Schema each tenant's config is validated against
+  tools/*.py           @tool functions; a `ctx: ToolContext` parameter gives the tool
+                       that tenant's config and secrets
+```
+
+```python
+from plnt import ToolContext, tool
+
+@tool
+def lookup_order(order_id: str, ctx: ToolContext) -> dict:
+    """Look up an order by id."""
+    return shop_api(ctx.config["shop_url"], ctx.secret("SHOP_API_KEY")).order(order_id)
+```
+
+### What each tenant gets
+
+- Its own installed copy of the bundle (pinned version and digest) and validated config.
+- Its own secrets (write-only over the API) and, optionally, its own model:
+  `PUT /v1/tenants/{t}/model {"provider":"ollama","base_url":"http://gpu-box:11434","model":"qwen2.5:7b"}`.
+- Its own sessions, event log, usage/cost ledger (`data.db`) and audit log.
+- Filesystem tools confined to its own workdir.
+- Runs stopped by the bundle's token and wall-clock budgets, the loop detector, or
+  `POST .../sessions/{sid}/kill`.
+
+Custom `tools/*.py` code runs in the server process, so for now install only
+bundles you trust. Sandboxed third-party tools are roadmap Phase 6.
 
 ## Quickstart (runtime)
 

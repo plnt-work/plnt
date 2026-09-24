@@ -10,7 +10,9 @@ Guarantees:
   * Model failures stop the loop and are returned as `error` + `error_hint`
     (never replaced by an invented answer).
   * Events: model_call, model_result (with `tokens` for the budget governor),
-    tool_call, tool_result, model_error.
+    tool_call, tool_result, model_error, killed.
+  * `should_stop()` is polled before every model call and tool call; a
+    non-empty reason stops the run (kill switch, budgets, manual kill).
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ class AgentResult:
     transcript: list[dict[str, Any]] = field(default_factory=list)
     usage: Usage = field(default_factory=Usage)
     cost_usd: float = 0.0
-    stopped: Literal["final", "max_steps", "error", "wall_budget"] = "final"
+    stopped: Literal["final", "max_steps", "error", "wall_budget", "killed"] = "final"
     error: str | None = None
     error_hint: str = ""
     messages: list[dict[str, Any]] = field(default_factory=list)
@@ -81,6 +83,7 @@ def run_agent(
     deadline: float | None = None,
     emit: Emit | None = None,
     native_tools: str | None = None,
+    should_stop: Callable[[], str | None] | None = None,
 ) -> AgentResult:
     emit = emit or _noop
     by_name = {t.name: t for t in (tools or [])}
@@ -96,8 +99,18 @@ def run_agent(
     res = AgentResult(messages=msgs)
     base_timeout = float(getattr(getattr(provider, "profile", None), "timeout", 120.0))
 
+    def _killed() -> bool:
+        reason = should_stop() if should_stop else None
+        if reason:
+            res.stopped = "killed"
+            res.error = f"run stopped: {reason}"
+            emit("killed", step=res.steps, reason=reason)
+        return bool(reason)
+
     for step in range(1, max(1, max_steps) + 1):
         res.steps = step
+        if _killed():
+            return res
         timeout = base_timeout
         if deadline is not None:
             remaining = deadline - time.monotonic()
@@ -121,7 +134,7 @@ def run_agent(
         except ModelError as e:
             emit("model_error", step=step, **e.to_event())
             res.stopped = "error"
-            res.error = str(e)
+            res.error = e.args[0] if e.args else str(e)  # hint is kept separately
             res.error_hint = e.hint
             return res
 
@@ -151,6 +164,8 @@ def run_agent(
 
         msgs.append(out.assistant_message())
         for call in out.tool_calls:
+            if _killed():
+                return res
             emit("tool_call", step=step, tool=call.name, args=call.arguments)
             tool = by_name.get(call.name)
             if call.parse_error:

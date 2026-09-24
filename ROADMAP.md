@@ -29,16 +29,20 @@ git history.
 - `[done]` CI job running a real Ollama model (`.github/workflows/local-models.yml`)
 - `[done]` Runtime overhead measured: p50 256 ms / p95 284 ms per single-agent run, no model (`bench/turn_latency.py`, 4 vCPU)
 
-## Phase 2 — Bundles, tenancy, API core  `[next]`
+## Phase 2 — Bundles, tenancy, API core  `[done]`
 
-- One bundle format: `skill.toml` + `prompt.md` + `config_schema.json` + tools
-- Tenancy in the core: per-tenant store, audit, memory, secrets, usage
-- Per-tenant bundle loader (shadowing, semver, disable) and installer with config validation
-- In-process executor with a durable SQLite event log; Temporal as an optional extra
-- HTTP API: tenants, installs, sessions (SSE), runs, kill, audit, usage
-- CLI: `plnt init | dev | run | install | serve | tenants`
+- `[done]` One bundle format: `skill.toml` + `prompt.md` (`{{config.x}}`) + `config_schema.json` + `tools/*.py` (`@tool` SDK with `ToolContext`)
+- `[done]` Tenancy in the core: tenants, hashed API keys, secrets (0600, write-only API), per-tenant model (BYO), audit
+- `[done]` Per-tenant installs: frozen copy with digest, config validated by JSON Schema, highest enabled semver wins, enable/disable/update/uninstall
+- `[done]` In-process executor with a durable per-tenant SQLite event log; token/wall budgets, loop detector and manual kill stop runs
+- `[done]` Usage and cost ledger per tenant (every model call)
+- `[done]` HTTP API: tenants, keys, installs, secrets, model, sessions, SSE stream, kill, usage, audit; fail-closed auth
+- `[done]` CLI: `plnt init | run | install | tenants | serve | dev`
+- `[done]` Example bundle `registry/bundles/support-desk`; `scripts/smoke_platform.py` (two tenants, real HTTP, runs in CI and against a real Ollama model)
+- `[next]` Temporal executor behind the same interface (`plnt[temporal]`) — moved to Phase 3 with the booking port
+- `[next]` Per-tenant long-term memory (booking's Memori adapter) — moved to Phase 3
 
-## Phase 3 — Console + reference app on the public API  `[planned]`
+## Phase 3 — Console + reference app on the public API  `[next]`
 
 - Generic console: usage/cost overview, live runs with kill, transcripts, installs with generated config forms, models/secrets/keys
 - `examples/booking` uses only public APIs; merchant-configured availability replaces LLM-generated slots

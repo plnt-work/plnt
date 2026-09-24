@@ -8,6 +8,10 @@ on:
       - "plnt/models/**"
       - "plnt/agent/**"
       - "plnt/execution/runner.py"
+      - "plnt/executors/**"
+      - "plnt/server/**"
+      - "registry/bundles/**"
+      - "scripts/smoke_platform.py"
       - ".github/workflows/local-models.yml"
   schedule:
     - cron: "17 3 * * *"
@@ -45,3 +49,5 @@ jobs:
         run: PLNT_PLANNER_MODEL="$MODEL" PLNT_DEEP_MODEL="$MODEL" plnt models doctor
       - name: Real tool-calling agent run
         run: PLNT_TEST_OLLAMA_MODEL="$MODEL" pytest -q tests/test_local_model_e2e.py -k real_ollama
+      - name: Platform smoke (two tenants, one bundle, real model)
+        run: PLNT_SMOKE_MODEL="$MODEL" python scripts/smoke_platform.py

@@ -1,7 +1,7 @@
-"""Plnt — Personal Local Native Twin.
-
-A local-first runtime where one resident planner spawns a swarm of
-sandboxed micro-agents on your own hardware.
-"""
+"""plnt — open-source runtime for shipping one agent to many isolated tenants."""
 
 __version__ = "0.0.1"
+
+from plnt.bundles.sdk import ToolContext, tool  # noqa: E402
+
+__all__ = ["ToolContext", "__version__", "tool"]

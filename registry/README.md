@@ -3,7 +3,7 @@
 The public index of plnt agent bundles. It was imported from
 `github.com/plnt-work/microagents` with full history.
 
-> **Status: not built yet.** This directory holds only one `workflows/` recipe
+> **Status: early.** `bundles/support-desk` is a working example bundle; `plnt install support-desk` finds it here. This directory also holds one `workflows/` recipe
 > from the pre-consolidation scaffold, in a retired YAML format that the
 > runtime does not use. The real registry
 > is roadmap Phase 5 (see `../ROADMAP.md`).

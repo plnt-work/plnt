@@ -33,6 +33,7 @@ efficiency (per 2026 research — see SETUP.md).
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -45,18 +46,26 @@ class SkillMeta(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+_TOOL_NAME_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$")
+
+
 class SkillRuntime(BaseModel):
     model_hint: Literal["small", "deep", "auto"] = "auto"
+    # Built-ins are `search` / `execute`; bundles may also define their own
+    # tools in `tools/*.py`. Whether each name resolves is checked when the
+    # bundle is loaded (plnt.bundles), not here.
     tools: list[str] = Field(default_factory=lambda: ["search", "execute"])
     default_isolation: Literal["process", "docker", "gvisor", "microvm", "wasm"] = "process"
+    # Maximum model turns per message (tool calls + final answer).
+    max_steps: int = Field(default=6, ge=1, le=50)
 
     @field_validator("tools")
     @classmethod
     def _check_tools(cls, v: list[str]) -> list[str]:
-        unknown = [t for t in v if t not in ("search", "execute")]
-        if unknown:
-            raise ValueError(f"unsupported tools {unknown}; only search/execute exist")
-        return v or ["search", "execute"]
+        bad = [t for t in v if not _TOOL_NAME_RE.match(t)]
+        if bad:
+            raise ValueError(f"invalid tool names {bad}; use identifiers like `lookup_order`")
+        return v
 
 
 class SkillBudget(BaseModel):
@@ -146,6 +155,16 @@ class SkillInstall(BaseModel):
         return v
 
 
+class SkillSecrets(BaseModel):
+    """Secrets a tenant must set before this bundle can run (e.g. an API key).
+
+    Values are stored per tenant (plnt.tenancy.secrets) and handed to the
+    bundle's tools via `ctx.secret(name)`; they never enter the prompt.
+    """
+
+    required: list[str] = Field(default_factory=list)
+
+
 class SkillGraph(BaseModel):
     """Static bound on what this skill is allowed to spawn.
 
@@ -168,6 +187,9 @@ class SkillManifest(BaseModel):
     triggers: SkillTriggers = Field(default_factory=SkillTriggers)
     integrations_required: dict[str, bool] = Field(default_factory=dict)
     install: SkillInstall = Field(default_factory=SkillInstall)
+    secrets: SkillSecrets = Field(default_factory=SkillSecrets)
+    # JSON Schema for a structured final answer (optional).
+    response_schema: dict[str, Any] | None = None
 
     # The markdown body — system prompt the agent sees.
     prompt: str = ""

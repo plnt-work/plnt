@@ -44,11 +44,11 @@ def test_validates_unknown_tool(tmp_path):
 [meta]
 name = "bad"
 [runtime]
-tools = ["search", "execute", "delete_world"]
+tools = ["search", "rm -rf /"]
 """,
         "x",
     )
-    with pytest.raises(ValueError, match="unsupported tools"):
+    with pytest.raises(ValueError, match="invalid tool names"):
         parse_manifest_dir("bad", tmp_path / "bad")
 
 
