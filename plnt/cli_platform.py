@@ -301,7 +301,9 @@ def tenants_delete(tid: str) -> None:
 @click.command("serve")
 @click.option("--host", default="127.0.0.1", show_default=True)
 @click.option("--port", default=DEFAULT_PORT, type=int, show_default=True)
-def serve_cmd(host: str, port: int) -> None:
+@click.option("--playground", is_flag=True,
+              help="Also seed demo tenants and open the anonymous /v1/playground API.")
+def serve_cmd(host: str, port: int, playground: bool) -> None:
     """Run the multi-tenant HTTP API."""
     import uvicorn
 
@@ -312,7 +314,7 @@ def serve_cmd(host: str, port: int) -> None:
             "[yellow]PLNT_ADMIN_TOKEN is not set: operator routes (create tenants, "
             "list tenants) will answer 503. Tenant API keys still work.[/yellow]"
         )
-    uvicorn.run(create_app(), host=host, port=port, log_level="info")
+    uvicorn.run(create_app(playground=playground), host=host, port=port, log_level="info")
 
 
 @click.command("dev")

@@ -93,6 +93,7 @@ def create_app(
     executor: LocalExecutor | None = None,
     admin_token: str | None = None,
     dev: bool = False,
+    playground: bool = False,
 ) -> FastAPI:
     store = store or TenantStore()
     executor = executor or LocalExecutor(store)
@@ -385,6 +386,23 @@ def create_app(
     ) -> dict[str, Any]:
         return {"events": tenant.audit_events(limit, action)}
 
+    if playground:
+        from fastapi.middleware.cors import CORSMiddleware
+
+        from plnt.server.playground import playground_router, seed_demo
+
+        seed_demo(store)
+        app.include_router(playground_router(store, executor))
+        # The playground routes are anonymous and cookie-less, so a wildcard
+        # origin is safe for them; set PLNT_PLAYGROUND_ORIGINS to restrict.
+        origins = [o for o in os.environ.get("PLNT_PLAYGROUND_ORIGINS", "*").split(",") if o]
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_methods=["GET", "POST"],
+            allow_headers=["content-type"],
+            allow_credentials=False,
+        )
     _mount_console(app)
     return app
 
