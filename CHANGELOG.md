@@ -9,6 +9,34 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-09-25
+
+First release of plnt as a platform for shipping one agent to many customers.
+
+### Added
+
+- **Public playground API** (`plnt serve --playground`). It seeds two demo businesses
+  and opens an anonymous API limited to them, with a per-session capability token,
+  per-IP rate limits, a daily token cap, and CORS.
+- **Website** rewritten for the platform. `/playground` talks to a real server,
+  with a tenant switcher, a live event trace and a kill button. When the server
+  is unreachable, the page says so.
+- **Docs** at `/docs/`:
+  - quickstart and concepts;
+  - guides for bundles, tools, config and secrets, guardrails, local models,
+    multi-tenant serving, the console, and deploy;
+  - reference for the HTTP API, events, `skill.toml`, the CLI, and environment variables.
+- **Packaging:**
+  - the wheel includes the built console and the `support-desk` and `booking-desk`
+    bundles (`plnt/_bundles`);
+  - `scripts/check_dist.sh` installs the wheel in a clean venv and runs an agent.
+- **`Dockerfile`** for `plnt serve` with the console. It runs as non-root, keeps its
+  state in `/data`, and has a healthcheck.
+- **`release.yml`**: a tag `vX.Y.Z` publishes to PyPI (trusted publishing), pushes a
+  GHCR image, and creates a GitHub release.
+- **CI:** browser end-to-end tests of the site playground, package checks (wheel and
+  sdist), and a Docker image smoke test.
+
 ### Changed
 
 - **Direction:** plnt is now an open-source runtime for shipping one agent to many
@@ -55,7 +83,10 @@ Dates are ISO-8601, UTC.
 - The K8s inference playground, operator, Helm charts, deploy overlays, Fly config,
   Go TUI, Expo app, and `plnt deploy` / `plnt playground` commands (recoverable from git history).
 
-## [0.1.0] — 2026-07-14
+## [0.0.1] — 2026-07-14 (retired prototype, never published)
+
+The earlier Kubernetes inference prototype. The package version was 0.0.1; this entry
+was previously labelled 0.1.0. None of it is in the current release.
 
 Initial platform release. Ships the playground surface end-to-end and
 scaffolds the runtime, workflow, and operator layers so v0.2 can iterate

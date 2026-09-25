@@ -7,10 +7,10 @@ plnt 0.1 is a single process with its state on local disk (`$PLNT_HOME`). Deploy
 
 ## Docker
 
-The repo's `Dockerfile` builds the server with the console included.
+The repo's `Dockerfile` builds the server with the console included. Each release is also published as `ghcr.io/plnt-work/plnt:<version>`.
 
 ```bash
-docker build -t plnt .
+docker build -t plnt .       # or: docker pull ghcr.io/plnt-work/plnt:v0.1.0
 docker run -d --name plnt -p 8787:8787 \
   -v plnt-data:/data \
   -e PLNT_ADMIN_TOKEN=... \
@@ -20,7 +20,7 @@ docker run -d --name plnt -p 8787:8787 \
   plnt
 ```
 
-Inside the image, `PLNT_HOME=/data`. Mount a volume there or you lose every tenant on restart.
+Inside the image, `PLNT_HOME=/data` and the server runs as a non-root user (uid 10001). Mount a volume there or you lose every tenant on restart.
 
 To add your own bundles, mount them and point `PLNT_BUNDLE_PATH` at them:
 

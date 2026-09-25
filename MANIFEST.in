@@ -1,0 +1,4 @@
+include setup.py LICENSE README.md CHANGELOG.md
+graft registry/bundles
+graft plnt/server/console
+global-exclude __pycache__ *.py[cod] .DS_Store

@@ -51,11 +51,14 @@ git history.
 - `[planned]` Temporal executor behind the same interface (`plnt[temporal]`)
 - `[planned]` Per-tenant long-term memory
 
-## Phase 4 — Site, real playground, docs, v0.1.0 on PyPI  `[planned]`
+## Phase 4 — Site, real playground, docs, v0.1.0  `[done]`
 
-- Site rewritten for the platform
-- Playground runs real bundles on a hosted `plnt serve`: tenant switcher, live event trace, kill button, isolation demo
-- Docs: quickstart, bundle spec, local models guide, deploy guide
+- `[done]` Site rewritten for the platform (landing, privacy, terms); old K8s pages and fake numbers removed
+- `[done]` Playground on a real `plnt serve --playground`: two demo tenants, tenant switcher with each install's config, live SSE event trace, kill button, per-IP limits and a daily token cap; browser e2e in CI
+- `[done]` Docs: quickstart, concepts, bundle and tool guides, config and secrets, guardrails, local models, multi-tenant, console, deploy, API/events/CLI/env reference
+- `[done]` v0.1.0 packaging: wheel ships the console and bundles; `Dockerfile`; tag-triggered release to PyPI and GHCR
+- `[next]` Configure PyPI trusted publishing and tag `v0.1.0` (repository admin)
+- `[next]` Host the public playground and point the site at it (`PUBLIC_PLNT_PLAYGROUND_URL`)
 
 ## Phase 5 — Registry  `[planned]`
 

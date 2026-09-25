@@ -22,7 +22,7 @@ jobs:
       - run: pip install -e ".[dev]"
       # Lint is enforced on modules rewritten for the platform; older modules
       # are brought under it as they are touched.
-      - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py registry/bundles
+      - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py registry/bundles setup.py
       - run: python scripts/smoke_platform.py
       - run: pytest -q
 
@@ -113,3 +113,44 @@ jobs:
         with:
           name: console-screenshots
           path: console/e2e-shots
+
+  package:
+    name: package (wheel + sdist, installed and run outside the checkout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: console
+      - run: pip install build && python -m build
+      - run: bash scripts/check_dist.sh dist/*.whl
+      # the sdist must build a complete wheel on its own
+      - run: |
+          mkdir sd && tar xzf dist/*.tar.gz -C sd --strip-components=1
+          cd sd && python -m build --wheel --outdir ../sdist-wheel
+          bash ../scripts/check_dist.sh ../sdist-wheel/*.whl
+
+  docker:
+    name: docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t plnt:ci .
+      - run: |
+          docker run -d --name plnt -p 8787:8787 -e PLNT_ADMIN_TOKEN=ci plnt:ci
+          for i in $(seq 30); do curl -sf localhost:8787/v1/health && break; sleep 1; done
+          curl -sf localhost:8787/v1/health | grep '"version"'
+          curl -sf localhost:8787/console | grep -qi '<div id="root">'
+          curl -sf localhost:8787/v1/bundles | grep -q support-desk
+          curl -sf -X POST localhost:8787/v1/tenants -H 'Authorization: Bearer ci' \
+            -H 'content-type: application/json' -d '{"id":"acme"}' | grep -q pk_
+          docker exec plnt ls /data/tenants/acme
+      - if: failure()
+        run: docker logs plnt

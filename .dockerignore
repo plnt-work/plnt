@@ -16,9 +16,12 @@ venv/
 .DS_Store
 tests/
 **/node_modules
+plnt/server/console/
+plnt/_bundles/
 **/dist
 site/
-registry/
+registry/*
+!registry/bundles/
 examples/booking/web/
 examples/booking/tests/
 archived_logs/

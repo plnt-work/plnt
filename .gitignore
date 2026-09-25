@@ -30,3 +30,4 @@ bench/results/
 .DS_Store
 plnt-tui-bin
 plnt/server/console/
+plnt/_bundles/

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "plnt"
-version = "0.0.1"
+version = "0.1.0"
 description = "Open-source runtime for shipping one agent to many isolated tenants — per-tenant sandbox, budgets, memory, secrets and audit, on any model, local or cloud."
 readme = "README.md"
 license = "Apache-2.0"
@@ -58,9 +58,20 @@ semantic = [
 plnt = "plnt.cli:main"
 plnt-agent-runner = "plnt.execution.runner:main"
 
+[project.urls]
+Homepage = "https://plnt.work"
+Documentation = "https://plnt.work/docs/"
+Source = "https://github.com/plnt-work/plnt"
+Changelog = "https://github.com/plnt-work/plnt/blob/main/CHANGELOG.md"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["plnt*"]
+
+# The built console (console/ -> plnt/server/console, when built) ships in the
+# wheel. registry/bundles is copied to plnt/_bundles by setup.py.
+[tool.setuptools.package-data]
+plnt = ["server/console/**/*"]
 
 [tool.ruff]
 target-version = "py311"

@@ -24,7 +24,7 @@ The console keeps the key in this browser's local storage until you sign out, an
 
 ## Building it from source
 
-A pip install includes the built console. From a git checkout, build it once:
+The PyPI package and the Docker image include the built console. When you install from git or run from a checkout, build it once:
 
 ```bash
 cd console && npm ci && npm run build   # writes plnt/server/console/

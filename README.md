@@ -51,8 +51,11 @@ All four former repositories were imported with full git history
 
 ## Quickstart: one agent, many tenants
 
+Docs: **https://plnt.work/docs/** · try it without installing: **https://plnt.work/playground**
+
 ```bash
-pip install -e ".[dev]"
+pip install "git+https://github.com/plnt-work/plnt"   # `pip install plnt` once v0.1.0 is on PyPI
+# or: docker build -t plnt . && docker run -p 8787:8787 -v plnt-data:/data -e PLNT_ADMIN_TOKEN=... plnt
 
 plnt init hello-desk                     # scaffold a bundle: skill.toml, prompt.md,
                                          # config_schema.json, tools/hours.py

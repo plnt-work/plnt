@@ -3,6 +3,7 @@
 Search path, first match wins per slug:
   1. $PLNT_BUNDLE_PATH (colon-separated directories of bundles)
   2. `registry/bundles/` and `skills/` next to the plnt package (source checkout)
+  3. `plnt/_bundles/`: registry/bundles copied into the wheel at build time
 
 The hosted registry with sha256-verified downloads is roadmap Phase 5.
 """
@@ -15,11 +16,12 @@ from pathlib import Path
 from plnt.bundles.bundle import Bundle, BundleError, load_bundle
 
 _REPO = Path(__file__).resolve().parents[2]
+_PACKAGED = Path(__file__).resolve().parents[1] / "_bundles"
 
 
 def search_path() -> list[Path]:
     dirs = [Path(p).expanduser() for p in os.environ.get("PLNT_BUNDLE_PATH", "").split(":") if p]
-    dirs += [_REPO / "registry" / "bundles", _REPO / "skills"]
+    dirs += [_REPO / "registry" / "bundles", _REPO / "skills", _PACKAGED]
     return [d for d in dirs if d.is_dir()]
 
 

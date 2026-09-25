@@ -12,6 +12,8 @@ pip install "git+https://github.com/plnt-work/plnt"
 plnt --version
 ```
 
+Once v0.1.0 is on PyPI this becomes `pip install plnt`.
+
 ## 2. Pick a model
 
 Choose **one** of these.
