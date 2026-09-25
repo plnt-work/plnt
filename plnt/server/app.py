@@ -41,9 +41,12 @@ import asyncio
 import json
 import os
 import secrets as _secrets
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
@@ -131,6 +134,19 @@ def create_app(
 
     # ---------------------------------------------------------------- meta
 
+    @app.get("/v1/whoami")
+    def whoami(authorization: str = Header(default="")) -> dict[str, Any]:
+        """What the presented credential can do — lets the console pick its mode."""
+        if dev:
+            return {"role": "dev"}
+        token = _bearer(authorization)
+        if _is_admin(token):
+            return {"role": "admin"}
+        tenant = store.find_by_key(token) if token else None
+        if tenant is None:
+            raise HTTPException(401, "unknown token")
+        return {"role": "tenant", "tenant_id": tenant.id}
+
     @app.get("/v1/health")
     def health() -> dict[str, Any]:
         return {"ok": True, "version": __version__, "dev": dev}
@@ -172,7 +188,7 @@ def create_app(
     def get_tenant(tenant: Tenant = Depends(tenant_access)) -> dict[str, Any]:
         return {
             **tenant.summary(),
-            "installs": [i.to_dict() for i in installs.list_installed(tenant)],
+            "installs": [_install_view(i) for i in installs.list_installed(tenant)],
             "secrets": tenant.secret_names(),
             "model": _public_model(tenant),
         }
@@ -195,7 +211,7 @@ def create_app(
 
     @app.get("/v1/tenants/{t}/installs")
     def list_installs(tenant: Tenant = Depends(tenant_access)) -> dict[str, Any]:
-        return {"installs": [i.to_dict() for i in installs.list_installed(tenant)]}
+        return {"installs": [_install_view(i) for i in installs.list_installed(tenant)]}
 
     @app.post("/v1/tenants/{t}/installs", status_code=201)
     def install(body: InstallBody, tenant: Tenant = Depends(tenant_access)) -> dict[str, Any]:
@@ -208,14 +224,16 @@ def create_app(
             inst = installs.install(tenant, found[body.bundle], body.config)
         except BundleError as e:
             raise _bad(e, 422) from None
-        return inst.to_dict()
+        return _install_view(inst)
 
     @app.patch("/v1/tenants/{t}/installs/{slug}")
     def patch_install(
         slug: str, body: InstallPatch, tenant: Tenant = Depends(tenant_access)
     ) -> dict[str, Any]:
         try:
-            return installs.update(tenant, slug, enabled=body.enabled, config=body.config).to_dict()
+            return _install_view(
+                installs.update(tenant, slug, enabled=body.enabled, config=body.config)
+            )
         except BundleError as e:
             raise _bad(e, 404 if "not installed" in str(e) else 422) from None
 
@@ -367,4 +385,48 @@ def create_app(
     ) -> dict[str, Any]:
         return {"events": tenant.audit_events(limit, action)}
 
+    _mount_console(app)
     return app
+
+
+def _install_view(inst: installs.Installation) -> dict[str, Any]:
+    """An install plus what a UI needs to edit it: the installed version's own
+    config schema and required secrets (they can differ from the catalog's)."""
+    view = inst.to_dict()
+    try:
+        b = inst.load()
+        view["config_schema"] = b.config_schema
+        view["secrets_required"] = b.manifest.secrets.required
+        view["description"] = b.manifest.meta.description
+    except BundleError as e:
+        view["load_error"] = str(e)
+    return view
+
+
+CONSOLE_DIR = Path(__file__).parent / "console"
+
+
+def _mount_console(app: FastAPI) -> None:
+    """Serve the built web console (console/ → plnt/server/console) at /console."""
+    index = CONSOLE_DIR / "index.html"
+
+    if not index.is_file():
+
+        @app.get("/console", include_in_schema=False)
+        @app.get("/console/{path:path}", include_in_schema=False)
+        def console_missing(path: str = "") -> HTMLResponse:
+            return HTMLResponse(
+                "<p>The console is not built. Run <code>npm ci && npm run build</code> "
+                "in <code>console/</code>, then restart the server.</p>",
+                status_code=404,
+            )
+
+        return
+
+    app.mount("/console/assets", StaticFiles(directory=CONSOLE_DIR / "assets"), name="console")
+
+    @app.get("/console", include_in_schema=False)
+    @app.get("/console/{path:path}", include_in_schema=False)
+    def console_index(path: str = "") -> FileResponse:
+        # Client-side routing: every console URL serves the SPA shell.
+        return FileResponse(index)

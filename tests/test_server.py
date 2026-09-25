@@ -178,3 +178,34 @@ def test_dev_mode_is_open(tmp_path):
     client = TestClient(create_app(store=TenantStore(tmp_path / "t"), admin_token="", dev=True))
     assert client.post("/v1/tenants", json={"id": "dev"}).status_code == 201
     assert client.get("/v1/tenants/dev").status_code == 200
+
+
+def test_whoami_reports_role(api):
+    client, _ = api
+    assert client.get("/v1/whoami", headers=ADMIN).json() == {"role": "admin"}
+    key = client.post("/v1/tenants", json={"id": "acme"}, headers=ADMIN).json()["api_key"]
+    assert client.get("/v1/whoami", headers=_bearer(key)).json() == {
+        "role": "tenant",
+        "tenant_id": "acme",
+    }
+    assert client.get("/v1/whoami", headers=_bearer("pk_nope")).status_code == 401
+    assert client.get("/v1/whoami").status_code == 401
+
+
+def test_install_view_includes_schema(api):
+    client, _ = api
+    h = _tenant(client, "acme", "Acme")
+    inst = client.get("/v1/tenants/acme/installs", headers=h).json()["installs"][0]
+    assert inst["config_schema"]["required"] == ["shop_name"]
+    assert inst["secrets_required"] == ["SHOP_API_KEY"]
+
+
+def test_console_route(api):
+    from plnt.server.app import CONSOLE_DIR
+
+    client, _ = api
+    r = client.get("/console/t/acme")
+    if (CONSOLE_DIR / "index.html").is_file():
+        assert r.status_code == 200 and '<div id="root">' in r.text
+    else:
+        assert r.status_code == 404 and "npm run build" in r.text

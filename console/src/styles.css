@@ -1,0 +1,73 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+
+/* One set of tokens, light + dark. Components use the Tailwind names below. */
+:root {
+  --bg: #fafaf9;
+  --panel: #ffffff;
+  --sunken: #f4f4f3;
+  --line: #e7e5e4;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --accent: #15803d;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcfce7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --warn: #a16207;
+  --warn-soft: #fef9c3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0a09;
+    --panel: #161412;
+    --sunken: #1f1c1a;
+    --line: #2e2a27;
+    --ink: #f5f5f4;
+    --muted: #a8a29e;
+    --accent: #4ade80;
+    --accent-ink: #052e16;
+    --accent-soft: #14532d;
+    --danger: #f87171;
+    --danger-soft: #450a0a;
+    --warn: #facc15;
+    --warn-soft: #422006;
+  }
+}
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
