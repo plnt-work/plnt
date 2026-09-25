@@ -1,0 +1,15 @@
+[meta]
+name = "booking-desk"
+version = "0.1.0"
+description = "Takes table reservations for one restaurant from its own opening hours and capacity. Never offers a time the restaurant can't seat."
+tags = ["booking", "restaurant", "smb"]
+
+[runtime]
+model_hint = "small"
+tools = ["check_availability", "book_table", "cancel_booking"]
+require_tool = "check_availability"   # every answer is grounded in real availability
+max_steps = 6
+
+[budget]
+tokens = 12000
+wall_seconds = 90

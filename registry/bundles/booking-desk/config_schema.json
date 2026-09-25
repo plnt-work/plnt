@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "business_name": {"type": "string", "title": "Restaurant name", "minLength": 1},
+    "handoff_contact": {"type": "string", "title": "Hand-off contact", "minLength": 1,
+                        "description": "Phone or email for requests the agent can't handle."},
+    "timezone": {"type": "string", "title": "Time zone", "default": "UTC",
+                 "description": "IANA name, e.g. Europe/Rome or Asia/Kolkata."},
+    "tone": {"type": "string", "enum": ["friendly", "formal"], "default": "friendly"},
+    "hours_mon": {"type": "string", "title": "Monday hours", "default": "",
+                  "description": "Seating windows like 12:00-15:00, 18:00-22:30. Empty = closed."},
+    "hours_tue": {"type": "string", "title": "Tuesday hours", "default": ""},
+    "hours_wed": {"type": "string", "title": "Wednesday hours", "default": ""},
+    "hours_thu": {"type": "string", "title": "Thursday hours", "default": ""},
+    "hours_fri": {"type": "string", "title": "Friday hours", "default": ""},
+    "hours_sat": {"type": "string", "title": "Saturday hours", "default": ""},
+    "hours_sun": {"type": "string", "title": "Sunday hours", "default": ""},
+    "closed_dates": {"type": "array", "title": "Closed dates", "items": {"type": "string"},
+                     "default": [], "description": "YYYY-MM-DD dates the restaurant is closed."},
+    "slot_minutes": {"type": "integer", "title": "Slot length (minutes)", "default": 30,
+                     "minimum": 10, "maximum": 240},
+    "tables_per_slot": {"type": "integer", "title": "Bookings per slot", "default": 4,
+                        "minimum": 1, "description": "How many parties can start in the same slot."},
+    "max_party_size": {"type": "integer", "title": "Largest party", "default": 8, "minimum": 1}
+  },
+  "required": ["business_name", "handoff_contact"],
+  "additionalProperties": false
+}

@@ -39,13 +39,17 @@ git history.
 - `[done]` HTTP API: tenants, keys, installs, secrets, model, sessions, SSE stream, kill, usage, audit; fail-closed auth
 - `[done]` CLI: `plnt init | run | install | tenants | serve | dev`
 - `[done]` Example bundle `registry/bundles/support-desk`; `scripts/smoke_platform.py` (two tenants, real HTTP, runs in CI and against a real Ollama model)
-- `[next]` Temporal executor behind the same interface (`plnt[temporal]`) — moved to Phase 3 with the booking port
-- `[next]` Per-tenant long-term memory (booking's Memori adapter) — moved to Phase 3
 
-## Phase 3 — Console + reference app on the public API  `[next]`
+## Phase 3 — Guardrail, console, booking on the platform  `[done]`
 
-- Generic console: usage/cost overview, live runs with kill, transcripts, installs with generated config forms, models/secrets/keys
-- `examples/booking` uses only public APIs; merchant-configured availability replaces LLM-generated slots
+- `[done]` `[runtime] require_tool`: the runtime forces the grounding tool (tool_choice where supported), re-asks once, then withholds the answer. Added after a real 1.5B model invented opening hours in CI
+- `[done]` Web console (`console/`, served at `/console`): operator and tenant sign-in; overview with 30-day usage and cost; live conversations over SSE with tool calls, guardrail notes and kill; agents with install and settings forms generated from each bundle's JSON Schema; per-tenant model with health check, secrets, key rotation; audit log
+- `[done]` Browser end-to-end test of the console in CI (Playwright), including mobile width
+- `[done]` `registry/bundles/booking-desk`: restaurant bookings on the public platform. Availability comes from the merchant's configured hours and capacity (no LLM-made slots); per-tenant ledger via `ctx.data_dir`; atomic, idempotent booking; cancel with contact check
+- `[next]` Merchant views of bundle data in the console (e.g. today's bookings)
+- `[next]` Retire `examples/booking` (legacy Temporal app) once booking-desk covers it; salon mode
+- `[planned]` Temporal executor behind the same interface (`plnt[temporal]`)
+- `[planned]` Per-tenant long-term memory
 
 ## Phase 4 — Site, real playground, docs, v0.1.0 on PyPI  `[planned]`
 

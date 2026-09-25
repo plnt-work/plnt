@@ -34,14 +34,15 @@ plnt/                 the runtime (Python package `plnt`)
   bundles/            bundle format, @tool SDK, catalog
   tenancy/            tenants, keys, secrets, per-tenant model, installs, sessions, usage, audit
   executors/          runs tenant sessions (in-process, durable SQLite event log)
-  server/             multi-tenant HTTP API (`plnt serve`)
+  server/             multi-tenant HTTP API (`plnt serve`), hosts the console at /console
+console/              web console (React) for operators and tenants
   surface/            local HTTP server + CLI surface
 skills/               built-in agent bundles
 tests/                runtime tests
-examples/booking/     reference multi-tenant app: bookings + Q&A agents, React console,
-                      Temporal sessions (formerly github.com/plnt-work/maps-micro-saas)
+examples/booking/     legacy booking app (Temporal, map UI; formerly plnt-work/maps-micro-saas),
+                      being replaced by registry/bundles/booking-desk
 site/                 plnt.work marketing site + docs (formerly devdattatalele/plnt-site)
-registry/             agent bundle registry (formerly github.com/plnt-work/microagents)
+registry/             agent bundles: support-desk, booking-desk (formerly plnt-work/microagents)
 bench/                runtime overhead benchmark
 ```
 
@@ -79,7 +80,9 @@ curl -s -X POST localhost:8787/v1/tenants/bistro/sessions/s_.../messages -H "$K"
 curl -N localhost:8787/v1/tenants/bistro/sessions/s_.../stream -H "$K"   # live events (SSE)
 ```
 
-Every route is listed in [`plnt/server/app.py`](plnt/server/app.py). `plnt dev [bundle]`
+Open `http://localhost:8787/console` for the web console (build it once with
+`cd console && npm ci && npm run build`). Every route is listed in
+[`plnt/server/app.py`](plnt/server/app.py). `plnt dev [bundle]`
 runs the same API on loopback with auth disabled. `python scripts/smoke_platform.py`
 runs the whole flow for two tenants end to end.
 
@@ -113,6 +116,9 @@ def lookup_order(order_id: str, ctx: ToolContext) -> dict:
 - Filesystem tools confined to its own workdir.
 - Runs stopped by the bundle's token and wall-clock budgets, the loop detector, or
   `POST .../sessions/{sid}/kill`.
+- Answers that must be grounded stay grounded: with `[runtime] require_tool`, the runtime
+  withholds any answer the model gives before calling that tool.
+- A private data directory per bundle (`ctx.data_dir`), e.g. booking-desk's ledger.
 
 Custom `tools/*.py` code runs in the server process, so for now install only
 bundles you trust. Sandboxed third-party tools are roadmap Phase 6.

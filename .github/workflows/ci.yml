@@ -22,7 +22,7 @@ jobs:
       - run: pip install -e ".[dev]"
       # Lint is enforced on modules rewritten for the platform; older modules
       # are brought under it as they are touched.
-      - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py
+      - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py registry/bundles
       - run: python scripts/smoke_platform.py
       - run: pytest -q
 

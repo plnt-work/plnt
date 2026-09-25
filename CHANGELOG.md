@@ -26,6 +26,14 @@ Dates are ISO-8601, UTC.
 
 ### Added
 
+- **Guardrail `[runtime] require_tool`.** The model must call the named tool before it
+  answers. The runtime forces the call where the backend supports it, otherwise
+  re-asks once, then withholds the answer. Added `tool_choice` to providers.
+- **Web console** (`console/`, served at `/console`) and `GET /v1/whoami`, with a Playwright
+  end-to-end test in CI.
+- **`booking-desk` bundle.** Schedule-driven availability, a per-tenant bookings ledger, and
+  atomic, idempotent booking. `ToolContext.data_dir` gives each tenant and bundle
+  private storage.
 - **Multi-tenant platform core.**
   - Bundles (`plnt/bundles`): manifest, JSON-Schema tenant config, `{{config.x}}` prompts, and an
     `@tool` SDK with `ToolContext` for config and secrets.

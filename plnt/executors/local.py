@@ -127,12 +127,15 @@ class LocalExecutor:
         workdir = tenant.workdir(sid)
         builtin = filesystem_tools(workdir, [workdir])
         out = [builtin[n] for n in bundle.builtin_tools]
+        data_dir = tenant.home / "data" / bundle.slug
+        data_dir.mkdir(parents=True, exist_ok=True)
         ctx = ToolContext(
             tenant_id=tenant.id,
             session_id=sid,
             bundle=bundle.slug,
             config=dict(config),
             _secrets=tenant.secret_values(),
+            data_dir=data_dir,
         )
         for spec in bundle.tools.values():
             out.append(

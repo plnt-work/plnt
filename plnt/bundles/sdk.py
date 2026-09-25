@@ -21,6 +21,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from pydantic import TypeAdapter
@@ -37,6 +38,9 @@ class ToolContext:
     bundle: str
     config: Mapping[str, Any] = field(default_factory=dict)
     _secrets: Mapping[str, str] = field(default_factory=dict, repr=False)
+    # Private, persistent directory for this bundle's data *for this tenant*
+    # (e.g. a bookings ledger). Other tenants and other bundles never see it.
+    data_dir: Path | None = None
 
     def secret(self, name: str) -> str:
         """A secret the tenant set for this bundle. Raises KeyError when unset."""

@@ -1,3 +1,9 @@
+> **Legacy.** This is the pre-platform booking app (Temporal workflow, map UI),
+> kept as a reference. New work goes into the platform bundle
+> [`registry/bundles/booking-desk`](../../registry/bundles/booking-desk), which runs on
+> `plnt serve` with per-tenant isolation, merchant-configured availability and the
+> web console.
+
 # plnt-cloud
 
 Multi-tenant micro-agent platform built on top of [plnt](http://www.plnt.work/).
