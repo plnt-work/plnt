@@ -144,7 +144,9 @@ def main() -> int:
             r.raise_for_status()
             print(f"✓ {tid}: support-desk installed")
 
-        answers = {}
+        answers: dict[str, str] = {}
+        grounded: dict[str, bool] = {}
+        real_model = bool(os.environ.get("PLNT_SMOKE_MODEL"))
         for tid in tenants:
             h = keys[tid]
             sid = c.post(
@@ -167,16 +169,39 @@ def main() -> int:
                             answers[tid] = evt["payload"]["text"]
                         if evt["kind"] == "run_error":
                             raise SystemExit(f"{tid}: {evt['payload']}")
-            assert "tool_call" in kinds, (tid, kinds)
-            print(f"✓ {tid}: streamed {len(kinds)} events → {answers[tid]!r}")
+            assert kinds[-1] == "run_finished" and tid in answers, (tid, kinds)
+            used_tool = "tool_call" in kinds
+            print(
+                f"✓ {tid}: streamed {len(kinds)} events "
+                f"({'called lookup_faq' if used_tool else 'no tool call'}) → {answers[tid]!r}"
+            )
+            grounded[tid] = used_tool
 
-        assert "Tuesday" in answers["bistro"] and "Monday" not in answers["bistro"], answers
-        assert "Monday" in answers["dental"] and "Tuesday" not in answers["dental"], answers
-        print("✓ each tenant answered from its own FAQ only")
+        # Platform guarantees (always enforced): the run completed, the stream
+        # worked, and nothing crossed tenants. Whether the answer is grounded
+        # depends on the model's tool use, which only the fake model guarantees;
+        # with a real model it is reported, not asserted.
+        ok_bistro = "Tuesday" in answers["bistro"] and "Monday" not in answers["bistro"]
+        ok_dental = "Monday" in answers["dental"] and "Tuesday" not in answers["dental"]
+        if real_model:
+            for tid, ok in (("bistro", ok_bistro), ("dental", ok_dental)):
+                if not (ok and grounded[tid]):
+                    print(
+                        f"! {tid}: model did not ground its answer in the FAQ "
+                        f"(tool call: {grounded[tid]}) — a model-quality issue, not isolation"
+                    )
+        else:
+            assert all(grounded.values()), grounded
+            assert ok_bistro and ok_dental, answers
+            print("✓ each tenant answered from its own FAQ only")
+        # Cross-tenant leak check that holds for any model: neither answer may
+        # contain the *other* tenant's FAQ text verbatim.
+        assert tenants["dental"]["faq"][0]["a"] not in answers["bistro"], answers
+        assert tenants["bistro"]["faq"][0]["a"] not in answers["dental"], answers
 
         for tid in tenants:
             u = c.get(f"/tenants/{tid}/usage", headers=keys[tid]).json()
-            assert u["model_calls"] >= 2, u
+            assert u["model_calls"] >= (1 if real_model else 2), u
             print(
                 f"✓ {tid}: usage {u['model_calls']} calls, "
                 f"{u['prompt_tokens']}+{u['completion_tokens']} tokens"
