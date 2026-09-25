@@ -57,21 +57,32 @@ jobs:
       - run: npm run lint
 
   site:
-    name: site (astro build)
+    name: site (build, playground browser e2e)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: site/package-lock.json
+      - run: pip install -e ".[dev]"
       - run: npm ci
+        working-directory: site
       - run: npm run build
-      - run: npm run build:app
+        working-directory: site
+      - run: npx playwright install --with-deps chromium
+        working-directory: site
+      - run: bash site/e2e/run.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-screenshots
+          path: site/e2e-shots
 
   console:
     name: console (lint, build, browser e2e)

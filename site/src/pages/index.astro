@@ -1,287 +1,199 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import LogStream from '../components/LogStream.astro';
 
-const title = 'plnt — multi-model inference on Kubernetes';
-const description = 'Deploy vLLM, TGI, TRT-LLM, and SGLang on Kubernetes with one Helm chart per runtime, a Temporal deploy saga, and an InferenceModel CRD. Apache-2.0.';
+const repo = 'https://github.com/plnt-work/plnt';
 
-const deployStream = [
-  { ts: '04:17:33', kind: 'apply',      payload: 'InferenceModel/<span class="v">llama-3-70b-instruct</span> · runtime=<span class="v">vllm</span> · gpu=<span class="v">2×H100</span>' },
-  { ts: '04:17:33', kind: 'workflow',   payload: 'temporal://plnt/deploy · run=<span class="v">r-9c4f218e0a</span>' },
-  { ts: '04:17:34', kind: 'validate',   payload: 'values.yaml ok · storage_uri reachable · image pullable' },
-  { ts: '04:17:39', kind: 'pull',       payload: 'safetensors · <span class="v">141 GiB</span> · CAS hit=<span class="v">partial</span> · verified' },
-  { ts: '04:18:02', kind: 'helm',       payload: 'install release=llama-70b-canary · replicas=1 · traffic=5%' },
-  { ts: '04:19:41', kind: 'smoke',      payload: 'TTFT p50=<span class="v">182ms</span> · tokens/s/GPU=<span class="v">87</span> · pass' },
-  { ts: '04:19:42', kind: 'promote',    payload: 'canary → stable · replicas=1→3 · traffic=100%' },
-  { ts: '04:19:42', kind: 'ready',      payload: '<span class="v">https://llama-3-70b-instruct.plnt.svc/v1/chat/completions</span>' },
-];
-
-const runtimes = [
-  { k: 'vLLM',    v: '<strong>Paged attention · continuous batching · prefix cache.</strong> Default runtime for general LLM serving. Chart: <code>plnt/charts/vllm-runtime</code>.' },
-  { k: 'TGI',     v: '<strong>Hugging Face Text Generation Inference.</strong> Flash-attention 2, tensor parallel, GPTQ / AWQ / FP8. Chart: <code>plnt/charts/tgi-runtime</code>.' },
-  { k: 'TRT-LLM', v: '<strong>Precompiled TensorRT engines on Triton.</strong> Highest per-GPU throughput; engine build runs as a workflow step. Chart: <code>plnt/charts/trt-llm-runtime</code>.' },
-  { k: 'SGLang',  v: '<strong>RadixAttention prefix caching.</strong> Strong for multi-turn and structured generation. Chart: <code>plnt/charts/sglang-runtime</code>.' },
-];
-
-const sagaSteps = [
-  { n: '01', title: 'validate_manifest',       body: '<code>values.yaml</code> is schema-valid, storage URI reachable, image pullable, GPU class available on the target node pool.' },
-  { n: '02', title: 'pull_and_verify_weights', body: 'Weights fetched from the CAS-backed registry. Hash checked against the manifest. Idempotent — a partial pull resumes.' },
-  { n: '03', title: 'helm_install_canary',     body: '<code>helm install</code> at 5% traffic via Envoy <code>VirtualService</code> weights. Canary replica scheduled on the target GPU class.' },
-  { n: '04', title: 'run_smoke_test',          body: 'N test prompts. TTFT / TPOT / tokens-per-sec measured against baseline. KPI budget from <code>InferenceModel.spec.canary</code>.' },
-  { n: '05', title: 'promote_or_rollback',     body: 'KPIs pass → scale to <code>replicas.min</code> at 100%. KPIs fail → <code>helm rollback</code>. Compensation on any earlier step failure.' },
-];
-
-const choices = [
-  { k: 'Declarative CRD', v: '<strong><code>InferenceModel</code> is the entire deploy contract.</strong> One <code>kubectl apply</code> triggers pull, deploy, smoke, promote. Reconciliation is the operator\'s job — not a bash script.' },
-  { k: 'Saga, not script', v: '<strong>Every deploy is a Temporal workflow.</strong> Compensation on failure, retries with budgets (not per-hop), resume-across-restart. The saga is inspectable in the Temporal UI.' },
-  { k: 'Operator, not glue', v: '<strong>A Python <code>kopf</code> operator watches the CRD.</strong> Create/update/delete on the resource is the trigger. Nothing else runs kubectl on your behalf.' },
-  { k: 'Canary, not YOLO',  v: '<strong>Every deploy is a canary first.</strong> 5% traffic → smoke test → promote. KPI budget in the manifest. Failed canaries roll back automatically.' },
-  { k: 'Runtime-agnostic',  v: '<strong>One <code>RuntimeAdapter</code> interface, four backends.</strong> vLLM / TGI / TRT-LLM / SGLang share a control API. The chart per runtime is the deployment shape; the adapter is the code shape.' },
-  { k: 'OpenAI wire format', v: '<strong>Every runtime exposes <code>/v1/chat/completions</code>.</strong> Existing OpenAI clients work unmodified. Streaming via SSE. No proprietary SDK.' },
+const perTenant = [
+  {
+    title: 'Its own install and config',
+    body: 'One bundle, installed per customer with that customer’s settings, validated against the bundle’s JSON Schema. Each install is a frozen copy with a digest.',
+    icon: 'M4 7h16M4 12h16M4 17h10',
+  },
+  {
+    title: 'Its own model',
+    body: 'Hosted (Gemini, any OpenAI-compatible API) or on the customer’s own hardware (Ollama, vLLM, llama.cpp, LM Studio), chosen per customer.',
+    icon: 'M5 12h14M12 5v14',
+  },
+  {
+    title: 'Its own secrets and data',
+    body: 'Write-only secrets your tools can read. A private data directory per bundle. Sessions, event log and usage in the customer’s own database.',
+    icon: 'M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z',
+  },
+  {
+    title: 'Hard limits',
+    body: 'Token and wall-clock budgets per message, a loop detector, and a kill switch that stops a run mid-flight.',
+    icon: 'M12 8v4l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  },
+  {
+    title: 'Grounded answers',
+    body: 'Mark a lookup as required and the runtime withholds any answer the model gives before calling it.',
+    icon: 'M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z',
+  },
+  {
+    title: 'Usage and audit',
+    body: 'Tokens and cost on every model call, per customer and per agent. An append-only audit log of installs, config changes and runs.',
+    icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  },
 ];
 ---
 
-<Layout title={title} description={description} path="/">
-
-  <section class="section" style="padding-top: clamp(5rem, 10vw, 8rem); padding-bottom: clamp(4rem, 7vw, 6rem);">
+<Layout
+  title="plnt: ship one agent to many customers"
+  description="Open-source runtime for shipping one AI agent to many customers, each isolated, on any model, local or cloud."
+>
+  <section class="hero">
     <div class="container">
-      <span class="chip"><span class="dot">Y</span> Open source · Apache-2.0</span>
-      <h1 class="mt-4" style="max-width: 18ch;">
-        Multi-model inference<br />on <span style="color: var(--acc);">Kubernetes.</span>
-      </h1>
-      <p class="lead mt-4" style="max-width: 62ch;">
-        One Helm chart per runtime — vLLM, TGI, TRT-LLM, SGLang.
-        A Temporal saga drives every deploy: pull weights, canary, smoke, promote or rollback.
-        An <code>InferenceModel</code> CRD makes <code>kubectl apply</code> the entire trigger.
+      <div class="eyebrow">Open source · Apache-2.0</div>
+      <h1>Ship one agent to 1,000 customers.</h1>
+      <p class="lead">
+        plnt runs the same agent for every customer you have, and keeps each one separate: its
+        own settings, secrets, data, model, budget and audit log. Build the agent once as a
+        bundle; install it per customer; run it on a hosted model or on their own hardware.
       </p>
-      <div class="flex gap wrap mt-5">
-        <a class="btn primary" href="https://play.plnt.work" target="_blank" rel="noopener">Open playground <span class="arrow">→</span></a>
-        <a class="btn" href="/architecture">Read architecture</a>
+      <div class="ctas">
+        <a class="btn primary" href="/playground">Try the playground</a>
+        <a class="btn" href="/docs/getting-started/quickstart/">Quickstart</a>
+        <a class="btn" href={repo} target="_blank" rel="noopener">GitHub</a>
       </div>
+      <div class="install">
+        <pre><code is:raw><span class="c"># pre-alpha: install from source</span>
+pip install "git+https://github.com/plnt-work/plnt"
+plnt init hello-desk
+plnt run ./hello-desk "when are you open?" --config business_name=Acme</code></pre>
+      </div>
+    </div>
+  </section>
 
-      <div class="mt-6" style="max-width: 780px;">
-        <div class="term">
-          <div class="chrome">
-            <span class="dots"><span></span><span></span><span></span></span>
-            <span>~/plnt · deploy llama-3-70b-instruct</span>
+  <section class="block">
+    <div class="container">
+      <h2>Who it’s for</h2>
+      <p class="sub">
+        Agencies and SaaS teams who build an agent (a booking desk, a support desk, an intake
+        form) and then need to run it for dozens or thousands of businesses. The agent code is the
+        same every time. The per-customer part is what plnt handles.
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="copy">
+            <h3>Write the agent once</h3>
+            <p>A bundle is a folder: a manifest, a prompt with per-customer placeholders, a settings schema, and Python tools.</p>
           </div>
-          <div class="body">
-            <div style="margin-bottom: 0.75rem;">
-              <span class="prompt">$</span> kubectl apply -f examples/llama-3-70b-instruct.yaml
-            </div>
-            <LogStream events={deployStream} />
+          <pre><code is:raw><span class="c"># tools/orders.py</span>
+<span class="k">from</span> plnt <span class="k">import</span> ToolContext, tool
+
+@tool
+<span class="k">def</span> lookup_order(order_id: str, ctx: ToolContext) -> dict:
+    <span class="s">"""Look up an order's status by id."""</span>
+    shop = ShopAPI(ctx.config[<span class="s">"shop_url"</span>], ctx.secret(<span class="s">"SHOP_API_KEY"</span>))
+    <span class="k">return</span> shop.order(order_id)</code></pre>
+        </div>
+        <div class="step">
+          <div class="copy">
+            <h3>Install it per customer</h3>
+            <p>Each customer gets a validated copy with their own settings, secrets and, if they want, their own model.</p>
           </div>
+          <pre><code is:raw>plnt tenants create acme-shop
+plnt install order-desk --tenant acme-shop \
+  --config shop_url=https://acme.example --config tone=friendly
+
+curl -X PUT $API/v1/tenants/acme-shop/model -H "$KEY" \
+  -d '{"provider":"ollama","base_url":"http://acme-gpu:11434","model":"qwen2.5:7b"}'</code></pre>
+        </div>
+        <div class="step">
+          <div class="copy">
+            <h3>Serve it</h3>
+            <p>One HTTP API with streaming events, and a web console where you (or your customer, with their own key) watch conversations, usage and cost.</p>
+          </div>
+          <pre><code is:raw>plnt serve --port 8787            <span class="c"># API + console at /console</span>
+
+POST /v1/tenants/acme-shop/sessions            {"bundle": "order-desk"}
+POST /v1/tenants/acme-shop/sessions/:id/messages {"text": "where is 1042?"}
+GET  /v1/tenants/acme-shop/sessions/:id/stream   <span class="c"># live SSE events</span></code></pre>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="block">
     <div class="container">
-      <div class="sechead">
-        <div class="count">01 <span class="of">/ 06</span> — WHAT</div>
-        <h2 class="lead-text" style="font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 500; letter-spacing: -0.02em; line-height: 1.25;">
-          <strong>plnt is a mini inference-factory for Kubernetes.</strong>
-          Helm charts per runtime, a Temporal saga per deploy, a CRD per model.
-          The pieces that turn "I trained a model" into "the model is serving traffic on a cluster."
-        </h2>
-      </div>
-      <div class="term" style="max-width: 880px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>architecture · plnt platform</span>
-        </div>
-        <div class="body">
-<pre style="font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.6; color: var(--ink-2); margin: 0;">                    plnt CLI · Python API
-                             │
-                             ▼
-             ┌─────────────────────────────────┐
-             │  InferenceModel  (K8s CRD)      │
-             │  kubectl apply -f llama-70b.yaml│
-             └───────────────┬─────────────────┘
-                             │  watch(create|update|delete)
-                             ▼
-             ┌─────────────────────────────────┐
-             │  plnt operator  (Python · kopf) │
-             └───────────────┬─────────────────┘
-                             │  start_workflow
-                             ▼
-    ┌──────────────────────────────────────────────────┐
-    │  Temporal · DeployModelWorkflow                  │
-    │                                                  │
-    │  validate → pull → helm_install → smoke → promote│
-    │            │       │              │              │
-    │            └───────┴──────────────┴──▶ rollback  │
-    └───────────────────────┬──────────────────────────┘
-                            │  helm install / rollback
-                            ▼
-       ┌────────┬────────┬─────────┬─────────┬─────────┐
-       │  vLLM  │  TGI   │ TRT-LLM │ SGLang  │ router  │
-       │ chart  │ chart  │  chart  │ chart   │ (envoy) │
-       └────────┴────────┴─────────┴─────────┴─────────┘
-                            │
-                            ▼
-             ┌─────────────────────────────────┐
-             │  plnt-cloud  (bookings product) │
-             │  consumes /v1/chat/completions  │
-             └─────────────────────────────────┘</pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">02 <span class="of">/ 06</span> — HOW</div>
-        <p class="lead-text">
-          Three steps. No custom control plane. No hand-rolled deploy scripts.
-          The Kubernetes primitives do the work.
-        </p>
-      </div>
-      <div class="steps-list">
-        <div class="li">
-          <div class="n">01</div>
-          <div class="body">
-            <strong>Declare</strong>
-            <p>Write an <code>InferenceModel</code> resource: model name, runtime (<code>vllm</code>/<code>tgi</code>/<code>trt-llm</code>/<code>sglang</code>), GPU class, replicas, canary budget. <code>kubectl apply</code>.</p>
-          </div>
-        </div>
-        <div class="li">
-          <div class="n">02</div>
-          <div class="body">
-            <strong>Reconcile</strong>
-            <p>The plnt operator picks up the resource and starts a Temporal <code>DeployModelWorkflow</code>. The workflow is durable — a restart resumes from the last completed step.</p>
-          </div>
-        </div>
-        <div class="li">
-          <div class="n">03</div>
-          <div class="body">
-            <strong>Serve</strong>
-            <p>Once the canary passes smoke tests and gets promoted, the model is reachable at <code>&lt;name&gt;.plnt.svc/v1/chat/completions</code>. OpenAI-shape API, streaming via SSE.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section cream" style="padding-top: clamp(6rem, 12vw, 10rem); padding-bottom: clamp(6rem, 12vw, 10rem);">
-    <div class="container">
-      <div style="display: grid; grid-template-columns: 1fr; gap: 3rem; align-items: end;">
-        <div class="display-hero">
-          THE PLATFORM<br />LAYER FOR<br />MULTI-MODEL<br />INFERENCE.
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: end;">
-          <p style="max-width: 42ch; font-size: 1.05rem; color: var(--cream-ink-2); line-height: 1.55; margin: 0;">
-            Built on primitives platform teams already trust — Helm, Kubernetes, Temporal.
-            No proprietary control plane. No cloud lock-in. Same YAML runs on
-            <code>kind</code>, GKE, EKS, on-prem.
-          </p>
-          <div class="flex gap wrap">
-            <span class="chip">vLLM</span>
-            <span class="chip">TGI</span>
-            <span class="chip">TRT-LLM</span>
-            <span class="chip">SGLang</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">03 <span class="of">/ 06</span> — RUNTIMES</div>
-        <p class="lead-text">
-          Four inference backends, one control API.
-          Each ships as a Helm chart; each speaks OpenAI wire format at the pod boundary.
-        </p>
-      </div>
-      <div class="rows">
-        {runtimes.map((r) => (
-          <div class="r">
-            <div class="k">{r.k}</div>
-            <p class="v" set:html={r.v} />
+      <h2>What every customer gets</h2>
+      <p class="sub">Enforced by the runtime, not left to each agent to get right.</p>
+      <div class="grid three">
+        {perTenant.map((f) => (
+          <div class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={f.icon} /></svg>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
           </div>
         ))}
       </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="block">
     <div class="container">
-      <div class="sechead">
-        <div class="count">04 <span class="of">/ 06</span> — SAGA</div>
-        <p class="lead-text">
-          Every deploy is five steps of a Temporal workflow.
-          Any step failing triggers compensation. Retries are per-activity with budgets — not per hop.
-        </p>
-      </div>
-      <div class="steps-list">
-        {sagaSteps.map((s) => (
-          <div class="li">
-            <div class="n">{s.n}</div>
-            <div class="body">
-              <strong>{s.title}</strong>
-              <p set:html={s.body} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">05 <span class="of">/ 06</span> — CHOICES</div>
-        <p class="lead-text">
-          Six decisions that shape the platform. Each is a hill the project will die on.
-        </p>
-      </div>
-      <div class="rows">
-        {choices.map((c) => (
-          <div class="r">
-            <div class="k">{c.k}</div>
-            <p class="v" set:html={c.v} />
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="section" style="padding-top: clamp(5rem, 9vw, 8rem); padding-bottom: clamp(5rem, 9vw, 8rem);">
-    <div class="container">
-      <div class="sechead">
-        <div class="count">06 <span class="of">/ 06</span> — INSTALL</div>
-        <p class="lead-text">
-          One chart. One CRD. One <code>curl</code>.
-        </p>
-      </div>
-      <div class="term" style="max-width: 780px;">
-        <div class="chrome">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span>install · plnt on kind</span>
+      <h2>Small models make things up. plnt doesn’t pass it on.</h2>
+      <p class="sub">
+        From our CI, which runs a 1.5B-parameter local model (qwen2.5:1.5b on Ollama) against a
+        dental clinic’s FAQ agent. The FAQ says the clinic is open 8am to 4pm.
+      </p>
+      <div class="evidence">
+        <div class="row">
+          <div class="label">Without the guardrail</div>
+          <div>The model skipped the FAQ lookup and answered “Monday through Friday from 8:00 AM to <b>5:00 PM</b>”. <span class="pill bad">invented</span></div>
         </div>
-        <div class="body">
-          <div><span class="cmt"># local kind cluster</span></div>
-          <div><span class="prompt">$</span> kind create cluster --name plnt</div>
-          <div style="margin-top: 0.75rem;"><span class="cmt"># install the operator + playground API</span></div>
-          <div><span class="prompt">$</span> helm install plnt oci://ghcr.io/devdattatalele/charts/plnt --version 0.1.0</div>
-          <div style="margin-top: 0.75rem;"><span class="cmt"># deploy a model</span></div>
-          <div><span class="prompt">$</span> kubectl apply -f examples/llama-3-70b-instruct.yaml</div>
-          <div style="margin-top: 0.75rem;"><span class="cmt"># chat</span></div>
-          <div><span class="prompt">$</span> curl -s https://play.plnt.work/v1/chat/completions \</div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;-H <span class="str">"content-type: application/json"</span> \</div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;-d <span class="str">{`'{"model":"llama-3.1-70b-instruct","messages":[{"role":"user","content":"hi"}]}'`}</span></div>
+        <div class="row">
+          <div class="label">With <code>require_tool</code></div>
+          <div>The runtime caught the skipped lookup and asked again. The model looked it up and answered “Monday through Friday from 8 AM to <b>4 PM</b>”. <span class="pill good">grounded</span></div>
+        </div>
+        <div class="row">
+          <div class="label">When it still refuses</div>
+          <div>For the bistro in the same run, the model skipped the lookup twice. The runtime withheld the answer rather than send an unverified one. <span class="pill warn">withheld</span></div>
         </div>
       </div>
-      <div class="flex gap wrap mt-5">
-        <a class="btn primary" href="https://play.plnt.work" target="_blank" rel="noopener">Open playground <span class="arrow">→</span></a>
-        <a class="btn" href="/docs/">Read the docs</a>
-        <a class="btn" href="https://github.com/devdattatalele/plnt" target="_blank" rel="noopener">GitHub</a>
+      <p class="muted" style="margin-top:1rem;font-size:0.9rem">
+        One line in the bundle manifest: <code>require_tool = "lookup_faq"</code>.
+        <a href="/docs/guides/guardrails/">How it works →</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <h2>Local models, checked before you rely on them</h2>
+      <p class="sub">
+        <code>plnt models doctor</code> checks what an agent actually needs: that the server is up,
+        the model is pulled, it calls tools, it returns JSON, and the context window is big enough.
+        Failures come with the fix.
+      </p>
+      <div class="grid two">
+        <pre><code is:raw>$ plnt models doctor
+qwen2.5:1.5b  ollama · http://127.0.0.1:11434 · local
+  ✓ reachable       http://127.0.0.1:11434
+  ✓ model present   qwen2.5:1.5b
+  ✓ context window  requesting 8192 of 32768 tokens
+  ✓ tool calling    native; called get_weather(city='Paris')
+  ✓ JSON output     got {'answer': 42}</code></pre>
+        <pre><code is:raw>$ plnt run ./hello-desk "hi"
+✗ cannot reach Ollama at http://127.0.0.1:11434
+  fix: start it with `ollama serve` (or fix PLNT_LOCAL_URL)
+
+<span class="c"># no silent fallback to a canned answer: a model</span>
+<span class="c"># failure is reported as a failure, with the fix.</span></code></pre>
       </div>
     </div>
   </section>
 
+  <section class="block">
+    <div class="container">
+      <h2>Status</h2>
+      <p class="status">
+        Pre-alpha (0.1). The runtime, multi-tenant API, console, two example agents and the
+        guardrail are built and tested in CI, including against a real local model. Custom tool
+        code currently runs inside the server process, so only install bundles you trust;
+        sandboxed third-party tools, a hosted registry and a Postgres store are on the
+        <a href={`${repo}/blob/main/ROADMAP.md`}>roadmap</a>.
+      </p>
+    </div>
+  </section>
 </Layout>

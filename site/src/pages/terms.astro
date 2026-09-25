@@ -1,76 +1,39 @@
 ---
 import Layout from '../layouts/Layout.astro';
-const title = 'Terms of Use — Plnt';
-const description = 'Terms of use for the Plnt project and website.';
 ---
 
-<Layout title={title} description={description} path="/terms">
-  <section class="section">
-    <div class="container prose" style="max-width: 760px;">
-      <span class="eyebrow">legal</span>
-      <h1>Terms of Use</h1>
-      <p class="muted">Last updated: June 15, 2026</p>
+<Layout
+  title="Terms · plnt"
+  description="License for the plnt software and terms for using the public playground."
+  path="/terms"
+>
+  <div class="container prose">
+    <h1>Terms</h1>
+    <p class="muted">Last updated: September 25, 2026</p>
 
-      <h2>1. The software</h2>
-      <p>
-        Plnt is open-source software released under the <strong>Apache License 2.0</strong>.
-        Your use of the software is governed by that license. Nothing on this website
-        modifies, supersedes, or grants any rights beyond the license text itself.
-      </p>
-      <p>
-        The full license is available in the <a href="https://github.com/devdattatalele/plnt/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE file</a> of the repository.
-      </p>
+    <h2>The software</h2>
+    <p>
+      plnt is licensed under the
+      <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>. The license
+      governs your use of the code, including its warranty disclaimer and limitation of
+      liability. plnt is pre-alpha software: expect breaking changes, and evaluate it carefully
+      before relying on it.
+    </p>
 
-      <h2>2. This website</h2>
-      <p>
-        This site (<code>plnt.dev</code>) is informational. It describes the Plnt project and
-        links to source code, documentation, and resources. No accounts, no purchases,
-        no user-submitted content.
-      </p>
+    <h2>The public playground</h2>
+    <ul>
+      <li>It is a demo, offered as is, with no uptime or data-retention promise. It may be rate-limited, reset or shut down at any time.</li>
+      <li>The businesses in it are fictional. Nothing booked there is real.</li>
+      <li>Answers come from a language model and can be wrong. Don't rely on them.</li>
+      <li>Don't use it to attack the service, get around its limits, or generate unlawful content, and don't enter sensitive personal information.</li>
+    </ul>
 
-      <h2>3. No warranty</h2>
-      <p>
-        The software is provided <strong>"as is"</strong>, without warranty of any kind, express
-        or implied. Plnt runs agents on your machine that read your files and may execute
-        commands you authorize. You are responsible for understanding what you run.
-      </p>
-      <ul>
-        <li>Plnt does not ship telemetry. No data leaves your machine unless you point it at a cloud LLM backend.</li>
-        <li>The sandbox is a ladder — the default <code>process</code> rung is not a security boundary against malicious code you choose to execute.</li>
-        <li>Sub-agents may issue shell commands. Review the JSONL audit log in <code>$PLNT_HOME/runs/</code> if in doubt.</li>
-      </ul>
+    <h2>Trademarks</h2>
+    <p>
+      Model and product names mentioned on this site (Ollama, Gemini, OpenAI and others) belong
+      to their owners. Mentioning them does not imply endorsement.
+    </p>
 
-      <h2>4. Third-party services</h2>
-      <p>
-        Plnt can route inference to third-party providers (OpenAI, Groq, Together, OpenRouter,
-        Anthropic, etc.) if you configure them. Your use of those providers is governed by
-        <em>their</em> terms and privacy policies, not ours. Plnt itself does not relay
-        anything through our infrastructure.
-      </p>
-
-      <h2>5. Contributions</h2>
-      <p>
-        Contributions to the repository are accepted under the Apache-2.0 license. By
-        submitting a pull request you certify the contribution is yours to license under
-        Apache-2.0 (a Developer Certificate of Origin equivalent).
-      </p>
-
-      <h2>6. Trademark</h2>
-      <p>
-        "Plnt" and the wordmark may be used to refer to the project. You may not use them
-        to imply endorsement of a different product or to brand a fork in a way that
-        confuses users.
-      </p>
-
-      <h2>7. Changes</h2>
-      <p>
-        These terms may be updated. The latest version is always at <a href="/terms">plnt.dev/terms</a>. Material changes will be noted at the top of this page.
-      </p>
-
-      <hr/>
-      <p class="dim">
-        Questions? Open an issue on <a href="https://github.com/devdattatalele/plnt/issues" target="_blank" rel="noopener">GitHub</a>.
-      </p>
-    </div>
-  </section>
+    <p>See also: <a href="/privacy">Privacy</a>.</p>
+  </div>
 </Layout>
