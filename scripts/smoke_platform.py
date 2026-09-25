@@ -7,7 +7,8 @@ Starts `plnt serve` in a subprocess with a throwaway PLNT_HOME, then:
   1. creates tenants `bistro` and `dental` (operator token)
   2. installs the same `support-desk` bundle for each, with different FAQs
   3. chats with each over the API, streaming events via SSE
-  4. checks each answer is grounded in that tenant's own FAQ only
+  4. checks no answer reaches a customer without an FAQ lookup (require_tool),
+     and — with the fake model — that each answer comes from its own FAQ
   5. checks usage and audit are per tenant, and cross-tenant keys are refused
 Exits non-zero on any failure.
 """
@@ -145,7 +146,6 @@ def main() -> int:
             print(f"✓ {tid}: support-desk installed")
 
         answers: dict[str, str] = {}
-        grounded: dict[str, bool] = {}
         real_model = bool(os.environ.get("PLNT_SMOKE_MODEL"))
         for tid in tenants:
             h = keys[tid]
@@ -158,6 +158,7 @@ def main() -> int:
                 headers=h,
             ).raise_for_status()
             kinds = []
+            refused = None
             with c.stream(
                 "GET", f"/tenants/{tid}/sessions/{sid}/stream?until_idle=1", headers=h
             ) as s:
@@ -168,36 +169,35 @@ def main() -> int:
                         if evt["kind"] == "assistant_message":
                             answers[tid] = evt["payload"]["text"]
                         if evt["kind"] == "run_error":
-                            raise SystemExit(f"{tid}: {evt['payload']}")
-            assert kinds[-1] == "run_finished" and tid in answers, (tid, kinds)
-            used_tool = "tool_call" in kinds
-            print(
-                f"✓ {tid}: streamed {len(kinds)} events "
-                f"({'called lookup_faq' if used_tool else 'no tool call'}) → {answers[tid]!r}"
-            )
-            grounded[tid] = used_tool
+                            refused = evt["payload"]
+            assert kinds[-1] == "run_finished", (tid, kinds)
+            # The guarantee that holds for ANY model: an answer only reaches the
+            # customer after the FAQ lookup ran (require_tool guardrail).
+            if tid in answers:
+                assert "tool_call" in kinds[: kinds.index("assistant_message")], (tid, kinds)
+                print(f"✓ {tid}: looked up the FAQ, then answered → {answers[tid]!r}")
+            else:
+                assert refused and "withheld" in refused["error"], (tid, refused, kinds)
+                assert real_model, "the fake model always uses the tool"
+                print(f"✓ {tid}: model skipped the lookup twice; guardrail withheld its answer")
 
-        # Platform guarantees (always enforced): the run completed, the stream
-        # worked, and nothing crossed tenants. Whether the answer is grounded
-        # depends on the model's tool use, which only the fake model guarantees;
-        # with a real model it is reported, not asserted.
-        ok_bistro = "Tuesday" in answers["bistro"] and "Monday" not in answers["bistro"]
-        ok_dental = "Monday" in answers["dental"] and "Tuesday" not in answers["dental"]
+        answered = [t for t in tenants if t in answers]
+        grounded = {
+            "bistro": "Tuesday" in answers.get("bistro", "")
+            and "Monday" not in answers.get("bistro", ""),
+            "dental": "Monday" in answers.get("dental", "")
+            and "Tuesday" not in answers.get("dental", ""),
+        }
         if real_model:
-            for tid, ok in (("bistro", ok_bistro), ("dental", ok_dental)):
-                if not (ok and grounded[tid]):
-                    print(
-                        f"! {tid}: model did not ground its answer in the FAQ "
-                        f"(tool call: {grounded[tid]}) — a model-quality issue, not isolation"
-                    )
+            for tid in answered:
+                if not grounded[tid]:
+                    print(f"! {tid}: looked up the FAQ but paraphrased it loosely — model quality")
         else:
-            assert all(grounded.values()), grounded
-            assert ok_bistro and ok_dental, answers
+            assert answered == list(tenants) and all(grounded.values()), answers
             print("✓ each tenant answered from its own FAQ only")
-        # Cross-tenant leak check that holds for any model: neither answer may
-        # contain the *other* tenant's FAQ text verbatim.
-        assert tenants["dental"]["faq"][0]["a"] not in answers["bistro"], answers
-        assert tenants["bistro"]["faq"][0]["a"] not in answers["dental"], answers
+        # No tenant's answer may contain the other tenant's FAQ text.
+        assert tenants["dental"]["faq"][0]["a"] not in answers.get("bistro", ""), answers
+        assert tenants["bistro"]["faq"][0]["a"] not in answers.get("dental", ""), answers
 
         for tid in tenants:
             u = c.get(f"/tenants/{tid}/usage", headers=keys[tid]).json()

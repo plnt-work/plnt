@@ -11,6 +11,9 @@ Guarantees:
     (never replaced by an invented answer).
   * Events: model_call, model_result (with `tokens` for the budget governor),
     tool_call, tool_result, model_error, killed.
+  * `require_tool` names a tool that must be called before any answer:
+    forced via tool_choice where the backend supports it, otherwise the model
+    is re-asked once and then the answer is refused (`guardrail` events).
   * `should_stop()` is polled before every model call and tool call; a
     non-empty reason stops the run (kill switch, budgets, manual kill).
 """
@@ -84,6 +87,7 @@ def run_agent(
     emit: Emit | None = None,
     native_tools: str | None = None,
     should_stop: Callable[[], str | None] | None = None,
+    require_tool: str | None = None,
 ) -> AgentResult:
     emit = emit or _noop
     by_name = {t.name: t for t in (tools or [])}
@@ -98,6 +102,10 @@ def run_agent(
     )
     res = AgentResult(messages=msgs)
     base_timeout = float(getattr(getattr(provider, "profile", None), "timeout", 120.0))
+    if require_tool and require_tool not in by_name:
+        raise ValueError(f"require_tool {require_tool!r} is not one of the tools {sorted(by_name)}")
+    required_done = require_tool is None
+    reminded = False
 
     def _killed() -> bool:
         reason = should_stop() if should_stop else None
@@ -130,6 +138,7 @@ def run_agent(
                 response_schema=None if specs else response_schema,
                 timeout=timeout,
                 native_tools=native_tools,
+                tool_choice=None if required_done else require_tool,
             )
         except ModelError as e:
             emit("model_error", step=step, **e.to_event())
@@ -154,6 +163,26 @@ def run_agent(
             shimmed=out.shimmed,
         )
 
+        if not out.tool_calls and not required_done:
+            # Guardrail: the bundle requires a tool (e.g. a lookup) before any
+            # answer. Re-ask once; if the model still skips it, refuse rather
+            # than pass on an unverified answer.
+            emit("guardrail", step=step, rule="require_tool", tool=require_tool,
+                 action="refused" if reminded else "reprompt", skipped_answer=out.content[:500])
+            if reminded:
+                res.stopped = "error"
+                res.error = (f"the model answered without calling the required tool "
+                             f"{require_tool!r}; its answer was withheld")
+                res.error_hint = ("this model does not follow tool instructions reliably; use a "
+                                  "stronger model (check with `plnt models doctor`)")
+                return res
+            reminded = True
+            msgs.append({"role": "assistant", "content": out.content})
+            msgs.append({"role": "user", "content": (
+                f"You have not called `{require_tool}` yet. You must call it before answering; "
+                "do not answer from memory. Call it now.")})
+            continue
+
         if not out.tool_calls:
             output, err = _parse_output(out.content, response_schema)
             res.output = output
@@ -167,6 +196,8 @@ def run_agent(
             if _killed():
                 return res
             emit("tool_call", step=step, tool=call.name, args=call.arguments)
+            if call.name == require_tool:
+                required_done = True
             tool = by_name.get(call.name)
             if call.parse_error:
                 result: Any = {"error": call.parse_error}

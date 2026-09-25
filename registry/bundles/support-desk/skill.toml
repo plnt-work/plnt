@@ -7,6 +7,7 @@ tags = ["support", "faq", "smb"]
 [runtime]
 model_hint = "small"
 tools = ["lookup_faq"]
+require_tool = "lookup_faq"     # never answer without checking the FAQ
 max_steps = 4
 
 [budget]

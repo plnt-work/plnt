@@ -179,6 +179,9 @@ def load_bundle(path: str | Path) -> Bundle:
             f"skill.toml lists tools {unknown} that are neither built-in "
             f"({sorted(BUILTIN_TOOLS)}) nor defined in tools/*.py"
         )
+    req = manifest.runtime.require_tool
+    if req and req not in manifest.runtime.tools:
+        raise BundleError(f"[runtime] require_tool {req!r} must also be listed in tools")
     # Only tools the manifest lists are exposed to the model.
     tools = {n: t for n, t in tools.items() if n in manifest.runtime.tools}
     return Bundle(

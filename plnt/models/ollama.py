@@ -96,6 +96,7 @@ class OllamaProvider:
         tools: list[dict[str, Any]] | None = None,
         response_schema: dict[str, Any] | None = None,
         timeout: float | None = None,
+        tool_choice: str | None = None,
     ) -> ChatResult:
         p = self.profile
         payload: dict[str, Any] = {
@@ -109,6 +110,8 @@ class OllamaProvider:
             },
         }
         if tools:
+            # Ollama has no tool_choice; a required tool is enforced by the
+            # agent loop (re-prompt, then refuse) instead.
             payload["tools"] = tools
         elif response_schema:
             payload["format"] = response_schema

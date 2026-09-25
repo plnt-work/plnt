@@ -134,8 +134,10 @@ def chat_via_shim(
     tools: list[dict[str, Any]],
     *,
     timeout: float | None = None,
+    tool_choice: str | None = None,
 ) -> ChatResult:
-    res = provider.chat(
-        to_shim_messages(messages, tools), response_schema=SHIM_SCHEMA, timeout=timeout
-    )
+    msgs = to_shim_messages(messages, tools)
+    if tool_choice:
+        msgs.append({"role": "user", "content": f"Call the `{tool_choice}` tool now."})
+    res = provider.chat(msgs, response_schema=SHIM_SCHEMA, timeout=timeout)
     return parse_shim_reply(res)

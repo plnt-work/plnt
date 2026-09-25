@@ -36,7 +36,9 @@ class OfflineProvider:
         self.profile = profile or offline_profile()
         self.model = self.profile.model
 
-    def chat(self, messages, *, tools=None, response_schema=None, timeout=None) -> ChatResult:
+    def chat(
+        self, messages, *, tools=None, response_schema=None, timeout=None, tool_choice=None
+    ) -> ChatResult:
         # Planner / triage / synthesizer calls pass no tools: return nothing so
         # their own documented fallbacks run.
         if not tools:
@@ -86,13 +88,16 @@ class ScriptedProvider:
         self.model = model
         self.calls: list[dict[str, Any]] = []
 
-    def chat(self, messages, *, tools=None, response_schema=None, timeout=None) -> ChatResult:
+    def chat(
+        self, messages, *, tools=None, response_schema=None, timeout=None, tool_choice=None
+    ) -> ChatResult:
         self.calls.append(
             {
                 "messages": [dict(m) for m in messages],
                 "tools": tools,
                 "response_schema": response_schema,
                 "timeout": timeout,
+                "tool_choice": tool_choice,
             }
         )
         if callable(self._script):

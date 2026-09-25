@@ -91,6 +91,7 @@ class ModelProvider(Protocol):
         tools: list[dict[str, Any]] | None = None,
         response_schema: dict[str, Any] | None = None,
         timeout: float | None = None,
+        tool_choice: str | None = None,  # force this tool, where the backend supports it
     ) -> ChatResult: ...
 
     def health(self) -> HealthReport: ...

@@ -74,16 +74,23 @@ def chat(
     response_schema: dict[str, Any] | None = None,
     timeout: float | None = None,
     native_tools: str | None = None,
+    tool_choice: str | None = None,
 ) -> ChatResult:
-    """One model turn, native tools first, JSON shim as fallback."""
+    """One model turn, native tools first, JSON shim as fallback.
+
+    `tool_choice` names a tool the model must call this turn. Backends that
+    support forcing (OpenAI-compatible) enforce it; for the rest the agent
+    loop checks the reply and re-prompts or refuses.
+    """
     if not tools:
         return provider.chat(messages, response_schema=response_schema, timeout=timeout)
     mode = native_tools or getattr(getattr(provider, "profile", None), "native_tools", "auto")
+    extra = {"tool_choice": tool_choice} if tool_choice else {}
     if mode == "off":
-        return chat_via_shim(provider, messages, tools, timeout=timeout)
+        return chat_via_shim(provider, messages, tools, timeout=timeout, **extra)
     try:
-        return provider.chat(messages, tools=tools, timeout=timeout)
+        return provider.chat(messages, tools=tools, timeout=timeout, **extra)
     except ToolsUnsupported:
         if mode == "on":
             raise
-        return chat_via_shim(provider, messages, tools, timeout=timeout)
+        return chat_via_shim(provider, messages, tools, timeout=timeout, **extra)

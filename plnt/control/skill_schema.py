@@ -58,6 +58,9 @@ class SkillRuntime(BaseModel):
     default_isolation: Literal["process", "docker", "gvisor", "microvm", "wasm"] = "process"
     # Maximum model turns per message (tool calls + final answer).
     max_steps: int = Field(default=6, ge=1, le=50)
+    # A tool that must be called before the agent may answer (e.g. a lookup
+    # that grounds the answer). Enforced by the runtime, not just the prompt.
+    require_tool: str | None = None
 
     @field_validator("tools")
     @classmethod

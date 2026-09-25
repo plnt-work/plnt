@@ -174,3 +174,73 @@ def test_filesystem_search_resolves_relative_root_against_workdir(tmp_path, monk
     hits = search.fn({"pattern": "PLNT_MARKER", "root": "."})
     assert hits and hits[0]["path"].endswith("notes.txt")
     assert search.fn({"pattern": "PLNT_MARKER"})  # root omitted → workdir
+
+
+def _lookup_tool(calls: list) -> ToolDef:
+    return ToolDef(name="lookup", description="look up facts",
+                   fn=lambda a: calls.append(a) or {"fact": "open 5-11pm"})
+
+
+def test_require_tool_forces_choice_then_releases_it():
+    seen: list = []
+    prov = ScriptedProvider([
+        ChatResult(tool_calls=[ToolCall("c1", "lookup", {"q": "hours"})]),
+        ChatResult(content="We're open 5-11pm."),
+    ])
+    res = run_agent(system="s", user="hours?", tools=[_lookup_tool(seen)], provider=prov,
+                    require_tool="lookup")
+    assert res.stopped == "final" and res.answer == "We're open 5-11pm."
+    assert prov.calls[0]["tool_choice"] == "lookup"
+    assert prov.calls[1]["tool_choice"] is None  # released once the tool ran
+
+
+def test_require_tool_reprompts_once_when_skipped():
+    events: list = []
+    prov = ScriptedProvider([
+        ChatResult(content="We're open 9-5 daily."),  # invented, no lookup
+        ChatResult(tool_calls=[ToolCall("c1", "lookup", {"q": "hours"})]),
+        ChatResult(content="We're open 5-11pm."),
+    ])
+    res = run_agent(system="s", user="hours?", tools=[_lookup_tool([])], provider=prov,
+                    require_tool="lookup", emit=lambda k, **p: events.append((k, p)))
+    assert res.answer == "We're open 5-11pm."
+    guard = [p for k, p in events if k == "guardrail"]
+    assert guard == [{"step": 1, "rule": "require_tool", "tool": "lookup", "action": "reprompt",
+                      "skipped_answer": "We're open 9-5 daily."}]
+    assert "You have not called `lookup`" in prov.calls[1]["messages"][-1]["content"]
+
+
+def test_require_tool_refuses_unverified_answer():
+    prov = ScriptedProvider(lambda m, t: ChatResult(content="We're open 9-5 daily."))
+    res = run_agent(system="s", user="hours?", tools=[_lookup_tool([])], provider=prov,
+                    require_tool="lookup")
+    assert res.stopped == "error" and res.output is None
+    assert "withheld" in res.error and "stronger model" in res.error_hint
+    assert len(prov.calls) == 2
+
+
+def test_require_tool_must_be_available():
+    import pytest
+
+    with pytest.raises(ValueError):
+        run_agent(system="s", user="u", tools=[], provider=ScriptedProvider([]),
+                  require_tool="lookup")
+
+
+def test_forced_tool_choice_reaches_openai_payload():
+    import json as _json
+
+    import httpx
+
+    from plnt.models import ModelProfile, OpenAICompatProvider
+
+    seen = {}
+
+    def handler(req):
+        seen["body"] = _json.loads(req.content)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "x"}}]})
+
+    prov = OpenAICompatProvider(ModelProfile(provider="openai", base_url="http://x/v1", model="m"),
+                                transport=httpx.MockTransport(handler))
+    prov.chat([], tools=[_lookup_tool([]).spec()], tool_choice="lookup")
+    assert seen["body"]["tool_choice"] == {"type": "function", "function": {"name": "lookup"}}

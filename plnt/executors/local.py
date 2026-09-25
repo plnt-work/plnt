@@ -208,6 +208,7 @@ class LocalExecutor:
                 emit=emit,
                 native_tools=profile.native_tools,
                 should_stop=lambda: state.stop_reason,
+                require_tool=bundle.manifest.runtime.require_tool,
             )
             if result.stopped == "final":
                 log(

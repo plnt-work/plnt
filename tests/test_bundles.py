@@ -118,3 +118,11 @@ def test_tool_decorator_rejects_varargs():
 def test_registry_example_bundle_loads():
     b = load_bundle(Path(__file__).parents[1] / "registry" / "bundles" / "support-desk")
     assert b.slug == "support-desk" and "lookup_faq" in b.tools
+
+
+def test_require_tool_must_be_listed(bundle_dir):
+    toml = (bundle_dir / "skill.toml").read_text().replace(
+        "max_steps = 4", 'max_steps = 4\nrequire_tool = "refund"')
+    (bundle_dir / "skill.toml").write_text(toml)
+    with pytest.raises(BundleError, match="require_tool"):
+        load_bundle(bundle_dir)

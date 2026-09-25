@@ -101,6 +101,7 @@ class OpenAICompatProvider:
         tools: list[dict[str, Any]] | None = None,
         response_schema: dict[str, Any] | None = None,
         timeout: float | None = None,
+        tool_choice: str | None = None,
     ) -> ChatResult:
         p = self.profile
         payload: dict[str, Any] = {
@@ -112,7 +113,9 @@ class OpenAICompatProvider:
         }
         if tools:
             payload["tools"] = tools
-            payload["tool_choice"] = "auto"
+            payload["tool_choice"] = (
+                {"type": "function", "function": {"name": tool_choice}} if tool_choice else "auto"
+            )
         elif response_schema:
             payload["response_format"] = {
                 "type": "json_schema",
