@@ -51,11 +51,32 @@ Everything is under `$PLNT_HOME`: SQLite files, JSON and JSONL. Back up the dire
 
 ## Hosting the public playground
 
-The [playground](/playground) on this site is a normal plnt server started with `--playground`:
+The [playground](/playground) on this site is a normal plnt server with `PLNT_PLAYGROUND=1` (or `--playground`). It seeds two fictional businesses and opens an anonymous API limited to them, with per-IP rate limits and a daily token cap (`PLNT_PLAYGROUND_*`, see [Environment variables](/docs/reference/env/)). Don't enable it on a server with real customers.
+
+### On Render
+
+The repo has a Render Blueprint, `render.yaml`:
+
+1. In the Render dashboard, choose **New → Blueprint** and pick the repository.
+2. When asked for `PLNT_CLOUD_API_KEY`, paste a Gemini API key made only for the playground. Set a budget alert on it in Google Cloud.
+3. Deploy. Check `https://<service>.onrender.com/v1/playground` returns the demo tenants.
+4. In the site's hosting (Vercel), set `PUBLIC_PLNT_PLAYGROUND_URL=https://<service>.onrender.com` and redeploy the site.
+
+The blueprint:
+
+- runs the repo's `Dockerfile` on a Starter instance. Free instances sleep when idle, so the first visitor would wait about a minute.
+- uses Gemini 2.5 Flash with a cap of 1M tokens a day across all visitors.
+- allows only `plnt.work` origins.
+- leaves `PLNT_ADMIN_TOKEN` unset, so operator routes answer 503.
+- has no disk. Conversations are thrown away on each deploy, and the demo tenants are seeded again on start.
+- redeploys only after CI passes, and only when server code changes.
+
+### Anywhere else
 
 ```bash
-PLNT_TRUST_PROXY=1 PLNT_PLAYGROUND_ORIGINS=https://plnt.work \
-  plnt serve --host 0.0.0.0 --port 8787 --playground
+docker run -d -p 8787:8787 -e PLNT_PLAYGROUND=1 -e PLNT_TRUST_PROXY=1 \
+  -e PLNT_PLAYGROUND_ORIGINS=https://your-site.example \
+  -e PLNT_CLOUD_URL=... -e PLNT_CLOUD_API_KEY=... -e PLNT_CLOUD_SMALL_MODEL=... plnt
 ```
 
-It seeds two demo tenants and opens an anonymous API limited to them, with per-IP rate limits and a daily token cap (`PLNT_PLAYGROUND_*`, see [Environment variables](/docs/reference/env/)). Don't enable it on a server with real customers. Point the site at it with `PUBLIC_PLNT_PLAYGROUND_URL` at build time.
+Only set `PLNT_TRUST_PROXY=1` behind a proxy that puts the real client IP first in `X-Forwarded-For` (Render does). Otherwise a visitor can fake the header and get past the rate limits.

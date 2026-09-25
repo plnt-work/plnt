@@ -299,10 +299,12 @@ def tenants_delete(tid: str) -> None:
 
 
 @click.command("serve")
-@click.option("--host", default="127.0.0.1", show_default=True)
-@click.option("--port", default=DEFAULT_PORT, type=int, show_default=True)
-@click.option("--playground", is_flag=True,
-              help="Also seed demo tenants and open the anonymous /v1/playground API.")
+@click.option("--host", default="127.0.0.1", show_default=True, envvar="PLNT_HOST")
+@click.option("--port", default=DEFAULT_PORT, type=int, show_default=True, envvar="PORT",
+              help="Also read from $PORT, as set by hosting platforms.")
+@click.option("--playground", is_flag=True, envvar="PLNT_PLAYGROUND",
+              help="Also seed demo tenants and open the anonymous /v1/playground API "
+              "(or set PLNT_PLAYGROUND=1).")
 def serve_cmd(host: str, port: int, playground: bool) -> None:
     """Run the multi-tenant HTTP API."""
     import uvicorn

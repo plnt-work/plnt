@@ -10,6 +10,7 @@ description: Server and model settings.
 | `PLNT_HOME` | `~/.plnt` | All state: tenants, installs, databases, audit logs. |
 | `PLNT_ADMIN_TOKEN` | unset | Admin bearer token. Unset means admin routes answer 503. |
 | `PLNT_BUNDLE_PATH` | unset | `:`-separated directories of bundles, searched before the built-in ones. |
+| `PLNT_HOST` / `PORT` | `127.0.0.1` / `8787` | Where `plnt serve` listens (same as `--host` / `--port`). The Docker image sets `0.0.0.0`; platforms like Render set `PORT`. |
 
 ## Default model
 
@@ -38,11 +39,12 @@ Used for tenants without their own model. See [Local models](/docs/guides/local-
 
 | Variable | Default | |
 | --- | --- | --- |
+| `PLNT_PLAYGROUND` | unset | `1` is the same as `--playground`. |
 | `PLNT_PLAYGROUND_SESSIONS_PER_10MIN` | `10` | New conversations per IP. |
 | `PLNT_PLAYGROUND_MESSAGES_PER_10MIN` | `30` | Messages per IP. |
 | `PLNT_PLAYGROUND_DAILY_TOKENS` | `2000000` | Total tokens per day across all visitors; then 503. |
 | `PLNT_PLAYGROUND_ORIGINS` | `*` | Comma-separated CORS origins. |
-| `PLNT_TRUST_PROXY` | unset | `1` to take the client IP from `X-Forwarded-For`. Only behind a proxy you control. |
+| `PLNT_TRUST_PROXY` | unset | `1` to take the client IP from the first `X-Forwarded-For` entry. Only behind a proxy that sets that entry itself (Render does); otherwise visitors can spoof it. |
 
 ## Site build
 

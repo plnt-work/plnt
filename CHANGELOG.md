@@ -9,6 +9,21 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
+### Added
+
+- `render.yaml`: a Render Blueprint that hosts the public playground. It runs the
+  Docker image with Gemini 2.5 Flash, a 1M-tokens-a-day cap, `plnt.work`-only CORS,
+  no admin token, and deploys only after CI passes.
+- `plnt serve` reads `PORT`, `PLNT_HOST` and `PLNT_PLAYGROUND` from the environment.
+  The Docker image honours a platform-assigned `PORT`.
+
+### Fixed
+
+- OpenAI-compatible servers that accept tools but reject a named `tool_choice` now
+  get one retry with `"auto"`, which is then remembered per endpoint and model. The
+  `require_tool` guardrail still re-asks, or withholds the answer, if the model skips
+  the tool.
+
 ## [0.1.0] — 2026-09-25
 
 First release of plnt as a platform for shipping one agent to many customers.

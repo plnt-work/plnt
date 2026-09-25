@@ -1,0 +1,54 @@
+# Render Blueprint for the public playground (https://plnt.work/playground).
+#
+# Render dashboard → New → Blueprint → this repo. When prompted, paste a
+# Gemini API key for PLNT_CLOUD_API_KEY: create a fresh key used only for
+# the playground, and give it a spend cap in Google Cloud.
+#
+# This is a demo server. It seeds two fictional businesses and opens the
+# anonymous /v1/playground API. Don't install real customers on it.
+# PLNT_ADMIN_TOKEN is deliberately unset, so operator routes answer 503.
+services:
+  - type: web
+    name: plnt-playground
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter            # free instances sleep after 15 min idle; visitors would wait ~1 min
+    region: oregon
+    healthCheckPath: /v1/health
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - plnt/**
+        - registry/bundles/**
+        - console/**
+        - Dockerfile
+        - pyproject.toml
+        - setup.py
+        - MANIFEST.in
+    # No disk: playground conversations are throwaway, and the demo tenants
+    # are re-seeded on every start.
+    envVars:
+      - key: PLNT_PLAYGROUND
+        value: "1"
+      - key: PLNT_FORCE
+        value: cloud
+      - key: PLNT_CLOUD_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai
+      - key: PLNT_CLOUD_SMALL_MODEL
+        value: gemini-2.5-flash
+      - key: PLNT_CLOUD_API_KEY
+        sync: false
+      - key: PLNT_COST_IN_PER_M
+        value: "0.30"
+      - key: PLNT_COST_OUT_PER_M
+        value: "2.50"
+      # Hard cap across all visitors per day. At Flash prices, 1M tokens a day
+      # costs well under $1.
+      - key: PLNT_PLAYGROUND_DAILY_TOKENS
+        value: "1000000"
+      - key: PLNT_PLAYGROUND_ORIGINS
+        value: https://plnt.work,https://www.plnt.work
+      # Render's edge puts the real client IP first in X-Forwarded-For.
+      - key: PLNT_TRUST_PROXY
+        value: "1"

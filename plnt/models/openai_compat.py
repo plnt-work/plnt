@@ -70,6 +70,11 @@ _TOOLS_UNSUPPORTED_MARKERS = (
 )
 
 
+# (base_url, model) pairs whose server rejected a forced `tool_choice`; they get
+# "auto" from then on and the agent loop's re-ask/refuse guardrail does the work.
+_NO_FORCED_CHOICE: set[tuple[str, str]] = set()
+
+
 class OpenAICompatProvider:
     name = "openai"
 
@@ -111,10 +116,12 @@ class OpenAICompatProvider:
             "temperature": p.temperature,
             "max_tokens": p.max_tokens,
         }
+        key = (p.base_url, p.model)
+        forced = bool(tools and tool_choice and key not in _NO_FORCED_CHOICE)
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = (
-                {"type": "function", "function": {"name": tool_choice}} if tool_choice else "auto"
+                {"type": "function", "function": {"name": tool_choice}} if forced else "auto"
             )
         elif response_schema:
             payload["response_format"] = {
@@ -141,6 +148,20 @@ class OpenAICompatProvider:
                 hint="check the server is running and the base URL is right",
                 **self._err_kw(),
             ) from e
+        if forced and r.status_code == 400 and "tool_choice" in r.text.lower():
+            # Some OpenAI-compatible servers accept tools but not a named
+            # tool_choice. Retry unforced; the caller still checks the reply.
+            _NO_FORCED_CHOICE.add(key)
+            payload["tool_choice"] = "auto"
+            try:
+                with self._client(t) as c:
+                    r = c.post(url, json=payload, headers=self._headers())
+            except httpx.HTTPError as e:
+                raise ModelUnavailable(
+                    f"cannot reach {url}: {e}",
+                    hint="check the server is running and the base URL is right",
+                    **self._err_kw(),
+                ) from e
         latency_ms = int((time.monotonic() - started) * 1000)
 
         if r.status_code != 200:

@@ -58,7 +58,8 @@ git history.
 - `[done]` Docs: quickstart, concepts, bundle and tool guides, config and secrets, guardrails, local models, multi-tenant, console, deploy, API/events/CLI/env reference
 - `[done]` v0.1.0 packaging: wheel ships the console and bundles; `Dockerfile`; tag-triggered release to PyPI and GHCR
 - `[next]` Configure PyPI trusted publishing and tag `v0.1.0` (repository admin)
-- `[next]` Host the public playground and point the site at it (`PUBLIC_PLNT_PLAYGROUND_URL`)
+- `[done]` Hosting config for the public playground: `render.yaml` (Render Blueprint, Gemini 2.5 Flash, daily token cap)
+- `[next]` Deploy the blueprint and set `PUBLIC_PLNT_PLAYGROUND_URL` on the site (needs the Render account and a Gemini key)
 
 ## Phase 5 — Registry  `[planned]`
 

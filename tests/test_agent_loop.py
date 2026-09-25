@@ -244,3 +244,31 @@ def test_forced_tool_choice_reaches_openai_payload():
                                 transport=httpx.MockTransport(handler))
     prov.chat([], tools=[_lookup_tool([]).spec()], tool_choice="lookup")
     assert seen["body"]["tool_choice"] == {"type": "function", "function": {"name": "lookup"}}
+
+
+def test_rejected_forced_tool_choice_falls_back_to_auto():
+    import json as _json
+
+    import httpx
+
+    from plnt.models import ModelProfile, OpenAICompatProvider
+
+    bodies = []
+
+    def handler(req):
+        body = _json.loads(req.content)
+        bodies.append(body)
+        if isinstance(body["tool_choice"], dict):
+            return httpx.Response(400, json={"error": {"message": "Invalid tool_choice"}})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "x"}}]})
+
+    profile = ModelProfile(provider="openai", base_url="http://no-force/v1", model="m")
+    prov = OpenAICompatProvider(profile, transport=httpx.MockTransport(handler))
+    out = prov.chat([], tools=[_lookup_tool([]).spec()], tool_choice="lookup")
+    assert out.content == "x"
+    assert [b["tool_choice"] for b in bodies] == [
+        {"type": "function", "function": {"name": "lookup"}}, "auto"]
+    # Remembered: the next call on the same endpoint and model goes straight to auto.
+    prov2 = OpenAICompatProvider(profile, transport=httpx.MockTransport(handler))
+    prov2.chat([], tools=[_lookup_tool([]).spec()], tool_choice="lookup")
+    assert bodies[-1]["tool_choice"] == "auto" and len(bodies) == 3

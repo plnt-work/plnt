@@ -24,7 +24,7 @@ description: plnt commands.
 
 | Command | |
 | --- | --- |
-| `plnt serve [--host 127.0.0.1] [--port 8787] [--playground]` | The multi-tenant API and console. Set `PLNT_ADMIN_TOKEN`. `--playground` also seeds demo tenants and opens the anonymous playground API. Don't use it with real customers. |
+| `plnt serve [--host 127.0.0.1] [--port 8787] [--playground]` | The multi-tenant API and console. Set `PLNT_ADMIN_TOKEN`. `--playground` (or `PLNT_PLAYGROUND=1`) also seeds demo tenants and opens the anonymous playground API. Don't use it with real customers. Host and port also come from `PLNT_HOST` and `PORT`. |
 | `plnt tenants create ID [--name NAME]` | Prints the tenant's API key once. |
 | `plnt tenants list` | Tenants and their installs. |
 | `plnt tenants delete ID` | Deletes the tenant and all its data (asks first). |
