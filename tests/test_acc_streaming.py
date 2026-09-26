@@ -34,6 +34,7 @@ def _force_offline(tmp_path, monkeypatch):
     monkeypatch.delenv("PLNT_CLOUD_URL", raising=False)
     monkeypatch.delenv("PLNT_CLOUD_API_KEY", raising=False)
     monkeypatch.setenv("PLNT_LOCAL_URL", "http://127.0.0.1:1")
+    monkeypatch.setenv("PLNT_FORCE", "offline")
 
 
 def test_sandbox_on_event_feeds_acc_and_kills_under_3s(isolated_home):

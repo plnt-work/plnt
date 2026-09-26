@@ -1,206 +1,179 @@
 # plnt
-**Plnt is one of the subproducts of Maps based Micro SAAS. It orchestrates the runtime for micro-agent workflows**. Pick a workflow spec
-from a registry (S3 or OCI), pick a Kubernetes GPU backend, and plnt handles
-the Helm deploy, the canary, the smoke test, and the promote-or-rollback — as
-a durable Temporal saga.
 
-[Plnt Platform](https://play.plnt.work/)
+**Ship one agent to 1,000 customers — each isolated, any model, local or cloud.**
 
+plnt is an open-source runtime for teams that build an AI agent once and
+deploy it to many customers (tenants). Package the agent as a **bundle**,
+install it into each tenant with that tenant's own config, and plnt keeps every
+tenant's sandbox, budget, memory, secrets, audit log and usage separate — on a
+hosted model or a model running on the tenant's own hardware.
 
-The live playground is at [plnt.work/playground](https://plnt.work/playground)
-— pick a workflow, watch the step DAG execute, invoke it against a live model
-endpoint.
-
-> **[Read the full B-Plan (Google Doc)](https://docs.google.com/document/d/REPLACE_WITH_YOUR_DOC_ID/edit)**
-> — the long-form pitch: problem, market, product, roadmap, ask. Living
-> document; edit permission by request.
+> **Status: pre-alpha, mid-consolidation.** This repository now holds the whole
+> project (runtime, reference app, site, registry). The runtime rework that
+> makes the above sentence fully true is sequenced in [ROADMAP.md](ROADMAP.md).
+> Anything not marked `[done]` there is not shipped.
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Contract tests](https://img.shields.io/badge/contract%20tests-15%2F15-brightgreen.svg)](tests/test_site_contract.py)
-[![Roadmap](https://img.shields.io/badge/roadmap-v0.1--v1.0-informational.svg)](ROADMAP.md)
 
----
+## What is different
 
-## Why plnt
+| | plnt |
+|---|---|
+| **Bundles installed per tenant** | One agent package (`skill.toml` + `prompt.md` + `config_schema.json` + tools), installed N times with N validated configs. An app-store model for agents. |
+| **Hard guardrails per tenant** | Process / Docker sandbox rungs with rlimits, token + wall-clock budgets, a live kill switch that terminates runaway agents mid-run, append-only audit log. |
+| **Bring your own model, per tenant** | Hosted models (Gemini, OpenAI-compatible) or local ones (Ollama, llama.cpp, vLLM, LM Studio) — chosen per tenant, so a customer that needs on-prem can have it. |
 
-Every small-business SaaS surface needs a handful of narrow, reliable AI
-features — draft a review reply, generate a weekly post, triage a booking
-inquiry. Each one is a tiny agent workflow: 3–5 steps, a couple of tool calls,
-a GPU somewhere.
-
-Building each one bespoke is what most teams do and none of them want to. The
-fix is a stack:
-
-1. A **registry** of workflow recipes anyone can pull —
-   [microagents](https://github.com/plnt-work/microagents).
-2. A **runtime** that turns a recipe + a backend into a running service — this
-   repo.
-3. A **product** that consumes the runtime — the reference consumer is
-   [storefront-ai](https://github.com/plnt-work/storefront-ai).
-
-plnt is the middle layer. It is the load-bearing infra piece.
-
-## The stack
+## Repository layout
 
 ```
-┌────────────────────────────────────┐
-│  storefront-ai   (end-user SaaS)   │  reviews · posts · bookings
-└───────────────────┬────────────────┘
-                    │  invokes
-                    ▼
-┌────────────────────────────────────┐
-│  microagents  (workflow registry)  │  pluggable recipes on S3
-│  review-responder · post-generator │
-│  booking-triage  · trend-monitor   │
-└───────────────────┬────────────────┘
-                    │  pulls spec
-                    ▼
-┌────────────────────────────────────┐
-│  plnt  (this repo — runtime)       │  ← you are here
-│  WorkflowRun CRD · Temporal saga   │
-│  Helm install · canary · rollback  │
-└───────────────────┬────────────────┘
-                    │  helm install
-                    ▼
-┌────────────────────────────────────┐
-│  Kubernetes GPU backends           │  kind · GKE · EKS · on-prem
-│  scheduler · nvidia.com/gpu        │
-└────────────────────────────────────┘
+plnt/                 the runtime (Python package `plnt`)
+  control/            planner, budgets, streaming kill switch (ACC), DAG, skill schema
+  execution/          sandbox rungs (process, docker), agent runner, blackboard audit log
+  models/             model providers: Ollama (native), OpenAI-compatible, JSON tool shim, doctor
+  agent/              the tool-calling agent loop
+  bundles/            bundle format, @tool SDK, catalog
+  tenancy/            tenants, keys, secrets, per-tenant model, installs, sessions, usage, audit
+  executors/          runs tenant sessions (in-process, durable SQLite event log)
+  server/             multi-tenant HTTP API (`plnt serve`), hosts the console at /console
+console/              web console (React) for operators and tenants
+  surface/            local HTTP server + CLI surface
+skills/               built-in agent bundles
+tests/                runtime tests
+examples/booking/     legacy booking app (Temporal, map UI; formerly plnt-work/maps-micro-saas),
+                      being replaced by registry/bundles/booking-desk
+site/                 plnt.work marketing site + docs (formerly devdattatalele/plnt-site)
+registry/             agent bundles: support-desk, booking-desk (formerly plnt-work/microagents)
+bench/                runtime overhead benchmark
 ```
 
-## What's in this repo
+All four former repositories were imported with full git history
+(`git log -- examples/booking`, `git log -- site`, `git log -- registry`).
 
-```
-plnt/
-  playground/      # FastAPI wrapper — /v1/workflows + /v1/chat/completions (live surface)
-  charts/          # Helm charts:
-                   #   plnt (operator + CRDs), workflow-runner (per-workflow template),
-                   #   playground-api (shipped)
-  operators/       # kopf controller + WorkflowRun CRD
-  workflows/       # Temporal orchestration saga
-                   #   OrchestrateWorkflow: pull → resolve → helm → smoke → promote
-  registry/        # microagents pull path (S3 + OCI clients, integrity checks)
-  runtime/         # RuntimeAdapter Protocol + reference implementations
-  cli.py           # `plnt` CLI: run, list, scale, rollback, bench, playground
-docker/            # container images (playground API, runner base)
-deploy/            # DigitalOcean K8s overlay + cert-manager + runbook; Fly.io alt
-docs/              # architecture, PRD, ERD, api-contract, local-dev, observability
-tests/             # pytest: playground behavior + contract test vs plnt-site
-examples/          # sample WorkflowRun resources + Helm values
-```
+## Quickstart: one agent, many tenants
 
-## 60-second quickstart
+Docs: **https://plnt.work/docs/** · try it without installing: **https://plnt.work/playground**
 
 ```bash
-git clone https://github.com/plnt-work/plnt && cd plnt
-python3.12 -m venv .venv && source .venv/bin/activate
+pip install "git+https://github.com/plnt-work/plnt"   # `pip install plnt` once v0.1.0 is on PyPI
+# or: docker build -t plnt . && docker run -p 8787:8787 -v plnt-data:/data -e PLNT_ADMIN_TOKEN=... plnt
+
+plnt init hello-desk                     # scaffold a bundle: skill.toml, prompt.md,
+                                         # config_schema.json, tools/hours.py
+plnt run ./hello-desk "when are you open?" --config business_name=Acme
+```
+
+Serve it to many customers, each with its own config, secrets, model and data:
+
+```bash
+export PLNT_ADMIN_TOKEN=$(openssl rand -hex 16)
+plnt serve --port 8787 &
+
+H="Authorization: Bearer $PLNT_ADMIN_TOKEN"
+curl -s -X POST localhost:8787/v1/tenants -H "$H" -d '{"id":"bistro"}' -H 'content-type: application/json'
+#  -> {"tenant": {...}, "api_key": "pk_..."}   the tenant's own key, shown once
+
+K="Authorization: Bearer pk_..."
+curl -s -X POST localhost:8787/v1/tenants/bistro/installs -H "$K" -H 'content-type: application/json' \
+  -d '{"bundle":"support-desk","config":{"business_name":"Luigi'"'"'s","handoff_contact":"hi@luigis.example",
+       "faq":[{"q":"When are you open?","a":"Tue-Sun 5-11pm"}]}}'
+curl -s -X POST localhost:8787/v1/tenants/bistro/sessions -H "$K" -H 'content-type: application/json' \
+  -d '{"bundle":"support-desk"}'                                   # -> {"session_id": "s_..."}
+curl -s -X POST localhost:8787/v1/tenants/bistro/sessions/s_.../messages -H "$K" \
+  -H 'content-type: application/json' -d '{"text":"When are you open?"}'
+curl -N localhost:8787/v1/tenants/bistro/sessions/s_.../stream -H "$K"   # live events (SSE)
+```
+
+Open `http://localhost:8787/console` for the web console (build it once with
+`cd console && npm ci && npm run build`). Every route is listed in
+[`plnt/server/app.py`](plnt/server/app.py). `plnt dev [bundle]`
+runs the same API on loopback with auth disabled. `python scripts/smoke_platform.py`
+runs the whole flow for two tenants end to end.
+
+### Bundles
+
+```
+my-agent/
+  skill.toml           [meta] name/version · [runtime] tools, max_steps, model_hint ·
+                       [budget] tokens, wall_seconds · [secrets] required
+  prompt.md            system prompt; {{config.key}} is filled per tenant
+  config_schema.json   JSON Schema each tenant's config is validated against
+  tools/*.py           @tool functions; a `ctx: ToolContext` parameter gives the tool
+                       that tenant's config and secrets
+```
+
+```python
+from plnt import ToolContext, tool
+
+@tool
+def lookup_order(order_id: str, ctx: ToolContext) -> dict:
+    """Look up an order by id."""
+    return shop_api(ctx.config["shop_url"], ctx.secret("SHOP_API_KEY")).order(order_id)
+```
+
+### What each tenant gets
+
+- Its own installed copy of the bundle (pinned version and digest) and validated config.
+- Its own secrets (write-only over the API) and, optionally, its own model:
+  `PUT /v1/tenants/{t}/model {"provider":"ollama","base_url":"http://gpu-box:11434","model":"qwen2.5:7b"}`.
+- Its own sessions, event log, usage/cost ledger (`data.db`) and audit log.
+- Filesystem tools confined to its own workdir.
+- Runs stopped by the bundle's token and wall-clock budgets, the loop detector, or
+  `POST .../sessions/{sid}/kill`.
+- Answers that must be grounded stay grounded: with `[runtime] require_tool`, the runtime
+  withholds any answer the model gives before calling that tool.
+- A private data directory per bundle (`ctx.data_dir`), e.g. booking-desk's ledger.
+
+Custom `tools/*.py` code runs in the server process, so for now install only
+bundles you trust. Sandboxed third-party tools are roadmap Phase 6.
+
+## Quickstart (runtime)
+
+```bash
 pip install -e ".[dev]"
-plnt playground up
+pytest -q
+
+# Local model (Ollama):
+ollama pull qwen2.5:7b
+export PLNT_PLANNER_MODEL=qwen2.5:7b
+plnt models doctor                        # reachable? pulled? tool calling? JSON? context?
+plnt submit "summarise the TODOs in this repo"
 ```
 
-In another terminal:
+## Models
+
+plnt picks a model per call: the local endpoint if it is reachable, otherwise the
+configured cloud model, otherwise it **fails with a fix-it message**. It never
+invents an answer when a model call fails.
+
+| Variable | Meaning |
+|---|---|
+| `PLNT_LOCAL_URL` | Local server. `http://127.0.0.1:11434` → Ollama native API; a URL ending in `/v1` → OpenAI-compatible (llama.cpp, vLLM, LM Studio) |
+| `PLNT_PLANNER_MODEL` / `PLNT_DEEP_MODEL` | Local small / deep model |
+| `PLNT_CLOUD_URL`, `PLNT_CLOUD_API_KEY`, `PLNT_CLOUD_SMALL_MODEL`, `PLNT_CLOUD_DEEP_MODEL` | Hosted fallback (any OpenAI-compatible API, e.g. Gemini) |
+| `PLNT_FORCE` | `local`, `cloud`, or `offline` (deterministic stub for tests) |
+| `PLNT_NUM_CTX` | Context window requested from Ollama (default 8192; Ollama's own default silently truncates agent prompts) |
+| `PLNT_NATIVE_TOOLS` | `auto` (default: native tool calling, JSON-schema shim if the model rejects tools), `1`, `0` |
+| `PLNT_MODEL_TIMEOUT`, `PLNT_TEMPERATURE`, `PLNT_MAX_TOKENS` | Per-call settings; the timeout is also capped by the agent's remaining wall budget |
+| `PLNT_COST_IN_PER_M` / `PLNT_COST_OUT_PER_M` | USD per 1M tokens, for cost accounting in run events |
+
+Tool-calling quality varies a lot between local models, and small ones are
+often unreliable. Before relying on one, run `plnt models doctor --model <name>`. It runs
+a tool-call probe and a JSON probe against the model you have.
+
+## Quickstart (reference app)
 
 ```bash
-plnt list                                   # list registered workflows
-plnt run review-responder --backend kind    # orchestrate on local kind
-plnt logs review-responder --follow         # tail the Temporal saga
+pip install -e . -e "examples/booking[dev]"
+cd examples/booking && pytest -q          # in-process Temporal, no Docker needed
+docker compose up -d --build              # full stack; see examples/booking/README.md
 ```
 
-Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
+## Contributing
 
-## Declarative — one CRD
-
-```yaml
-apiVersion: plnt.work/v1
-kind: WorkflowRun
-metadata:
-  name: review-responder
-spec:
-  workflow:
-    ref: review-responder@1.2.0
-    registry: s3://microagents
-  backend:
-    cluster: gpu-cluster-01
-    gpuClass: nvidia.com/h100
-    gpuCount: 2
-  replicas: { min: 1, max: 4 }
-  canary:
-    trafficPercent: 5
-    smokeTest: { invocations: 10, p95BudgetMs: 2500 }
-```
-
-```bash
-kubectl apply -f review-responder.yaml
-```
-
-The operator watches the resource, starts a Temporal workflow, and the saga
-takes it from there: pull the spec, resolve the backend, `helm install` a
-canary, smoke-test it, promote to stable or roll back. Every state transition
-emits a Kubernetes event.
-
-## The saga
-
-```
-   pull_spec         resolve_backend       helm_install_canary
-       │                    │                        │
-       └────────────────────┴────────────────────────┴──▶ run_smoke_test
-                                                              │
-                                                     pass │      │ fail
-                                                          ▼      ▼
-                                              promote_to_stable  helm_rollback
-```
-
-Every activity has its own retry policy. Non-retryable error types
-(`SpecInvalid`, `BackendUnavailable`) short-circuit obvious dead-ends.
-Restarts resume from the last completed step.
-
-## Deploy
-
-Reference deployment on DigitalOcean Kubernetes: [deploy/do-k8s/](deploy/do-k8s/).
-Fly.io alt for the playground API: [fly.toml](fly.toml).
-
-**Single-tenant by design for v0.1.** One customer per cluster keeps the
-security model simple (no shared-tenant blast radius) and gets us to
-shipping-code faster. Multi-tenant (shared control plane + isolated per-tenant
-namespaces + per-tenant CRD scope) is a v1.0 concern — see [ROADMAP.md](ROADMAP.md).
-
-## Docs
-
-Full portal: [docs/index.md](docs/index.md).
-
-Product + pitch:
-
-- [PRD — platform](docs/PRD.md) — problem, users, goals, market, roadmap
-- [One-pager](docs/ONE-PAGER.md) · [PDF](docs/pdf/one-pager.pdf) — printable summary
-- [Full pitch](docs/FULL-PITCH.md) · [PDF](docs/pdf/full-pitch.pdf) — 13-section deck
-- [Speaking script](docs/PITCH.md) — 30s / 90s / 3min lines + Q&A prep
-- [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md)
-
-Design + reference:
-
-- [Architecture](docs/architecture.md) — the 4-layer stack, saga, CRD, adapter
-- [ERD](docs/ERD.md) — entities, sequences, state machine
-- [API contract](docs/api-contract.md) — invocation shape + streaming
-- [Threat model](docs/threat-model.md) · [Observability](docs/observability.md)
-- [Engineering principles](docs/eng-principles.md) · [Glossary](docs/glossary.md)
-
-Operate:
-
-- [Getting started](docs/getting-started.md) — pip install → first curl
-- [Local dev](docs/local-dev.md) — playground API + plnt-site together
-- [Deploy runbook (DO K8s)](deploy/RUNBOOK-do-k8s.md) — 11 steps, ~40 min, ~$24/mo
-
-## Related repos
-
-All four under [`github.com/plnt-work`](https://github.com/plnt-work):
-
-- [plnt-work/microagents](https://github.com/plnt-work/microagents) —
-  the workflow recipe registry (S3/OCI)
-- [plnt-work/google-business](https://github.com/plnt-work/google-business) —
-  reference SaaS consumer built on plnt
-- [plnt-work/plnt-site](https://github.com/plnt-work/plnt-site) — marketing
-  site + docs portal + playground UI at [plnt.work](https://plnt.work)
+See [CONTRIBUTING.md](CONTRIBUTING.md). CI (`.github/workflows/ci.yml`) runs the
+runtime tests, the reference app's tests, the console build/lint, and the site
+build on every push.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0.

@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Shown to customers."
+    },
+    "handoff_contact": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Where unanswered questions go (email or phone).",
+      "title": "Hand-off contact"
+    },
+    "tone": {
+      "type": "string",
+      "enum": [
+        "friendly",
+        "formal",
+        "playful"
+      ],
+      "default": "friendly"
+    },
+    "faq": {
+      "type": "array",
+      "description": "Question/answer pairs the agent may answer from.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "title": "Question"
+          },
+          "a": {
+            "type": "string",
+            "title": "Answer"
+          }
+        },
+        "required": [
+          "q",
+          "a"
+        ],
+        "additionalProperties": false
+      },
+      "default": [],
+      "title": "FAQ"
+    }
+  },
+  "required": [
+    "business_name",
+    "handoff_contact"
+  ],
+  "additionalProperties": false
+}

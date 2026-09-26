@@ -1,0 +1,15 @@
+[meta]
+name = "support-desk"
+version = "0.1.0"
+description = "Answers customer questions for one business from its own FAQ, and hands off to a human when it can't."
+tags = ["support", "faq", "smb"]
+
+[runtime]
+model_hint = "small"
+tools = ["lookup_faq"]
+require_tool = "lookup_faq"     # never answer without checking the FAQ
+max_steps = 4
+
+[budget]
+tokens = 8000
+wall_seconds = 60

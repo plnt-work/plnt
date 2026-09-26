@@ -1,0 +1,16 @@
+/* Docs theme: same palette and type as the landing page and the console. */
+@import '@fontsource-variable/geist';
+@import '@fontsource/jetbrains-mono/400.css';
+
+:root {
+  --sl-font: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sl-color-accent-low: #14532d;
+  --sl-color-accent: #22c55e;
+  --sl-color-accent-high: #bbf7d0;
+}
+:root[data-theme='light'] {
+  --sl-color-accent-low: #dcfce7;
+  --sl-color-accent: #15803d;
+  --sl-color-accent-high: #14532d;
+}

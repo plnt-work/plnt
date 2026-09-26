@@ -1,12 +1,8 @@
 """Agent runner — PID 1 of a micro-agent process.
 
-Boots from one AgentSpec on stdin. Streams events on stdout. Talks to the
-compute plane over HTTP. Has access to exactly the two tools the spec
-declares (search / execute). Returns a `result` event with output that
-matches the spec's output_schema, or an `error` event.
-
-This is the *body* of an ephemeral micro-agent. The brain is the model
-behind the compute router. The spirit is the skill markdown loaded by `role`.
+Boots from one AgentSpec on stdin. Streams events on stdout. Calls the model
+chosen by `plnt.models.resolve_profile` and gives it the tools the spec
+declares (search / execute). Returns a `result` event, or an `error` event.
 """
 
 from __future__ import annotations
@@ -42,6 +38,7 @@ class _Run:
 
     spec: AgentSpec
     transcript: list[dict[str, Any]] = field(default_factory=list)
+    started: float = field(default_factory=time.monotonic)
 
 
 def _read_spec() -> AgentSpec:
@@ -68,123 +65,101 @@ def _allowed_roots(spec: AgentSpec) -> list[Path]:
 
 
 def _run_skill(run: _Run, allowed_roots: list[Path]) -> dict[str, Any]:
-    """Execute the agent's skill against the LLM.
+    """Execute the agent's skill against the configured model.
 
-    v0: a single-turn ReAct-ish loop with the two tools. The skill markdown
-    is rendered as the system prompt; the inputs become the user prompt. The
-    runner steps the model up to `max_steps` times. Each step the model can
-    call search or execute (one tool call per step), and on the final step
-    must return a JSON result.
+    The skill markdown is the system prompt; the intent (wrapped with the
+    workdir + allow-list) is the user message. The model calls `search` /
+    `execute` through native tool calling (or the JSON shim for models
+    without it) until it answers, runs out of steps, or hits the wall budget.
 
-    To keep this file useful even without a live LLM endpoint, the runner
-    falls back to an "echo" planner: it runs one search using the inputs and
-    returns its hits as the result. Tests exercise both paths.
+    Model failures are reported as errors with a fix-it hint. They are never
+    replaced with a fabricated answer.
     """
-    from plnt.compute.router import LLMRouter
-    from plnt.execution.tools import execute, search
+    from plnt.agent import filesystem_tools, run_agent
+    from plnt.models import ModelError, get_provider, resolve_profile
 
     spec = run.spec
     max_steps = int(spec.inputs.get("max_steps", 6))
-    transcript = run.transcript
     workdir = Path(os.environ.get("PLNT_WORKDIR", os.getcwd()))
+    # Leave a little headroom so we answer before the sandbox watchdog fires.
+    deadline = run.started + max(1.0, spec.budget.wall_seconds - 2)
 
-    router = LLMRouter()
+    try:
+        profile = resolve_profile(spec.model_hint)  # type: ignore[arg-type]
+    except ModelError as e:
+        _emit("model_error", **e.to_event())
+        return {"answer": f"[{spec.role}] {e}", "error": str(e), "error_hint": e.hint,
+                "transcript": run.transcript}
+    _emit("model_selected", **profile.to_event())
+    provider = get_provider(profile)
+
+    available = filesystem_tools(workdir, allowed_roots)
+    tools = [available[name] for name in spec.tools if name in available]
 
     skill_md = spec.inputs.get("skill_prompt") or _default_skill_prompt(spec.role)
-    # Always prepend the runtime context the model NEEDS to make valid tool
-    # calls. Otherwise it invents paths (the search 'path X is not inside any
-    # allowed root' error chain). Be explicit about cwd + the allow-list.
     user_msg = _wrap_user_message(
         spec.inputs.get("intent") or json.dumps(spec.inputs),
         workdir,
         allowed_roots,
     )
 
-    for step in range(1, max_steps + 1):
-        _emit("model_call", step=step, model_hint=spec.model_hint)
-        decision = router.step(
-            system=skill_md,
-            user=user_msg,
-            transcript=transcript,
-            tools=spec.tools,
-            model_hint=spec.model_hint,
-        )
-        _emit(
-            "model_result",
-            step=step,
-            decision_kind=decision.kind,
-            tokens=decision.tokens,
-            latency_ms=decision.latency_ms,
-        )
+    before_files = _scan_workdir(workdir)
 
-        if decision.kind == "final":
-            ans = decision.text.strip()
-            if not ans:
-                ans = _summarise_transcript(spec, transcript, workdir, reason="model returned empty FINAL")
-                return {"answer": ans, "steps": step, "transcript": transcript}
-            # Re-prompt safety net: if the model emitted prose that LOOKS like
-            # an execute() call ("mkdir ...", "npm init ...", "Execute the
-            # command: ...") on the FIRST step, it almost certainly meant to
-            # call the tool. Push back once with a corrective reminder.
-            if step == 1 and _looks_like_unwrapped_shell(ans) and "execute" in spec.tools:
-                _emit("log", payload={"reason": "first-step retry: model emitted prose-shell"})
-                user_msg = (
-                    "REMINDER: respond with TOOL: execute([\"cmd\",\"arg\",...]) — "
-                    "a JSON array of strings. Do NOT prose the command. Now do "
-                    "what the user asked:\n\n" + (spec.inputs.get("intent") or "")
-                )
-                continue
-            return {"answer": ans, "steps": step, "transcript": transcript}
+    def emit(kind: str, **payload: Any) -> None:
+        nonlocal before_files
+        if kind == "tool_call":
+            payload["workdir"] = str(workdir)
+        _emit(kind, **payload)
+        if kind == "tool_result":
+            # Filesystem-change visibility: what did this tool call create?
+            after = _scan_workdir(workdir)
+            added = sorted(after - before_files)
+            if added:
+                _emit("fs_change", step=payload.get("step"), workdir=str(workdir),
+                      added=added[:20], total=len(after))
+            before_files = after
 
-        if decision.kind == "tool_call":
-            tool = decision.tool_name
-            args = decision.tool_args or {}
-            _emit("tool_call", step=step, tool=tool, args=args, workdir=str(workdir))
-            # Snapshot workdir state BEFORE the tool runs so we can diff after.
-            before_files = _scan_workdir(workdir)
-            try:
-                if tool == "search" and "search" in spec.tools:
-                    hits = search(
-                        args.get("pattern", ""),
-                        args.get("root", str(workdir)),
-                        allowed_roots=allowed_roots,
-                        max_hits=int(args.get("max_hits", 50)),
-                    )
-                    result = [h.__dict__ for h in hits]
-                elif tool == "execute" and "execute" in spec.tools:
-                    res = execute(
-                        args.get("argv", []),
-                        workdir=workdir,
-                        allowed_roots=allowed_roots,
-                        timeout_seconds=int(args.get("timeout", 30)),
-                    )
-                    result = res.__dict__
-                else:
-                    result = {"error": f"tool {tool!r} not permitted"}
-            except Exception as e:
-                result = {"error": str(e)}
-            _emit("tool_result", step=step, tool=tool, ok="error" not in result)
-            # Filesystem-change visibility: what got created or modified during
-            # this tool call? The TUI uses this to render " + X new files" in
-            # real time so the user can see work happening.
-            after_files = _scan_workdir(workdir)
-            new_files = sorted(after_files - before_files)
-            if new_files:
-                _emit("fs_change", step=step, workdir=str(workdir),
-                      added=new_files[:20], total=len(after_files))
-            transcript.append({"step": step, "tool": tool, "args": args, "result": result})
-            continue
-
-        # Unknown decision kind — bail out gracefully.
-        return {
-            "answer": _summarise_transcript(spec, transcript, workdir, reason=f"unknown decision {decision.kind!r}"),
-            "transcript": transcript,
-        }
-
-    return {
-        "answer": _summarise_transcript(spec, transcript, workdir, reason=f"max_steps {max_steps} exceeded"),
-        "transcript": transcript,
+    result = run_agent(
+        system=skill_md,
+        user=user_msg,
+        tools=tools,
+        provider=provider,
+        max_steps=max_steps,
+        response_schema=spec.output_schema,
+        deadline=deadline,
+        emit=emit,
+    )
+    run.transcript[:] = result.transcript
+    out: dict[str, Any] = {
+        "steps": result.steps,
+        "transcript": result.transcript,
+        "usage": {
+            "prompt_tokens": result.usage.prompt_tokens,
+            "completion_tokens": result.usage.completion_tokens,
+            "cost_usd": round(result.cost_usd, 6),
+        },
+        "model": profile.to_event(),
     }
+    if result.stopped == "error":
+        out["answer"] = f"[{spec.role}] model error: {result.error}"
+        out["error"] = result.error
+        out["error_hint"] = result.error_hint
+        return out
+    if result.stopped in ("max_steps", "wall_budget"):
+        out["answer"] = _summarise_transcript(spec, result.transcript, workdir, reason=result.error or "")
+        out["error"] = result.error
+        out["error_hint"] = result.error_hint
+        return out
+    if not result.answer.strip():
+        out["answer"] = _summarise_transcript(spec, result.transcript, workdir,
+                                              reason="model returned an empty answer")
+        return out
+    out["answer"] = result.answer
+    if isinstance(result.output, dict):
+        out["output"] = result.output
+    if result.error:
+        out["error"] = result.error
+    return out
 
 
 def _summarise_transcript(spec: "AgentSpec", transcript: list[dict], workdir: Path, reason: str) -> str:
@@ -249,39 +224,20 @@ def _scan_workdir(workdir: Path) -> set[str]:
         return set()
 
 
-# Heuristic: detect prose that's secretly trying to be a shell command.
-_SHELL_CUE_RE = __import__("re").compile(
-    r"\b(mkdir|touch|cat|echo|cp|mv|rm|ls|npm|pnpm|yarn|git|curl|wget|python|node|"
-    r"vite|create-next-app|execute\s*\(|TOOL\s*:)\b",
-    __import__("re").IGNORECASE,
-)
-
-
-def _looks_like_unwrapped_shell(text: str) -> bool:
-    """Did the model emit shell-y prose instead of a TOOL: call?"""
-    if "TOOL:" in text or "FINAL:" in text:
-        return False
-    if not _SHELL_CUE_RE.search(text):
-        return False
-    # Short responses dominated by shell verbs are the strongest signal.
-    return len(text) < 400
-
-
 def _default_skill_prompt(role: str) -> str:
     return (
-        f"You are the {role} micro-agent in a Plnt swarm. You have two tools: "
-        "search(pattern, root) and execute(argv). Context lives in the filesystem; "
-        "use search to find things, execute to do things. When done, return a JSON "
-        "object describing what you found or did."
+        f"You are the {role} agent. Use the `search` tool to find things in files and "
+        "the `execute` tool to run programs in your workdir. Call tools as needed, then "
+        "reply with a short plain-text answer describing what you found or did."
     )
 
 
 def _wrap_user_message(intent: str, workdir: Path, allowed_roots: list[Path]) -> str:
     """Prepend cwd + allow-list so the model stops hallucinating paths.
 
-    The repeating failure mode without this: model guesses an absolute path
-    like '/Users/me/project', search() rejects it as out-of-root, agent gives
-    up. Telling the model exactly what's reachable kills that loop.
+    The repeating failure mode without this: model guesses an absolute path,
+    search() rejects it as out-of-root, agent gives up. Telling the model
+    exactly what's reachable kills that loop.
     """
     roots = ", ".join(str(r.resolve()) for r in (allowed_roots or [workdir]))
     workdir_str = str(workdir.resolve())
@@ -298,7 +254,7 @@ def _wrap_user_message(intent: str, workdir: Path, allowed_roots: list[Path]) ->
         f"ALLOWED SEARCH ROOTS: {roots}\n"
         f"RULES:\n"
         f"- For execute(): use relative paths like \".\" or \"./src\". "
-        f"NEVER pass absolute paths like /Users/... in argv.\n"
+        f"Never pass absolute paths in argv.\n"
         f"- For search(): the root MUST be one of the ALLOWED SEARCH ROOTS "
         f"above (or '.' for the workdir). Don't invent paths.\n\n"
         f"TASK: {intent}"

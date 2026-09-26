@@ -1,0 +1,57 @@
+[meta]
+name = "create_booking"
+version = "0.2"
+description = "Create a booking by calling bookings_upsert. Deterministic, idempotent."
+tags = ["booking", "write"]
+
+[runtime]
+model_hint = "small"
+tools = ["bookings_upsert"]
+max_steps = 3
+default_isolation = "process"
+
+[budget]
+tokens = 3_000
+wall_seconds = 25
+joules = 0
+
+[[requires.inputs]]
+name = "business_id"
+type = "string"
+description = "Business identifier from resolve_business"
+example = "stub_3f2b1a"
+
+[[requires.inputs]]
+name = "slot"
+type = "string"
+description = "ISO 8601 datetime of the chosen slot"
+example = "2026-06-22T19:00:00"
+
+[[requires.inputs]]
+name = "user_contact"
+type = "string"
+description = "Phone or email to attach to the booking"
+example = "+15551234567"
+
+[[requires.inputs]]
+name = "idempotency_key"
+type = "string"
+description = "Caller-supplied key — same key returns the same booking_id"
+example = "sess1:stub_3f2b1a:2026-06-22T19:00:00"
+
+[response_schema]
+type = "object"
+required = ["booking_id", "status"]
+additionalProperties = false
+
+[response_schema.properties.booking_id]
+type = "string"
+
+[response_schema.properties.status]
+type = "string"
+
+[response_schema.properties.note]
+type = "string"
+
+[graph]
+can_spawn = []

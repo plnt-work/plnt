@@ -1,7 +1,7 @@
 """Turn-latency benchmark — plnt runtime overhead absent the model.
 
 Measures wall time from Orchestrator.start_run(intent) to result using the
-deterministic offline echo backend, so the number is pure framework overhead
+deterministic offline provider (PLNT_FORCE=offline), so the number is pure framework overhead
 (spawn + sandbox + event plumbing), comparable across commits.
 
 Optionally (--compare-langgraph) runs a minimal two-node LangGraph graph with
@@ -70,6 +70,7 @@ def bench_plnt(n: int) -> None:
     os.environ["PLNT_HOME"] = tmp
     os.environ["PLNT_REQUIRED_PATH"] = str(Path(tmp) / "never-exists")
     os.environ["PLNT_LOCAL_URL"] = "http://127.0.0.1:1"
+    os.environ["PLNT_FORCE"] = "offline"
     os.environ.pop("PLNT_CLOUD_URL", None)
     os.environ.pop("PLNT_CLOUD_API_KEY", None)
 

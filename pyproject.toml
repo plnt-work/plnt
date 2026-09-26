@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "plnt"
-version = "0.0.1"
-description = "Plnt — Personal Local Native Twin. A local-first runtime where one resident planner spawns a swarm of sandboxed micro-agents on your own hardware."
+version = "0.1.0"
+description = "Open-source runtime for shipping one agent to many isolated tenants — per-tenant sandbox, budgets, memory, secrets and audit, on any model, local or cloud."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [{ name = "Plnt" }]
-keywords = ["agents", "local-first", "swarm", "sandbox", "ollama", "exo", "personal-ai"]
+keywords = ["agents", "multi-tenant", "sandbox", "ollama", "local-llm", "tool-calling", "agent-runtime"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
@@ -31,6 +31,7 @@ dependencies = [
     "structlog>=24.0",
     "sse-starlette>=2.0",
     "anyio>=4.0",
+    "jsonschema>=4.20",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,12 @@ dev = [
     "pytest-mock>=3.12",
     "ruff>=0.4",
     "mypy>=1.9",
+]
+docker = [
+    "docker>=7.0",
+]
+temporal = [
+    "temporalio>=1.7",
 ]
 semantic = [
     "fastembed>=0.3",
@@ -51,9 +58,20 @@ semantic = [
 plnt = "plnt.cli:main"
 plnt-agent-runner = "plnt.execution.runner:main"
 
+[project.urls]
+Homepage = "https://plnt.work"
+Documentation = "https://plnt.work/docs/"
+Source = "https://github.com/plnt-work/plnt"
+Changelog = "https://github.com/plnt-work/plnt/blob/main/CHANGELOG.md"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["plnt*"]
+
+# The built console (console/ -> plnt/server/console, when built) ships in the
+# wheel. registry/bundles is copied to plnt/_bundles by setup.py.
+[tool.setuptools.package-data]
+plnt = ["server/console/**/*"]
 
 [tool.ruff]
 target-version = "py311"

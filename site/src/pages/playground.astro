@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Playground from '../islands/Playground';
+import '../styles/playground.css';
+---
+
+<Layout
+  title="plnt playground: two customers, one agent"
+  description="Chat with real agents running for two demo businesses on one plnt server. Watch the live event trace, kill a run, and see that each customer's config and conversation stay separate."
+  path="/playground"
+>
+  <Playground client:only="preact" />
+</Layout>

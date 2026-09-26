@@ -1,0 +1,123 @@
+# plnt-cloud dev runtime — MA-P7.
+#
+# Brings up:
+#   - postgres        Temporal's persistence store
+#   - temporal        Temporal server (auto-setup; namespace + schema on boot)
+#   - temporal-ui     http://localhost:8233 dashboard
+#   - api             uvicorn surface.app:app on :8080
+#   - worker          Temporal worker (entrypoint sources /env/.env first)
+#   - cloudflared     named tunnel surfacing api.dev / ws.dev to the api
+#
+# Run:
+#   docker compose up -d
+#   docker compose logs -f worker     # watch the chain run
+#
+# Falls back to bare metal: `docker compose up -d postgres temporal
+# temporal-ui` and then run `uvicorn ...` + `python -m workflows.worker`
+# on the host as documented in CLAUDE.md. The api/worker images are
+# pure conveniences; nothing else in the stack depends on them.
+#
+# Build context is the monorepo root (../..) so the Dockerfile can COPY
+# both the plnt runtime and this example.
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: postgres
+    ports:
+      - "7233:7233"
+
+  temporal-ui:
+    image: temporalio/ui:2.27.2
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8233:8080"
+
+  api:
+    build:
+      context: ../..
+      dockerfile: examples/booking/Dockerfile
+    depends_on:
+      - temporal
+    env_file: .env
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      # Allow the Vite dev server, the host-mode surface, and the
+      # cloudflared tunnel hostnames. Override in .env by setting
+      # CORS_ORIGINS to a comma-separated list.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080}
+    volumes:
+      # Live source overrides the image's COPYed copies. Editable
+      # installs from the Dockerfile keep working because the paths
+      # match (/src/plnt, /src/examples/booking).
+      - ../../plnt:/src/plnt
+      - .:/src/examples/booking
+      # Per-tenant data lives at ~/.plnt-cloud/ on the host (see
+      # CLAUDE.md "Per-tenant data layout"). Share it with the host
+      # so the bare-metal fallback sees the same bookings/memori dbs.
+      - ${HOME}/.plnt-cloud:/root/.plnt-cloud
+    ports:
+      - "8080:8080"
+    # uvicorn --reload so host source edits are picked up live.
+    command: ["uvicorn", "surface.app:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: examples/booking/Dockerfile
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    volumes:
+      - ../../plnt:/src/plnt
+      - .:/src/examples/booking
+      - ${HOME}/.plnt-cloud:/root/.plnt-cloud
+      # The entrypoint sources this; if missing, the worker exits 1
+      # rather than silently falling back to Ollama.
+      - ./.env:/env/.env:ro
+    entrypoint: ["/usr/local/bin/worker-entrypoint.sh"]
+
+  cloudflared:
+    # Routes (e.g. api.dev.<your-zone> → api:8080,
+    # ws.dev.<your-zone> → api:8080/ws) are configured against the
+    # named tunnel in the Cloudflare Zero Trust dashboard; the token
+    # below is what binds this container to that tunnel.
+    image: cloudflare/cloudflared:latest
+    depends_on:
+      - api
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+
+volumes:
+  pg-data:

@@ -1,0 +1,59 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Privacy · plnt"
+  description="What the plnt software, this website and the public playground do with data."
+  path="/privacy"
+>
+  <div class="container prose">
+    <h1>Privacy</h1>
+    <p class="muted">Last updated: September 25, 2026</p>
+
+    <h2>The software</h2>
+    <p>
+      plnt is open-source software you run yourself. It sends no telemetry, analytics or crash
+      reports to us. It talks only to the model servers you configure (for example your own
+      Ollama server, or an API such as Gemini or OpenAI), and to whatever services your bundles'
+      tools call. What it stores (conversations, events, usage, audit logs, secrets) stays in
+      <code>$PLNT_HOME</code> on your machine. What those model providers do with requests is set
+      by their own terms.
+    </p>
+
+    <h2>This website</h2>
+    <p>
+      This site has no analytics, no cookies and no tracking scripts. Our hosting provider keeps
+      standard request logs (IP address, time, URL, user agent) for operating and securing the
+      service.
+    </p>
+
+    <h2>The public playground</h2>
+    <p>
+      The <a href="/playground">playground</a> is a real plnt server. When you use it:
+    </p>
+    <ul>
+      <li>
+        Your messages, and the agent's steps and replies, are stored by that server as ordinary
+        plnt events, and are sent to the model provider the server is configured with to
+        generate replies.
+      </li>
+      <li>
+        Your IP address is held in memory for rate limiting, and appears in the server's
+        request logs.
+      </li>
+      <li>
+        Conversations are private to your browser tab: each one is protected by a random
+        token that only your tab holds. The server's operators can read them.
+      </li>
+      <li>We may delete playground data at any time, and do not keep it longer than needed to run and debug the demo.</li>
+    </ul>
+    <p><strong>Don't type personal, health, payment or other sensitive information into the playground.</strong> The demo businesses are fictional.</p>
+
+    <h2>Contact</h2>
+    <p>
+      Questions or deletion requests: open an issue on
+      <a href="https://github.com/plnt-work/plnt/issues">GitHub</a>.
+    </p>
+  </div>
+</Layout>

@@ -1,4 +1,4 @@
-"""plnt — Click-based CLI for the personal twin."""
+"""plnt — Click-based CLI."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from plnt import __version__
 from plnt.config import DEFAULT_SURFACE_HOST, DEFAULT_SURFACE_PORT, paths
 from plnt.control.orchestrator import Orchestrator
 from plnt.execution.blackboard import Blackboard
-from plnt.playground.cli import playground_group as _playground_group
 
 console = Console()
 _paths = paths()
@@ -28,98 +27,16 @@ def _base_url() -> str:
 @click.group()
 @click.version_option(__version__, prog_name="plnt")
 def cli() -> None:
-    """plnt — agentic-workflow orchestration playground on Kubernetes.
-
-    Subcommands split by plane:
+    """plnt — open-source runtime for shipping one agent to many isolated tenants.
 
     \b
-      plnt playground …   the OpenAI-compat inference gateway (this repo's live surface)
-      plnt deploy …       apply an InferenceModel manifest (kubectl wrapper)
-      plnt up             start the personal-runtime surface server (origin story)
-      plnt intent …       (personal runtime) send an intent to the resident planner
+      plnt init <slug>             scaffold an agent bundle
+      plnt run <bundle> "msg"      install it for a tenant and send one message
+      plnt dev [bundle]            local API server (no auth, loopback)
+      plnt serve                   multi-tenant API server
+      plnt tenants | install       manage tenants and their installs
+      plnt models doctor           check that your model works for agents
     """
-
-
-# --------------------------------------------------------------- playground group
-
-cli.add_command(_playground_group)
-
-
-# --------------------------------------------------------------- deploy command
-
-
-@cli.command()
-@click.argument("name")
-@click.option(
-    "--runtime",
-    type=click.Choice(["vllm", "tgi", "sglang", "trt-llm"]),
-    default="vllm",
-    show_default=True,
-)
-@click.option(
-    "--model",
-    "model_ref",
-    required=True,
-    help="HF-style model ref, e.g. meta-llama/Llama-3-8B-Instruct.",
-)
-@click.option("--gpu", default=1, type=int, show_default=True)
-@click.option("--replicas", default=1, type=int, show_default=True)
-@click.option(
-    "--apply/--print",
-    "do_apply",
-    default=False,
-    help="Run `kubectl apply -f -` after rendering. Without --apply, print YAML to stdout.",
-)
-def deploy(
-    name: str,
-    runtime: str,
-    model_ref: str,
-    gpu: int,
-    replicas: int,
-    do_apply: bool,
-) -> None:
-    """Render (and optionally apply) an InferenceModel resource.
-
-    Note: the InferenceModel CRD + operator land in HANDOFF Phase 3. Until
-    then this command produces the manifest that Phase 3 will consume, so
-    you can inspect what a `plnt deploy` will look like end-to-end.
-    """
-    import shutil
-    import subprocess
-
-    manifest = f"""apiVersion: plnt.work/v1
-kind: InferenceModel
-metadata:
-  name: {name}
-  labels:
-    app.kubernetes.io/part-of: plnt
-spec:
-  runtime: {runtime}
-  model: {model_ref}
-  resources:
-    gpu: {gpu}
-  replicas:
-    min: {replicas}
-    max: {max(replicas, replicas * 3)}
-"""
-    if not do_apply:
-        click.echo(manifest, nl=False)
-        return
-
-    if shutil.which("kubectl") is None:
-        console.print("[red]kubectl not found on PATH[/red]")
-        sys.exit(1)
-
-    console.print(
-        "[yellow]note:[/yellow] applying InferenceModel manifest — cluster must "
-        "have the CRD installed (Phase 3, not shipped yet)."
-    )
-    proc = subprocess.run(
-        ["kubectl", "apply", "-f", "-"],
-        input=manifest.encode(),
-        check=False,
-    )
-    sys.exit(proc.returncode)
 
 
 # ---------------------------------------------------------------------- server
@@ -404,6 +321,89 @@ def skills_install(source: str, dry_run: bool) -> None:
         if len(result['skills']) > 20:
             console.print(f"  · ... and {len(result['skills']) - 20} more")
     console.print(f"[dim]installed to {result['target']}[/dim]")
+
+
+# ----------------------------------------------------------------------- models
+
+
+@cli.group()
+def models() -> None:
+    """Inspect and diagnose the model backends plnt will use."""
+
+
+def _profiles_for(model: str | None, url: str | None, provider: str | None, force: str | None):
+    from dataclasses import replace
+
+    from plnt.models import ModelError, resolve_profile
+    from plnt.models.profiles import guess_local_provider, local_profile
+
+    if url:
+        base = local_profile("small")
+        p = replace(base, base_url=url, provider=provider or guess_local_provider(url),
+                    model=model or base.model, source="explicit", reason="--url")
+        return [p]
+    out = []
+    for hint in ("small", "deep"):
+        try:
+            p = resolve_profile(hint, force)  # type: ignore[arg-type]
+        except ModelError as e:
+            console.print(f"[red]✗ no model:[/red] {e}")
+            sys.exit(1)
+        if model:
+            p = replace(p, model=model)
+        if all((q.base_url, q.model) != (p.base_url, p.model) for q in out):
+            out.append(p)
+    return out
+
+
+@models.command("doctor")
+@click.option("--model", default=None, help="Model name to check (default: resolved small + deep).")
+@click.option("--url", default=None, help="Check this endpoint instead of the resolved one.")
+@click.option("--provider", type=click.Choice(["ollama", "openai"]), default=None)
+@click.option("--force", type=click.Choice(["local", "cloud"]), default=None,
+              help="Check the local or cloud slot regardless of PLNT_FORCE.")
+@click.option("--no-probe", is_flag=True, help="Skip the tool-calling / JSON test prompts.")
+def models_doctor(model, url, provider, force, no_probe) -> None:
+    """Check reachability, pulled model, tool calling, JSON output, context size."""
+    from plnt.models.doctor import diagnose
+
+    all_ok = True
+    for profile in _profiles_for(model, url, provider, force):
+        console.print(
+            f"\n[bold]{profile.model}[/bold]  [dim]{profile.provider} · {profile.base_url} · "
+            f"{profile.source}{' — ' + profile.reason if profile.reason else ''}[/dim]"
+        )
+        rep = diagnose(profile, probe=not no_probe)
+        for c in rep.checks:
+            mark = {True: "[green]✓[/green]", False: "[red]✗[/red]", None: "[dim]–[/dim]"}[c.ok]
+            console.print(f"  {mark} {c.name:<15} {c.detail}")
+            if c.hint and c.ok is False:
+                console.print(f"      [yellow]fix:[/yellow] {c.hint}")
+        all_ok = all_ok and rep.ok
+    sys.exit(0 if all_ok else 1)
+
+
+@models.command("list")
+@click.option("--url", default=None, help="Endpoint to list (default: resolved small model's).")
+@click.option("--provider", type=click.Choice(["ollama", "openai"]), default=None)
+def models_list(url, provider) -> None:
+    """List the models an endpoint serves."""
+    from plnt.models import ModelError, get_provider
+
+    for profile in _profiles_for(None, url, provider, None)[:1]:
+        try:
+            names = get_provider(profile).list_models()
+        except ModelError as e:
+            console.print(f"[red]✗[/red] {e}")
+            sys.exit(1)
+        console.print(f"[dim]{profile.provider} · {profile.base_url}[/dim]")
+        for n in names:
+            console.print(f"  {'[green]●[/green]' if n == profile.model else '·'} {n}")
+
+
+from plnt.cli_platform import register as _register_platform  # noqa: E402
+
+_register_platform(cli)
 
 
 def main() -> None:

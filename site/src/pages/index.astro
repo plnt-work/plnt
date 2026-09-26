@@ -1,0 +1,199 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const repo = 'https://github.com/plnt-work/plnt';
+
+const perTenant = [
+  {
+    title: 'Its own install and config',
+    body: 'One bundle, installed per customer with that customer’s settings, validated against the bundle’s JSON Schema. Each install is a frozen copy with a digest.',
+    icon: 'M4 7h16M4 12h16M4 17h10',
+  },
+  {
+    title: 'Its own model',
+    body: 'Hosted (Gemini, any OpenAI-compatible API) or on the customer’s own hardware (Ollama, vLLM, llama.cpp, LM Studio), chosen per customer.',
+    icon: 'M5 12h14M12 5v14',
+  },
+  {
+    title: 'Its own secrets and data',
+    body: 'Write-only secrets your tools can read. A private data directory per bundle. Sessions, event log and usage in the customer’s own database.',
+    icon: 'M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z',
+  },
+  {
+    title: 'Hard limits',
+    body: 'Token and wall-clock budgets per message, a loop detector, and a kill switch that stops a run mid-flight.',
+    icon: 'M12 8v4l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  },
+  {
+    title: 'Grounded answers',
+    body: 'Mark a lookup as required and the runtime withholds any answer the model gives before calling it.',
+    icon: 'M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z',
+  },
+  {
+    title: 'Usage and audit',
+    body: 'Tokens and cost on every model call, per customer and per agent. An append-only audit log of installs, config changes and runs.',
+    icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  },
+];
+---
+
+<Layout
+  title="plnt: ship one agent to many customers"
+  description="Open-source runtime for shipping one AI agent to many customers, each isolated, on any model, local or cloud."
+>
+  <section class="hero">
+    <div class="container">
+      <div class="eyebrow">Open source · Apache-2.0</div>
+      <h1>Ship one agent to 1,000 customers.</h1>
+      <p class="lead">
+        plnt runs the same agent for every customer you have, and keeps each one separate: its
+        own settings, secrets, data, model, budget and audit log. Build the agent once as a
+        bundle; install it per customer; run it on a hosted model or on their own hardware.
+      </p>
+      <div class="ctas">
+        <a class="btn primary" href="/playground">Try the playground</a>
+        <a class="btn" href="/docs/getting-started/quickstart/">Quickstart</a>
+        <a class="btn" href={repo} target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="install">
+        <pre><code is:raw><span class="c"># pre-alpha: install from source</span>
+pip install "git+https://github.com/plnt-work/plnt"
+plnt init hello-desk
+plnt run ./hello-desk "when are you open?" --config business_name=Acme</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <h2>Who it’s for</h2>
+      <p class="sub">
+        Agencies and SaaS teams who build an agent (a booking desk, a support desk, an intake
+        form) and then need to run it for dozens or thousands of businesses. The agent code is the
+        same every time. The per-customer part is what plnt handles.
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="copy">
+            <h3>Write the agent once</h3>
+            <p>A bundle is a folder: a manifest, a prompt with per-customer placeholders, a settings schema, and Python tools.</p>
+          </div>
+          <pre><code is:raw><span class="c"># tools/orders.py</span>
+<span class="k">from</span> plnt <span class="k">import</span> ToolContext, tool
+
+@tool
+<span class="k">def</span> lookup_order(order_id: str, ctx: ToolContext) -> dict:
+    <span class="s">"""Look up an order's status by id."""</span>
+    shop = ShopAPI(ctx.config[<span class="s">"shop_url"</span>], ctx.secret(<span class="s">"SHOP_API_KEY"</span>))
+    <span class="k">return</span> shop.order(order_id)</code></pre>
+        </div>
+        <div class="step">
+          <div class="copy">
+            <h3>Install it per customer</h3>
+            <p>Each customer gets a validated copy with their own settings, secrets and, if they want, their own model.</p>
+          </div>
+          <pre><code is:raw>plnt tenants create acme-shop
+plnt install order-desk --tenant acme-shop \
+  --config shop_url=https://acme.example --config tone=friendly
+
+curl -X PUT $API/v1/tenants/acme-shop/model -H "$KEY" \
+  -d '{"provider":"ollama","base_url":"http://acme-gpu:11434","model":"qwen2.5:7b"}'</code></pre>
+        </div>
+        <div class="step">
+          <div class="copy">
+            <h3>Serve it</h3>
+            <p>One HTTP API with streaming events, and a web console where you (or your customer, with their own key) watch conversations, usage and cost.</p>
+          </div>
+          <pre><code is:raw>plnt serve --port 8787            <span class="c"># API + console at /console</span>
+
+POST /v1/tenants/acme-shop/sessions            {"bundle": "order-desk"}
+POST /v1/tenants/acme-shop/sessions/:id/messages {"text": "where is 1042?"}
+GET  /v1/tenants/acme-shop/sessions/:id/stream   <span class="c"># live SSE events</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <h2>What every customer gets</h2>
+      <p class="sub">Enforced by the runtime, not left to each agent to get right.</p>
+      <div class="grid three">
+        {perTenant.map((f) => (
+          <div class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={f.icon} /></svg>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <h2>Small models make things up. plnt doesn’t pass it on.</h2>
+      <p class="sub">
+        From our CI, which runs a 1.5B-parameter local model (qwen2.5:1.5b on Ollama) against a
+        dental clinic’s FAQ agent. The FAQ says the clinic is open 8am to 4pm.
+      </p>
+      <div class="evidence">
+        <div class="row">
+          <div class="label">Without the guardrail</div>
+          <div>The model skipped the FAQ lookup and answered “Monday through Friday from 8:00 AM to <b>5:00 PM</b>”. <span class="pill bad">invented</span></div>
+        </div>
+        <div class="row">
+          <div class="label">With <code>require_tool</code></div>
+          <div>The runtime caught the skipped lookup and asked again. The model looked it up and answered “Monday through Friday from 8 AM to <b>4 PM</b>”. <span class="pill good">grounded</span></div>
+        </div>
+        <div class="row">
+          <div class="label">When it still refuses</div>
+          <div>For the bistro in the same run, the model skipped the lookup twice. The runtime withheld the answer rather than send an unverified one. <span class="pill warn">withheld</span></div>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:1rem;font-size:0.9rem">
+        One line in the bundle manifest: <code>require_tool = "lookup_faq"</code>.
+        <a href="/docs/guides/guardrails/">How it works →</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <h2>Local models, checked before you rely on them</h2>
+      <p class="sub">
+        <code>plnt models doctor</code> checks what an agent actually needs: that the server is up,
+        the model is pulled, it calls tools, it returns JSON, and the context window is big enough.
+        Failures come with the fix.
+      </p>
+      <div class="grid two">
+        <pre><code is:raw>$ plnt models doctor
+qwen2.5:1.5b  ollama · http://127.0.0.1:11434 · local
+  ✓ reachable       http://127.0.0.1:11434
+  ✓ model present   qwen2.5:1.5b
+  ✓ context window  requesting 8192 of 32768 tokens
+  ✓ tool calling    native; called get_weather(city='Paris')
+  ✓ JSON output     got {'answer': 42}</code></pre>
+        <pre><code is:raw>$ plnt run ./hello-desk "hi"
+✗ cannot reach Ollama at http://127.0.0.1:11434
+  fix: start it with `ollama serve` (or fix PLNT_LOCAL_URL)
+
+<span class="c"># no silent fallback to a canned answer: a model</span>
+<span class="c"># failure is reported as a failure, with the fix.</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <h2>Status</h2>
+      <p class="status">
+        Pre-alpha (0.1). The runtime, multi-tenant API, console, two example agents and the
+        guardrail are built and tested in CI, including against a real local model. Custom tool
+        code currently runs inside the server process, so only install bundles you trust;
+        sandboxed third-party tools, a hosted registry and a Postgres store are on the
+        <a href={`${repo}/blob/main/ROADMAP.md`}>roadmap</a>.
+      </p>
+    </div>
+  </section>
+</Layout>

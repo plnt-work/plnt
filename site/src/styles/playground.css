@@ -1,0 +1,95 @@
+.small { font-size: 0.85rem; }
+
+.pg {
+  display: grid;
+  grid-template-columns: 19rem minmax(0, 1fr) 22rem;
+  gap: 1rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.25rem var(--pad);
+  height: calc(100dvh - 3.5rem);
+  min-height: 34rem;
+}
+.pg h2 { font-size: 0.95rem; margin: 0 0 0.25rem; }
+.pg > * { min-height: 0; }
+
+.pg-tenants, .pg-trace {
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.pg-tenant { border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.8rem; margin-top: 0.75rem; }
+.pg-tenant.on { border-color: var(--accent); }
+.pg-tenant .name { font-weight: 600; }
+.agents { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+.chip {
+  font: inherit; font-size: 0.82rem; cursor: pointer;
+  border: 1px solid var(--line); background: var(--sunken); color: var(--ink);
+  border-radius: 999px; padding: 0.15rem 0.7rem;
+}
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+
+.pg-install { margin-top: 1rem; font-size: 0.88rem; }
+.pg-install summary { cursor: pointer; font-weight: 600; }
+.pg-config { margin: 0.5rem 0 0; }
+.pg-config > div { padding: 0.35rem 0; border-top: 1px solid var(--line); }
+.pg-config dt { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+.pg-config dd { margin: 0; overflow-wrap: anywhere; }
+.pg-config ul { margin: 0.2rem 0 0; padding-left: 1rem; }
+.pg-config li { margin-bottom: 0.25rem; }
+
+.pg-chat {
+  display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.pg-chat header {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--line);
+}
+.pg-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.pg-empty { margin: auto 0; text-align: center; }
+.pg-empty .agents { justify-content: center; }
+.msg { max-width: 80%; padding: 0.55rem 0.8rem; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); }
+.msg.agent { align-self: flex-start; background: var(--sunken); }
+.msg.pending { color: var(--muted); font-style: italic; }
+.msg.note { align-self: center; max-width: 95%; font-size: 0.85rem; background: var(--warn-soft); color: var(--warn); }
+.msg.note.run_error { background: var(--danger-soft); color: var(--danger); }
+.pg-notice { margin: 0 1rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: var(--danger-soft); color: var(--danger); font-size: 0.9rem; }
+.pg-composer { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--line); }
+.pg-composer input {
+  flex: 1; min-width: 0; font: inherit; height: 2.5rem; padding: 0 0.8rem;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink);
+}
+.pg-composer input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+button.btn { font: inherit; font-weight: 600; cursor: pointer; color: inherit; }
+button.btn.primary { color: var(--accent-ink); }
+.btn.danger { background: var(--danger); color: #fff; border-color: transparent; }
+
+.pg-trace ol { list-style: none; margin: 0.5rem 0 0; padding: 0; font-family: var(--font-mono); font-size: 0.74rem; }
+.pg-trace li { display: grid; grid-template-columns: 2rem 7.5rem minmax(0, 1fr); gap: 0.4rem; padding: 0.25rem 0; border-top: 1px solid var(--line); }
+.pg-trace .seq { color: var(--muted); }
+.pg-trace .kind { color: var(--accent); }
+.pg-trace .sum { overflow-wrap: anywhere; color: var(--ink-2); }
+.pg-trace li.k-guardrail .kind, .pg-trace li.k-killed .kind { color: var(--warn); }
+.pg-trace li.k-run_error .kind, .pg-trace li.k-model_error .kind { color: var(--danger); }
+.pg-limits { margin-top: 1rem; }
+
+.pg-offline, .pg-loading { max-width: 44rem; padding-top: 3rem; padding-bottom: 3rem; }
+.pg-offline pre { margin: 1rem 0; }
+.pg-offline a { color: var(--accent); }
+
+@media (max-width: 1100px) {
+  .pg { grid-template-columns: 17rem minmax(0, 1fr); height: auto; }
+  .pg-chat { height: 70dvh; }
+  .pg-trace { grid-column: 1 / -1; max-height: 24rem; }
+}
+@media (max-width: 720px) {
+  .pg { grid-template-columns: 1fr; }
+  .pg-tenants { max-height: none; }
+}
+.site-footer { margin-top: 1rem; }

@@ -1,0 +1,42 @@
+[meta]
+name = "booking-salon"
+version = "0.9.0"
+description = "Salon-flavored voice for the booking chain: service appointments via classify -> resolve -> availability -> confirm-then-book."
+tags = ["booking", "salon", "marketplace"]
+
+[runtime]
+model_hint = "small"
+tools = []
+max_steps = 1
+default_isolation = "process"
+
+[budget]
+tokens = 2_500
+wall_seconds = 15
+joules = 0
+
+[[requires.inputs]]
+name = "user_message"
+type = "string"
+description = "The user's most recent message"
+example = "haircut with Priya tomorrow afternoon"
+
+[[requires.inputs]]
+name = "trace"
+type = "list"
+description = "List of {role, output} from the micro-agents that ran this turn"
+example = "[{role: classify_intent, output: {...}}, ...]"
+
+[response_schema]
+type = "object"
+required = ["say"]
+additionalProperties = false
+
+[response_schema.properties.say]
+type = "string"
+
+[response_schema.properties.action]
+type = ["object", "null"]
+
+[graph]
+can_spawn = []

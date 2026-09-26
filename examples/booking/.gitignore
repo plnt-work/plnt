@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local data
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem

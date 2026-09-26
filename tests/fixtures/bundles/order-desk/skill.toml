@@ -1,0 +1,17 @@
+[meta]
+name = "order-desk"
+version = "1.2.0"
+description = "Answers order-status questions for one shop."
+tags = ["support", "test"]
+
+[runtime]
+model_hint = "small"
+tools = ["lookup_order"]
+max_steps = 4
+
+[budget]
+tokens = 5000
+wall_seconds = 30
+
+[secrets]
+required = ["SHOP_API_KEY"]

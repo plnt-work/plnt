@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "shop_name": {"type": "string", "minLength": 1},
+    "tone": {"type": "string", "enum": ["friendly", "formal"], "default": "friendly"}
+  },
+  "required": ["shop_name"],
+  "additionalProperties": false
+}

@@ -17,6 +17,7 @@ def test_sandbox_round_trip(isolated_home, tmp_path, monkeypatch):
     monkeypatch.delenv("PLNT_CLOUD_URL", raising=False)
     monkeypatch.delenv("PLNT_CLOUD_API_KEY", raising=False)
     monkeypatch.setenv("PLNT_LOCAL_URL", "http://127.0.0.1:1")
+    monkeypatch.setenv("PLNT_FORCE", "offline")
 
     (tmp_path / "src.txt").write_text("plnt is the personal local native twin\n")
     bb = Blackboard("r-st")
