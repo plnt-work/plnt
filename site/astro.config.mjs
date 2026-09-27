@@ -34,6 +34,7 @@ export default defineConfig({
             { label: 'Tools and ToolContext', slug: 'docs/guides/tools' },
             { label: 'Config and secrets', slug: 'docs/guides/config-secrets' },
             { label: 'Guardrails and budgets', slug: 'docs/guides/guardrails' },
+            { label: 'The parent and its agents', slug: 'docs/guides/parent' },
             { label: 'Local models', slug: 'docs/guides/local-models' },
             { label: 'Serve many customers', slug: 'docs/guides/multi-tenant' },
             { label: 'Web console', slug: 'docs/guides/console' },
@@ -45,6 +46,7 @@ export default defineConfig({
           items: [
             { label: 'HTTP API', slug: 'docs/reference/http-api' },
             { label: 'Events', slug: 'docs/reference/events' },
+            { label: 'Transcript', slug: 'docs/reference/transcript' },
             { label: 'skill.toml', slug: 'docs/reference/skill-toml' },
             { label: 'CLI', slug: 'docs/reference/cli' },
             { label: 'Environment variables', slug: 'docs/reference/env' },

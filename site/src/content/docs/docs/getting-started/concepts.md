@@ -22,6 +22,8 @@ description: Bundles, tenants, installs, sessions, runs and events.
 5. The agent loop runs, recording each step as an event. The loop stops on the answer, on `max_steps`, on the token or wall-clock budget, if the loop detector sees the same tool call repeated, or on a kill request.
 6. Token usage and cost are written to the tenant's usage table, and the run is recorded in its audit log.
 
+That is a session bound to one bundle. A session with **no bundle** puts the tenant's [parent](/docs/guides/parent/) in front: it decides per message which of the installed agents run, runs them (in parallel where they are independent), and merges their answers into one reply.
+
 ## Where things are stored
 
 ```

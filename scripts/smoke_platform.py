@@ -66,6 +66,23 @@ class FakeOllama(BaseHTTPRequestHandler):
             self._send({"message": {"role": "assistant", "content": text}, **usage})
             return
         question = [m for m in msgs if m["role"] == "user"][-1]["content"]
+        system = "\n".join(m["content"] for m in msgs if m["role"] == "system")
+        if "You are the parent agent" in system:
+            dec = {
+                "kind": "agents",
+                "reason": "the customer asked a question the FAQ covers",
+                "agents": [
+                    {
+                        "id": "support-desk",
+                        "role": "support-desk",
+                        "bundle": "support-desk",
+                        "intent": question.rsplit("Customer: ", 1)[-1],
+                        "depends_on": [],
+                    }
+                ],
+            }
+            self._send({"message": {"role": "assistant", "content": json.dumps(dec)}, **usage})
+            return
         self._send(
             {
                 "message": {

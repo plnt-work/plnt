@@ -24,6 +24,9 @@ await page.getByPlaceholder("Message as this tenant’s customer…").fill("When
 await page.getByRole("button", { name: "Send" }).click();
 await page.getByText("Tuesday to Sunday, 5pm to 11pm.", { exact: false }).last().waitFor({ timeout: 15000 });
 await page.getByText(/ok · \d+ tokens/).waitFor({ timeout: 15000 });
+// The dialog defaulted to the parent: it decided, spawned support-desk, and relayed its answer.
+await page.locator('[data-parent="agents"]').waitFor();
+await page.locator('[data-agent="support-desk"]').getByText("done").waitFor();
 await shot("2-conversation");
 
 await page.getByRole("tab", { name: "Agents" }).click();
@@ -39,6 +42,7 @@ await page.getByRole("dialog").waitFor({ state: "hidden" });
 
 await page.getByRole("tab", { name: "Conversations" }).click();
 await page.getByRole("button", { name: "New conversation" }).click();
+await page.getByRole("dialog").getByLabel("Who answers").selectOption("support-desk");
 await page.getByRole("dialog").getByRole("button", { name: "Start" }).click();
 await page.getByPlaceholder("Message as this tenant’s customer…").fill("Is there parking?");
 await page.getByRole("button", { name: "Send" }).click();
@@ -46,7 +50,8 @@ await page.getByText("Yes, free parking behind the restaurant.").last().waitFor(
 
 await page.getByRole("tab", { name: "Overview" }).click();
 await page.getByText("Usage by agent and model").waitFor();
-await page.getByText("fake:1b").waitFor({ timeout: 15000 });
+await page.getByText("fake:1b").first().waitFor({ timeout: 15000 });
+await page.getByRole("cell", { name: "parent" }).waitFor();
 await shot("4-overview-usage");
 await page.getByRole("tab", { name: "Settings" }).click();
 await shot("5-settings");

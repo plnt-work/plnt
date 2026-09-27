@@ -93,3 +93,40 @@ button.btn.primary { color: var(--accent-ink); }
   .pg-tenants { max-height: none; }
 }
 .site-footer { margin-top: 1rem; }
+
+/* Run view: one block per turn */
+.turn { display: flex; flex-direction: column; gap: 0.5rem; }
+.turn .reply { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.run-parent {
+  align-self: flex-start; font-size: 0.85rem;
+  border: 1px dashed var(--line); border-radius: 8px; padding: 0.35rem 0.7rem;
+}
+.run-plan { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; font-size: 0.8rem; }
+.run-plan .layer { display: flex; flex-direction: column; gap: 0.25rem; }
+.run-plan .arrow { color: var(--muted); }
+.run-plan .node { font-family: var(--font-mono); border: 1px solid var(--line); border-radius: 999px; padding: 0.05rem 0.6rem; color: var(--muted); }
+.run-plan .node.done { border-color: var(--accent); color: var(--accent); }
+.run-plan .node.failed { border-color: var(--danger); color: var(--danger); }
+.run-plan .node.killed { border-color: var(--warn); color: var(--warn); }
+.run-agents { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.5rem; }
+.run-agent { border: 1px solid var(--line); border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; background: var(--bg); }
+.run-agent.running { border-style: dashed; }
+.run-agent .head { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.run-agent .role { font-weight: 600; }
+.run-agent .status { margin-left: auto; font-size: 0.72rem; border-radius: 999px; padding: 0.05rem 0.5rem; background: var(--sunken); color: var(--muted); }
+.run-agent .status.done { background: var(--accent-soft); color: var(--accent); }
+.run-agent .status.failed { background: var(--danger-soft); color: var(--danger); }
+.run-agent .status.killed { background: var(--warn-soft); color: var(--warn); }
+.run-agent .intent { margin: 0.25rem 0 0; }
+.run-agent .spec { margin-top: 0.4rem; }
+.run-agent .spec summary, .run-agent .steps summary { cursor: pointer; color: var(--muted); }
+.run-agent .steps { margin: 0.4rem 0 0; padding-left: 1rem; }
+.run-agent .steps li.guardrail { color: var(--warn); list-style: none; margin-left: -1rem; }
+.run-agent .steps pre { margin: 0.25rem 0; font-size: 0.72rem; padding: 0.4rem 0.6rem; }
+.run-agent .answer { margin: 0.5rem 0 0; padding-top: 0.5rem; border-top: 1px solid var(--line); white-space: pre-wrap; }
+.run-agent p:last-child { margin-bottom: 0; }
+.run-meta { text-align: center; }
+.mono { font-family: var(--font-mono); font-size: 0.78rem; }
+.bad { color: var(--danger); }
+.chip.parent { border-style: dashed; }
+.msg.note.killed { background: var(--warn-soft); color: var(--warn); }

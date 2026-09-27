@@ -21,6 +21,21 @@ page.on('console', (m) => m.type() === 'error' && errors.push('console: ' + m.te
 await page.goto(`${site}/playground`);
 await page.getByText('Bright Smile Dental').first().waitFor();
 
+// 0. Parent mode (the default for a tenant with several agents): one message,
+//    two agents, one merged reply, and the run view shows all of it.
+await page.locator('.pg-tenant', { hasText: "Luigi's Bistro" }).getByRole('button', { name: 'parent' }).click();
+await page.getByLabel('Message').fill('Are you open on Saturday, and can I get a table for 2?');
+await page.getByRole('button', { name: 'Send' }).click();
+await page.locator('.run-parent[data-parent="agents"]').waitFor({ timeout: 15000 });
+await page.locator('.run-agent[data-agent="support-desk"].done').waitFor({ timeout: 20000 });
+await page.locator('.run-agent[data-agent="booking-desk"].done').waitFor({ timeout: 20000 });
+await page.locator('.reply .msg.agent', { hasText: 'Closed Mondays' }).waitFor({ timeout: 20000 });
+await page.getByText('merged by the parent').waitFor();
+for (const kind of ['parent_decision', 'agent_spawned', 'agent_finished']) {
+  if (!(await page.locator(`.pg-trace li.k-${kind}`).count())) await fail(`trace is missing ${kind}`);
+}
+await page.screenshot({ path: `${outDir}/playground-parent.png` });
+
 // 1. Dental: ask, get the grounded answer, see the trace.
 await page.locator('.pg-tenant', { hasText: 'Bright Smile Dental' }).getByRole('button', { name: 'support-desk' }).click();
 await page.getByLabel('Message').fill('When are you open?');

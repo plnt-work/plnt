@@ -142,6 +142,7 @@ export type RunEvent = {
   seq: number;
   ts: number;
   run_id: string;
+  agent_id: string;
   kind: string;
   payload: Record<string, unknown>;
 };

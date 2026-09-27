@@ -25,6 +25,8 @@ jobs:
       - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py registry/bundles setup.py
       - run: python scripts/smoke_platform.py
       - run: pytest -q
+      # The event fold is one file, shipped twice (console + site).
+      - run: cmp console/src/lib/transcript.ts site/src/lib/transcript.ts
 
   booking:
     name: examples/booking (pytest, Temporal in-process)
