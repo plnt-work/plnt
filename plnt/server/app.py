@@ -101,8 +101,17 @@ def create_app(
 ) -> FastAPI:
     store = store or TenantStore()
     if executor is None:
-        # `plnt dev` is a developer's own machine: the parent may invent roles.
-        executor = LocalExecutor(store, dynamic_roles=True if dev else None)
+        if playground:
+            # Anonymous visitors: invented roles on, no shell or writes unless
+            # explicitly enabled, and only the shipped demo workspaces.
+            executor = LocalExecutor(
+                store, dynamic_roles=True,
+                read_only=os.environ.get("PLNT_PLAYGROUND_EXECUTE") != "1",
+                allow_local_paths=False, allow_git=False,
+            )
+        else:
+            # `plnt dev` is a developer's own machine: the parent may invent roles.
+            executor = LocalExecutor(store, dynamic_roles=True if dev else None)
     admin_token = admin_token if admin_token is not None else os.environ.get("PLNT_ADMIN_TOKEN", "")
     app = FastAPI(title="plnt", version=__version__)
     app.state.store, app.state.executor, app.state.dev = store, executor, dev

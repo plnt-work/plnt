@@ -116,7 +116,7 @@ def test_tool_decorator_rejects_varargs():
 
 
 def test_registry_example_bundle_loads():
-    b = load_bundle(Path(__file__).parents[1] / "registry" / "bundles" / "support-desk")
+    b = load_bundle(Path(__file__).parents[1] / "examples" / "booking" / "bundles" / "support-desk")
     assert b.slug == "support-desk" and "lookup_faq" in b.tools
 
 

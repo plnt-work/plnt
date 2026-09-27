@@ -1,7 +1,8 @@
 """Public playground: anonymous visitors chat with real demo tenants.
 
-Enabled with `plnt serve --playground`. It seeds a few demo businesses, each
-with its own installed bundles and config, then exposes a narrow anonymous API:
+Enabled with `plnt serve --playground`. It seeds demo tenants, each bound to a
+sample workspace with the developer bundles installed, then exposes a narrow
+anonymous API:
 
   GET  /v1/playground                          demo tenants, their agents, limits
   POST /v1/playground/sessions                 {tenant, bundle?} -> {session_id, token}
@@ -11,9 +12,11 @@ with its own installed bundles and config, then exposes a narrow anonymous API:
   POST /v1/playground/sessions/{sid}/kill                       (token required)
 
 Guards: only seeded demo tenants are reachable; every session has its own
-capability token (HMAC), so visitors cannot read each other's conversations;
-per-IP rate limits; a global daily token cap; short messages only. No
-operator or tenant routes are opened by this module.
+capability token (HMAC), so visitors cannot read each other's sessions; each
+session works on its own copy of the demo workspace; the executor is
+read-only unless PLNT_PLAYGROUND_EXECUTE=1 (no shell, no writes); per-IP rate
+limits; a global daily token cap; short messages only. No operator or tenant
+routes are opened by this module.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ import hmac
 import json
 import os
 import secrets
+import shutil
 import threading
 import time
 from collections import defaultdict, deque
@@ -35,74 +39,52 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from plnt.bundles import catalog
-from plnt.bundles.bundle import BundleError
+from plnt.bundles.bundle import BUILTIN_TOOLS, READ_ONLY_TOOLS, BundleError
 from plnt.executors import LocalExecutor, SessionError
 from plnt.tenancy import installs
+from plnt.tenancy import workspace as ws
 from plnt.tenancy.tenants import TenantNotFound, TenantStore
 
-MAX_MESSAGE_CHARS = 500
+MAX_MESSAGE_CHARS = 1000
+WORKDIR_TTL_SECONDS = 24 * 3600
 
-_WEEK_HOURS = {
-    f"hours_{d}": "12:00-15:00, 18:00-22:30" for d in ("tue", "wed", "thu", "fri", "sat")
-}
-
+# Demo workspaces (demo/workspaces/<id>): small sample projects visitors can
+# point the parent and its agents at. Each demo tenant works on one of them.
 DEMO_TENANTS: list[dict[str, Any]] = [
     {
-        "id": "luigis-bistro",
-        "name": "Luigi's Bistro",
-        "blurb": "Italian restaurant. Takes table bookings and answers questions.",
+        "id": "notes-api",
+        "name": "notes-api",
+        "workspace": "demo:notes-api",
+        "blurb": "A small FastAPI notes service. No tests, a couple of real bugs.",
+        "tasks": [
+            "Explain how this project is put together.",
+            "Audit app/store.py and app/main.py for bugs.",
+            "Write tests for the notes store.",
+            "Review the API for authorization problems and write a changelog entry for the fixes.",
+        ],
         "installs": {
-            "booking-desk": {
-                "business_name": "Luigi's Bistro",
-                "handoff_contact": "hello@luigis.example",
-                "timezone": "Europe/Rome",
-                "tables_per_slot": 2,
-                "max_party_size": 6,
-                **_WEEK_HOURS,
-                "hours_sun": "12:00-15:00",
-            },
-            "support-desk": {
-                "business_name": "Luigi's Bistro",
-                "handoff_contact": "hello@luigis.example",
-                "faq": [
-                    {
-                        "q": "When are you open?",
-                        "a": "Tuesday to Saturday 12-3pm and 6-10:30pm, Sunday lunch 12-3pm. "
-                        "Closed Mondays.",
-                    },
-                    {
-                        "q": "Do you have vegan or gluten-free options?",
-                        "a": "Yes: a vegan risotto and gluten-free pasta on request.",
-                    },
-                    {
-                        "q": "Is there parking?",
-                        "a": "Free parking behind the restaurant, 12 spaces.",
-                    },
-                ],
-            },
+            "repo-explainer": {},
+            "code-reviewer": {"focus": "bugs"},
+            "test-writer": {"framework": "pytest"},
+            "changelog-writer": {},
         },
     },
     {
-        "id": "bright-smile-dental",
-        "name": "Bright Smile Dental",
-        "blurb": "Dental clinic. Answers patient questions from its own FAQ only.",
+        "id": "cli-tool",
+        "name": "cli-tool",
+        "workspace": "demo:cli-tool",
+        "blurb": "A command-line todo list with a date bug and one existing test.",
+        "tasks": [
+            "What does this tool do and how do I run it?",
+            "Find the bug in the date handling.",
+            "Add tests for todo/dates.py.",
+            "Review todo/cli.py for style and write release notes for 1.2.0.",
+        ],
         "installs": {
-            "support-desk": {
-                "business_name": "Bright Smile Dental",
-                "handoff_contact": "front-desk@brightsmile.example",
-                "tone": "formal",
-                "faq": [
-                    {"q": "When are you open?", "a": "Monday to Friday, 8am to 4pm."},
-                    {
-                        "q": "Do you take emergency patients?",
-                        "a": "Yes, call before 10am for a same-day emergency slot.",
-                    },
-                    {
-                        "q": "How much is a check-up?",
-                        "a": "A check-up with cleaning is $95 without insurance.",
-                    },
-                ],
-            },
+            "repo-explainer": {"audience": "new-contributor"},
+            "code-reviewer": {"focus": "all"},
+            "test-writer": {"framework": "pytest"},
+            "changelog-writer": {"style": "release-notes"},
         },
     },
 ]
@@ -120,6 +102,28 @@ def seed_demo(store: TenantStore) -> None:
             if slug not in bundles:
                 raise BundleError(f"playground needs bundle {slug!r} in the catalog")
             installs.install(tenant, bundles[slug], cfg)
+
+
+def sweep_workdirs(store: TenantStore, ttl: float = WORKDIR_TTL_SECONDS) -> int:
+    """Delete demo sessions' workspace copies older than `ttl`. Returns how many."""
+    cutoff = time.time() - ttl
+    removed = 0
+    for spec in DEMO_TENANTS:
+        try:
+            tenant = store.get(spec["id"])
+        except TenantNotFound:
+            continue
+        work = tenant.home / "work"
+        if not work.is_dir():
+            continue
+        for d in work.iterdir():
+            try:
+                if d.is_dir() and d.stat().st_mtime < cutoff:
+                    shutil.rmtree(d, ignore_errors=True)
+                    removed += 1
+            except OSError:
+                continue
+    return removed
 
 
 # ------------------------------------------------------------------ limits
@@ -215,28 +219,56 @@ def playground_router(
             agents = []
             for inst in installs.list_installed(tenant):
                 b = inst.load()
+                tools = list(b.manifest.runtime.tools)
+                if executor.read_only:
+                    tools = [t for t in tools if t in READ_ONLY_TOOLS or t not in BUILTIN_TOOLS]
                 agents.append(
                     {
                         "slug": inst.slug,
                         "version": inst.version,
                         "description": b.manifest.meta.description,
-                        "tools": b.manifest.runtime.tools,
+                        "tools": tools,
                         "require_tool": b.manifest.runtime.require_tool,
                         "config": inst.config,
                     }
                 )
+            name = spec["workspace"].removeprefix("demo:")
+            try:
+                root = ws.demo_root(name)
+                files = sum(1 for p in root.rglob("*") if p.is_file())
+            except ws.WorkspaceError:
+                files = 0
             out.append(
-                {"id": tenant.id, "name": tenant.name, "blurb": spec["blurb"], "agents": agents}
+                {
+                    "id": tenant.id,
+                    "name": tenant.name,
+                    "blurb": spec["blurb"],
+                    "workspace": {
+                        "name": name,
+                        "description": spec["blurb"],
+                        "file_count": files,
+                        "suggested_tasks": list(spec["tasks"]),
+                    },
+                    "agents": agents,
+                }
             )
         used = tokens_used_today()
+        try:
+            profile = store.get(DEMO_TENANTS[0]["id"]).model_profile("small").to_event()
+        except Exception:  # noqa: BLE001 — info must not fail because no model is set
+            profile = None
         return {
             "tenants": out,
             "parent": {
-                "description": "Start a session without a bundle and the tenant's parent "
-                "decides, per message, which of its agents run.",
-                "dynamic_roles": os.environ.get("PLNT_PARENT_DYNAMIC_ROLES", "").lower()
-                in ("1", "true", "yes"),
+                "description": "Start a session without a bundle and the workspace's parent "
+                "decides, per message, which agents run and what each one does.",
+                "dynamic_roles": executor.dynamic_roles,
             },
+            "execute_enabled": not executor.read_only,
+            "models": (
+                [{"id": profile["model"], "label": profile["model"],
+                  "provider": profile["provider"]}] if profile else []
+            ),
             "limits": {
                 "max_message_chars": MAX_MESSAGE_CHARS,
                 "messages_per_10min": limits.messages_per_10min,
@@ -249,11 +281,17 @@ def playground_router(
         if body.tenant not in demo_ids:
             raise HTTPException(404, "not a playground tenant")
         if not limiter.allow(_client_ip(request), "session", limits.sessions_per_10min, 600):
-            raise HTTPException(429, "too many new conversations; try again in a few minutes")
+            raise HTTPException(429, "too many new sessions; try again in a few minutes")
+        sweep_workdirs(store)
+        spec = next(t for t in DEMO_TENANTS if t["id"] == body.tenant)
         try:
-            sid = executor.start_session(body.tenant, body.bundle, user_id="playground")
+            sid = executor.start_session(
+                body.tenant, body.bundle, user_id="playground", workspace=spec["workspace"]
+            )
         except BundleError as e:
             raise HTTPException(404, str(e)) from None
+        except ws.WorkspaceError as e:
+            raise HTTPException(503, f"demo workspace unavailable: {e}") from None
         return {"session_id": f"{body.tenant}.{sid}", "token": token_for(body.tenant, sid)}
 
     @r.post("/sessions/{sid_full}/messages", status_code=202)

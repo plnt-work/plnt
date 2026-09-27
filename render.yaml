@@ -4,8 +4,10 @@
 # Gemini API key for PLNT_CLOUD_API_KEY: create a fresh key used only for
 # the playground, and give it a spend cap in Google Cloud.
 #
-# This is a demo server. It seeds two fictional businesses and opens the
-# anonymous /v1/playground API. Don't install real customers on it.
+# This is a demo server. It seeds two demo workspaces (small sample projects)
+# with the developer bundles installed and opens the anonymous /v1/playground
+# API. The executor is read-only there (no shell, no writes). Don't install
+# real tenants on it.
 # PLNT_ADMIN_TOKEN is deliberately unset, so operator routes answer 503.
 services:
   - type: web
@@ -21,6 +23,7 @@ services:
       paths:
         - plnt/**
         - registry/bundles/**
+        - demo/**
         - console/**
         - Dockerfile
         - pyproject.toml
@@ -43,10 +46,13 @@ services:
         value: "0.30"
       - key: PLNT_COST_OUT_PER_M
         value: "2.50"
-      # Hard cap across all visitors per day. At Flash prices, 1M tokens a day
-      # costs well under $1.
+      # Hard cap across all visitors per day. Agents that read files use more
+      # tokens than chat; at Flash prices 3M tokens a day is about $1.
       - key: PLNT_PLAYGROUND_DAILY_TOKENS
-        value: "1000000"
+        value: "3000000"
+      # Leave unset: visitors must not run programs on this server.
+      # - key: PLNT_PLAYGROUND_EXECUTE
+      #   value: "1"
       - key: PLNT_PLAYGROUND_ORIGINS
         value: https://plnt.work,https://www.plnt.work
       # Render's edge puts the real client IP first in X-Forwarded-For.

@@ -17,6 +17,7 @@ HTTPServer(("127.0.0.1", 11555), FakeOllama).serve_forever()
 PY
 fake=$!
 PLNT_LOCAL_URL=http://127.0.0.1:11555 PLNT_PLANNER_MODEL=fake:1b \
+  PLNT_BUNDLE_PATH="$root/examples/booking/bundles" \
   plnt dev support-desk --port 8791 \
   --config "business_name=Luigi's Bistro" --config handoff_contact=hi@luigis.example \
   --config-json 'faq=[{"q":"When are you open?","a":"Tuesday to Sunday, 5pm to 11pm."}]' &

@@ -189,12 +189,17 @@ def init_cmd(slug: str, parent: str) -> None:
 @click.option("--config", "config", multiple=True, help="key=value (repeatable).")
 @click.option("--config-json", "config_json", multiple=True, help="key=<json> (repeatable).")
 @click.option("--secret", "secrets", multiple=True, help="NAME=value, stored for the tenant.")
-def run_cmd(bundle, message, tenant, config, config_json, secrets) -> None:
+@click.option(
+    "--workspace", default="", metavar="SPEC",
+    help="What the agent works on: demo:<name>, a folder, or a git URL (copied first).",
+)
+def run_cmd(bundle, message, tenant, config, config_json, secrets, workspace) -> None:
     """Install BUNDLE (path or catalog slug) for a tenant and send it one message."""
     from plnt.bundles import BundleError
     from plnt.bundles.catalog import resolve
     from plnt.executors import LocalExecutor
     from plnt.tenancy import installs
+    from plnt.tenancy.workspace import WorkspaceError
 
     store = _store()
     t = _ensure_tenant(store, tenant)
@@ -206,8 +211,11 @@ def run_cmd(bundle, message, tenant, config, config_json, secrets) -> None:
         installs.install(t, b, _parse_config(config, config_json))
     except BundleError as e:
         _fail(str(e))
-    ex = LocalExecutor(store)
-    sid = ex.start_session(t.id, b.slug, user_id="cli")
+    ex = LocalExecutor(store, allow_git=True)
+    try:
+        sid = ex.start_session(t.id, b.slug, user_id="cli", workspace=workspace)
+    except WorkspaceError as e:
+        _fail(str(e))
     ex.send(t.id, sid, " ".join(message))
     seen = 0
     while True:

@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir build
 COPY pyproject.toml setup.py MANIFEST.in README.md LICENSE CHANGELOG.md ./
 COPY plnt/ plnt/
 COPY registry/bundles/ registry/bundles/
+COPY demo/workspaces/ demo/workspaces/
 COPY --from=console /src/plnt/server/console/ plnt/server/console/
 RUN python -m build --wheel --outdir /dist
 
