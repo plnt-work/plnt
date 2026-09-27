@@ -25,7 +25,9 @@ Routes (all under /v1):
   DELETE /tenants/{t}/secrets/{name}
   GET    /tenants/{t}/model           PUT {…} / DELETE      per-tenant model (BYO)
   GET    /tenants/{t}/model/health                  reachability + model present
-  POST   /tenants/{t}/sessions        {bundle, user_id?}    -> {session_id}
+  POST   /tenants/{t}/sessions        {bundle?, user_id?}   -> {session_id}
+                                      no bundle: the parent picks agents per message
+  GET    /tenants/{t}/sessions/{sid}/transcript             turns: parent decision, agents, reply
   GET    /tenants/{t}/sessions
   POST   /tenants/{t}/sessions/{sid}/messages {text}        -> {run_id}
   GET    /tenants/{t}/sessions/{sid}/events?after=N         JSON
@@ -79,7 +81,7 @@ class SecretBody(BaseModel):
 
 
 class SessionCreate(BaseModel):
-    bundle: str
+    bundle: str = ""  # empty: the parent picks agents per message
     user_id: str = ""
 
 
@@ -351,6 +353,13 @@ def create_app(
     ) -> dict[str, Any]:
         try:
             return {"events": executor.events_since(tenant.id, sid, after)}
+        except SessionError as e:
+            raise _bad(e, 404) from None
+
+    @app.get("/v1/tenants/{t}/sessions/{sid}/transcript")
+    def get_transcript(sid: str, tenant: Tenant = Depends(tenant_access)) -> dict[str, Any]:
+        try:
+            return executor.transcript(tenant.id, sid)
         except SessionError as e:
             raise _bad(e, 404) from None
 

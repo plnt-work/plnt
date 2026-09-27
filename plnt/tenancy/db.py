@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS events (
     run_id TEXT NOT NULL DEFAULT '',
     kind TEXT NOT NULL,
     payload TEXT NOT NULL,
+    agent_id TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (session_id, seq)
 );
 CREATE TABLE IF NOT EXISTS usage (
@@ -48,6 +49,13 @@ _LOCKS: dict[str, threading.Lock] = {}
 _LOCKS_GUARD = threading.Lock()
 
 
+def _session_row(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    # A session with no fixed bundle is run by the parent, which picks agents per message.
+    d["mode"] = "agent" if d.get("bundle") else "parent"
+    return d
+
+
 class TenantDB:
     def __init__(self, path: Path):
         self.path = path
@@ -55,6 +63,10 @@ class TenantDB:
             self._lock = _LOCKS.setdefault(str(path), threading.Lock())
         with self._conn() as c:
             c.executescript(_SCHEMA)
+            # Databases created before agent_id existed (0.1.0).
+            cols = {r["name"] for r in c.execute("PRAGMA table_info(events)")}
+            if "agent_id" not in cols:
+                c.execute("ALTER TABLE events ADD COLUMN agent_id TEXT NOT NULL DEFAULT ''")
 
     def _conn(self) -> sqlite3.Connection:
         c = sqlite3.connect(self.path, timeout=10)
@@ -75,14 +87,14 @@ class TenantDB:
     def session(self, sid: str) -> dict[str, Any] | None:
         with self._conn() as c:
             row = c.execute("SELECT * FROM sessions WHERE id = ?", (sid,)).fetchone()
-        return dict(row) if row else None
+        return _session_row(row) if row else None
 
     def sessions(self, limit: int = 100) -> list[dict[str, Any]]:
         with self._conn() as c:
             rows = c.execute(
                 "SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
-        return [dict(r) for r in rows]
+        return [_session_row(r) for r in rows]
 
     def set_status(self, sid: str, status: str) -> None:
         with self._lock, self._conn() as c:
@@ -90,23 +102,25 @@ class TenantDB:
 
     # ------------------------------------------------------------ events
 
-    def append(self, sid: str, kind: str, payload: dict[str, Any], run_id: str = "") -> int:
+    def append(
+        self, sid: str, kind: str, payload: dict[str, Any], run_id: str = "", agent_id: str = ""
+    ) -> int:
         with self._lock, self._conn() as c:
             row = c.execute(
                 "SELECT COALESCE(MAX(seq), 0) FROM events WHERE session_id = ?", (sid,)
             ).fetchone()
             seq = int(row[0]) + 1
             c.execute(
-                "INSERT INTO events (session_id, seq, ts, run_id, kind, payload) "
-                "VALUES (?,?,?,?,?,?)",
-                (sid, seq, time.time(), run_id, kind, json.dumps(payload, default=str)),
+                "INSERT INTO events (session_id, seq, ts, run_id, kind, payload, agent_id) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (sid, seq, time.time(), run_id, kind, json.dumps(payload, default=str), agent_id),
             )
         return seq
 
     def events_since(self, sid: str, after: int = 0, limit: int = 1000) -> list[dict[str, Any]]:
         with self._conn() as c:
             rows = c.execute(
-                "SELECT seq, ts, run_id, kind, payload FROM events "
+                "SELECT seq, ts, run_id, kind, payload, agent_id FROM events "
                 "WHERE session_id = ? AND seq > ? ORDER BY seq LIMIT ?",
                 (sid, after, limit),
             ).fetchall()
@@ -117,9 +131,18 @@ class TenantDB:
                 "run_id": r["run_id"],
                 "kind": r["kind"],
                 "payload": json.loads(r["payload"]),
+                "agent_id": r["agent_id"],
             }
             for r in rows
         ]
+
+    def transcript(self, sid: str) -> dict[str, Any]:
+        """The session as turns: what the user said, what the parent decided,
+        which agents ran and what they did, and the reply. See plnt.tenancy.transcript."""
+        from plnt.tenancy.transcript import build_transcript
+
+        session = self.session(sid) or {}
+        return build_transcript(session, self.events_since(sid, 0, limit=1_000_000))
 
     def history(self, sid: str) -> list[dict[str, Any]]:
         """Chat history (user + assistant turns) for building the next prompt."""

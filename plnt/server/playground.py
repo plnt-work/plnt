@@ -4,7 +4,8 @@ Enabled with `plnt serve --playground`. It seeds a few demo businesses, each
 with its own installed bundles and config, then exposes a narrow anonymous API:
 
   GET  /v1/playground                          demo tenants, their agents, limits
-  POST /v1/playground/sessions                 {tenant, bundle} -> {session_id, token}
+  POST /v1/playground/sessions                 {tenant, bundle?} -> {session_id, token}
+  GET  /v1/playground/sessions/{sid}/transcript?token=…         turns (see plnt.tenancy.transcript)
   POST /v1/playground/sessions/{sid}/messages  {text}          (token required)
   GET  /v1/playground/sessions/{sid}/stream?token=…             SSE (EventSource-friendly)
   POST /v1/playground/sessions/{sid}/kill                       (token required)
@@ -152,7 +153,7 @@ class PlaygroundLimits:
 
 class SessionCreate(BaseModel):
     tenant: str
-    bundle: str
+    bundle: str = ""  # empty: the tenant's parent picks agents per message
 
 
 class MessageBody(BaseModel):
@@ -230,6 +231,12 @@ def playground_router(
         used = tokens_used_today()
         return {
             "tenants": out,
+            "parent": {
+                "description": "Start a session without a bundle and the tenant's parent "
+                "decides, per message, which of its agents run.",
+                "dynamic_roles": os.environ.get("PLNT_PARENT_DYNAMIC_ROLES", "").lower()
+                in ("1", "true", "yes"),
+            },
             "limits": {
                 "max_message_chars": MAX_MESSAGE_CHARS,
                 "messages_per_10min": limits.messages_per_10min,
@@ -276,6 +283,12 @@ def playground_router(
 
         threading.Thread(target=account, daemon=True).start()
         return {"run_id": run_id}
+
+    @r.get("/sessions/{sid_full}/transcript")
+    def transcript(sid_full: str, token: str = "") -> dict[str, Any]:
+        tenant, sid = split(sid_full)
+        check(tenant, sid, token)
+        return executor.transcript(tenant, sid)
 
     @r.post("/sessions/{sid_full}/kill")
     def kill(sid_full: str, token: str = "") -> dict[str, bool]:
