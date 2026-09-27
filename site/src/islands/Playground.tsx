@@ -29,10 +29,15 @@ const PROMPTS: Record<string, string[]> = {
   'booking-desk': ['Table for 2 this Saturday at 7:30pm?', 'Can 10 of us come Friday?', 'Cancel my booking'],
 };
 
+// The hosted playground server (render.yaml). Used when the build has no
+// PUBLIC_PLNT_PLAYGROUND_URL and the page is not served from this machine.
+const HOSTED_API = 'https://plnt.onrender.com';
+
 function apiBase(): string {
   const q = new URLSearchParams(window.location.search).get('api');
   const env = (import.meta.env.PUBLIC_PLNT_PLAYGROUND_URL as string | undefined) ?? '';
-  return (q || env || 'http://localhost:8787').replace(/\/+$/, '');
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+  return (q || env || (local ? 'http://localhost:8787' : HOSTED_API)).replace(/\/+$/, '');
 }
 
 async function errText(r: Response): Promise<string> {
