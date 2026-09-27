@@ -133,5 +133,7 @@ def build_transcript(session: dict[str, Any], events: list[dict[str, Any]]) -> d
         "mode": session.get("mode", "agent" if session.get("bundle") else "parent"),
         "bundle": session.get("bundle") or None,
         "user_id": session.get("user_id", ""),
+        "title": session.get("title", ""),
+        "workspace": session.get("workspace", ""),
         "turns": turns,
     }

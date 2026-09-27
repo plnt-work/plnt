@@ -9,6 +9,26 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
+### Added
+
+- Sessions can be bound to a **workspace**: `demo:<name>`, a local folder, or a git URL.
+  A private copy lands in the session's working folder and that is what the agents
+  work on. `POST /v1/tenants/{t}/sessions` takes `workspace`; sessions carry `title`
+  (the first message), `workspace` and `workspace_kind`.
+- Built-in tools `list_files`, `read_file` and `write_file` next to `search` and
+  `execute`; bundles name them in `[runtime] tools`. `ToolContext.workdir` gives a
+  bundle's own tools the same folder.
+- Four developer bundles: `code-reviewer`, `test-writer`, `repo-explainer`,
+  `changelog-writer`.
+- Executor policy: `read_only` (strips `write_file`/`execute`), `allow_local_paths`,
+  `allow_git`, `dynamic_roles`; `plnt dev` turns invented roles on.
+
+### Changed
+
+- The parent's prompts talk about a user and a workspace, not a customer and a
+  business. `decide()`/`synthesize()` take `context=` instead of `business=`.
+- The bundle catalog no longer scans the legacy `skills/` folder.
+
 ### Fixed
 
 - OpenAI-compatible calls retry temporary server errors (429, 500, 502, 503, 504) twice,

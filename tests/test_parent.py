@@ -57,10 +57,10 @@ def test_decide_sends_specialists_and_records_usage():
         content=plan, usage=Usage(30, 10), provider="scripted", model="m"))
     history = [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "Hello"}]
     d = parent.decide(prov, text="table for 2", history=history, specialists=SPECS,
-                      business="Luigi's", emit=lambda k, **p: seen.append((k, p)))
+                      context="Luigi's", emit=lambda k, **p: seen.append((k, p)))
     sys_prompt = prov.calls[0]["messages"][0]["content"]
     assert "booking-desk" in sys_prompt and "Luigi's" in sys_prompt and "invent" not in sys_prompt
-    assert "Customer: hi" in prov.calls[0]["messages"][1]["content"]
+    assert "User: hi" in prov.calls[0]["messages"][1]["content"]
     assert prov.calls[0]["response_schema"] is not None
     assert d.agents[0].bundle == "booking-desk"
     assert [k for k, _ in seen] == ["model_call", "model_result"] and seen[1][1]["tokens"] == 40

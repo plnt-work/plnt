@@ -20,7 +20,10 @@ CREATE TABLE IF NOT EXISTS sessions (
     bundle TEXT NOT NULL,
     user_id TEXT NOT NULL DEFAULT '',
     created_at REAL NOT NULL,
-    status TEXT NOT NULL DEFAULT 'idle'
+    status TEXT NOT NULL DEFAULT 'idle',
+    title TEXT NOT NULL DEFAULT '',
+    workspace TEXT NOT NULL DEFAULT '',
+    workspace_kind TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS events (
     session_id TEXT NOT NULL,
@@ -67,6 +70,10 @@ class TenantDB:
             cols = {r["name"] for r in c.execute("PRAGMA table_info(events)")}
             if "agent_id" not in cols:
                 c.execute("ALTER TABLE events ADD COLUMN agent_id TEXT NOT NULL DEFAULT ''")
+            scols = {r["name"] for r in c.execute("PRAGMA table_info(sessions)")}
+            for col in ("title", "workspace", "workspace_kind"):
+                if col not in scols:
+                    c.execute(f"ALTER TABLE sessions ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
 
     def _conn(self) -> sqlite3.Connection:
         c = sqlite3.connect(self.path, timeout=10)
@@ -75,14 +82,28 @@ class TenantDB:
 
     # ------------------------------------------------------------ sessions
 
-    def create_session(self, bundle: str, user_id: str = "") -> str:
-        sid = "s_" + uuid.uuid4().hex[:16]
+    def create_session(
+        self, bundle: str, user_id: str = "", workspace: str = "", workspace_kind: str = ""
+    ) -> str:
+        return self.create_session_with_id(
+            "s_" + uuid.uuid4().hex[:16], bundle, user_id, workspace, workspace_kind
+        )
+
+    def create_session_with_id(
+        self, sid: str, bundle: str, user_id: str = "", workspace: str = "",
+        workspace_kind: str = "",
+    ) -> str:
         with self._lock, self._conn() as c:
             c.execute(
-                "INSERT INTO sessions (id, bundle, user_id, created_at) VALUES (?,?,?,?)",
-                (sid, bundle, user_id, time.time()),
+                "INSERT INTO sessions (id, bundle, user_id, created_at, workspace, workspace_kind)"
+                " VALUES (?,?,?,?,?,?)",
+                (sid, bundle, user_id, time.time(), workspace, workspace_kind),
             )
         return sid
+
+    def set_title(self, sid: str, title: str) -> None:
+        with self._lock, self._conn() as c:
+            c.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, sid))
 
     def session(self, sid: str) -> dict[str, Any] | None:
         with self._conn() as c:

@@ -1,0 +1,15 @@
+[meta]
+name = "test-writer"
+version = "0.1.0"
+description = "Writes tests for the code in a workspace, in the project's own framework, and runs them when it can."
+tags = ["code", "tests", "developer"]
+
+[runtime]
+model_hint = "small"
+tools = ["list_files", "read_file", "search", "write_file", "execute"]
+require_tool = "read_file"
+max_steps = 12
+
+[budget]
+tokens = 40000
+wall_seconds = 240

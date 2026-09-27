@@ -84,6 +84,8 @@ export type Transcript = {
   mode: "parent" | "agent";
   bundle: string | null;
   user_id: string;
+  title: string;
+  workspace: string;
   turns: Turn[];
 };
 

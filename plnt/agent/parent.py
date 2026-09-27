@@ -101,12 +101,13 @@ DECISION_SCHEMA: dict[str, Any] = {
 
 
 def decision_prompt(
-    business: str, specialists: list[Specialist], dynamic_roles: bool
+    context: str, specialists: list[Specialist], dynamic_roles: bool
 ) -> str:
     lines = [
-        f"You are the parent agent for {business}. You do not answer customers "
-        "yourself, except for small talk. You decide which agents handle each "
-        "message; the agents do the work with their own tools.",
+        f"You are the parent agent for {context}. You do not do the work yourself, "
+        "except for small talk. You read each message from the user and decide which "
+        "agents handle it; the agents do the work with their own tools, each on its "
+        "own part.",
         "",
         "Installed agents (specialists):",
     ]
@@ -121,12 +122,12 @@ def decision_prompt(
         '- "chat": the message needs no work (greeting, thanks, asking what you can '
         'do). Put a short friendly reply in "reply". For "what can you do", describe '
         "what the installed agents handle.",
-        '- "clarify": no agent can even start without something only the customer '
+        '- "clarify": no agent can even start without something only the user '
         'can supply. Put one pointed question in "reply". Do not clarify details an '
-        "agent can ask for itself.",
+        "agent can find out itself (by reading the workspace, for example).",
         f'- "agents": run 1 to {MAX_AGENTS} agents. Use a specialist for anything it '
         'covers; set "bundle" to its slug and "role" to the same slug. Give each agent '
-        "a focused \"intent\" in the customer's words. Agents without dependencies run "
+        "a focused \"intent\" in the user's words. Agents without dependencies run "
         'in parallel; set "depends_on" (ids) when one needs another\'s result.',
     ]
     if dynamic_roles:
@@ -134,8 +135,10 @@ def decision_prompt(
             "",
             "If no specialist covers part of the request, you may invent a "
             'single-purpose role: {"id": "kebab-id", "role": "kebab-name", "bundle": '
-            'null, "intent": "..."}. An invented role can only read and run commands '
-            "inside this conversation's working folder.",
+            'null, "intent": "..."}. An invented role gets the built-in file tools '
+            "over this session's working folder (the workspace) and nothing else. "
+            "Split big tasks by concern (one agent per module, per question, per "
+            "deliverable), not by step.",
         ]
     else:
         lines += [
@@ -239,7 +242,7 @@ def _history_block(history: list[dict[str, Any]], limit: int = 6) -> str:
         return ""
     out = ["Conversation so far (oldest first):"]
     for m in turns:
-        who = "Customer" if m["role"] == "user" else "Reply"
+        who = "User" if m["role"] == "user" else "Reply"
         out.append(f"  {who}: {str(m.get('content', ''))[:600]}")
     return "\n".join(out) + "\n\n"
 
@@ -250,14 +253,14 @@ def decide(
     text: str,
     history: list[dict[str, Any]],
     specialists: list[Specialist],
-    business: str = "this business",
+    context: str = "this workspace",
     dynamic_roles: bool = False,
     emit=None,
     timeout: float | None = None,
 ) -> Decision:
     """One model call: chat, clarify, or a plan of agents."""
-    system = decision_prompt(business, specialists, dynamic_roles)
-    user = _history_block(history) + f"Customer: {text}"
+    system = decision_prompt(context, specialists, dynamic_roles)
+    user = _history_block(history) + f"User: {text}"
     if emit:
         emit("model_call", step=1, provider=provider.name, model=provider.model,
              purpose="decide")
@@ -276,7 +279,7 @@ def synthesize(
     *,
     text: str,
     results: list[tuple[AgentPlan, dict[str, Any]]],
-    business: str = "this business",
+    context: str = "this workspace",
     emit=None,
     timeout: float | None = None,
 ) -> str:
@@ -289,13 +292,14 @@ def synthesize(
             parts.append(f"[{plan.role}] failed: {res['error']}")
     fallback = "\n\n".join(parts) or "(no agent produced an answer)"
     system = (
-        f"You write the single reply a customer of {business} sees. Several agents "
-        "handled parts of their message; merge their results into one short, direct "
-        "reply in the same language as the customer. Keep every concrete fact, "
-        "reference number and time exactly as the agents gave them. Never add facts "
-        "of your own. If an agent failed, say what could not be done."
+        f"You write the single reply the user sees, for {context}. Several agents "
+        "handled parts of their request; merge their results into one direct reply in "
+        "the same language as the user, with a short heading per part when that "
+        "helps. Keep every concrete fact, path, line number and finding exactly as "
+        "the agents gave them. Never add facts of your own. If an agent failed, say "
+        "what could not be done."
     )
-    user = f"Customer's message: {text}\n\nAgent results:\n" + json.dumps(
+    user = f"User's request: {text}\n\nAgent results:\n" + json.dumps(
         [
             {
                 "agent": p.role,

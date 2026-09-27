@@ -32,8 +32,25 @@ class ToolDef:
         }
 
 
+READ_FILE_MAX_BYTES = 64 * 1024
+_SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache",
+                        ".pytest_cache", "dist", "build", ".ruff_cache"})
+
+
+def _inside(workdir: Path, allowed_roots: list[Path], raw: str) -> Path:
+    """Resolve `raw` (relative to the workdir) and refuse anything outside the roots."""
+    from plnt.execution.tools.search import _resolve_inside
+
+    p = Path(str(raw or ".")).expanduser()
+    if not p.is_absolute():
+        p = workdir / p
+    return _resolve_inside(p, allowed_roots)
+
+
 def filesystem_tools(workdir: Path, allowed_roots: list[Path]) -> dict[str, ToolDef]:
-    """The two built-in tools: `search` (grep) and `execute` (bounded argv)."""
+    """The built-in tools every bundle may name: `search`, `list_files`,
+    `read_file`, `write_file` and `execute`. All of them stay inside the
+    allowed roots (the session's working folder, normally)."""
     from plnt.execution.tools import execute, search
 
     def _search(args: dict[str, Any]) -> Any:
@@ -64,7 +81,112 @@ def filesystem_tools(workdir: Path, allowed_roots: list[Path]) -> dict[str, Tool
         )
         return res.__dict__
 
+    def _list_files(args: dict[str, Any]) -> Any:
+        root = _inside(workdir, allowed_roots, str(args.get("path") or "."))
+        depth = max(1, min(int(args.get("depth", 2)), 6))
+        if not root.is_dir():
+            return {"error": f"{args.get('path') or '.'} is not a directory"}
+        out: list[dict[str, Any]] = []
+        base_depth = len(root.parts)
+
+        def walk(d: Path) -> None:
+            if len(out) >= 400:
+                return
+            try:
+                entries = sorted(d.iterdir(), key=lambda e: (not e.is_dir(), e.name))
+            except OSError:
+                return
+            for e in entries:
+                if e.name in _SKIP_DIRS or e.name.startswith(".git"):
+                    continue
+                rel = e.relative_to(root).as_posix()
+                if e.is_dir():
+                    out.append({"path": rel + "/", "dir": True})
+                    if len(e.parts) - base_depth < depth:
+                        walk(e)
+                else:
+                    try:
+                        size = e.stat().st_size
+                    except OSError:
+                        size = 0
+                    out.append({"path": rel, "size": size})
+
+        walk(root)
+        return {"root": root.relative_to(workdir.resolve()).as_posix() if root != workdir.resolve()
+                else ".", "entries": out, "truncated": len(out) >= 400}
+
+    def _read_file(args: dict[str, Any]) -> Any:
+        p = _inside(workdir, allowed_roots, str(args.get("path") or ""))
+        if not p.is_file():
+            return {"error": f"{args.get('path')} is not a file"}
+        data = p.read_bytes()[: READ_FILE_MAX_BYTES + 1]
+        truncated = len(data) > READ_FILE_MAX_BYTES
+        text = data[:READ_FILE_MAX_BYTES].decode("utf-8", errors="replace")
+        lines = text.splitlines()
+        start = max(1, int(args.get("start") or 1))
+        end = args.get("end")
+        end_i = min(len(lines), int(end)) if end else len(lines)
+        body = "\n".join(f"{i}: {ln}" for i, ln in enumerate(lines[start - 1:end_i], start))
+        return {"path": args.get("path"), "lines": len(lines), "start": start, "end": end_i,
+                "truncated": truncated, "content": body}
+
+    def _write_file(args: dict[str, Any]) -> Any:
+        p = _inside(workdir, allowed_roots, str(args.get("path") or ""))
+        content = str(args.get("content") or "")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        existed = p.exists()
+        p.write_text(content, encoding="utf-8")
+        return {"path": args.get("path"), "bytes": len(content.encode()), "created": not existed}
+
     return {
+        "list_files": ToolDef(
+            name="list_files",
+            description=(
+                "List files and folders under a path in your workdir (default '.'), "
+                "`depth` levels deep (default 2). Returns {entries: [{path, size|dir}]}."
+            ),
+            fn=_list_files,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Folder, relative. Default '.'."},
+                    "depth": {"type": "integer", "description": "Levels to descend (1-6)."},
+                },
+            },
+        ),
+        "read_file": ToolDef(
+            name="read_file",
+            description=(
+                "Read a text file in your workdir, numbered lines. Optional `start`/`end` "
+                "line range. Files over 64 KB are cut."
+            ),
+            fn=_read_file,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path, relative."},
+                    "start": {"type": "integer", "description": "First line (1-based)."},
+                    "end": {"type": "integer", "description": "Last line, inclusive."},
+                },
+                "required": ["path"],
+            },
+        ),
+        "write_file": ToolDef(
+            name="write_file",
+            description=(
+                "Create or overwrite a text file in your workdir with `content`. "
+                "Parent folders are created."
+            ),
+            fn=_write_file,
+            parameters={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path, relative."},
+                    "content": {"type": "string", "description": "Whole file content."},
+                },
+                "required": ["path", "content"],
+            },
+        ),
         "search": ToolDef(
             name="search",
             description=(

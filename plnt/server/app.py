@@ -59,6 +59,7 @@ from plnt.executors import LocalExecutor, SessionError
 from plnt.models import ModelError, get_provider
 from plnt.tenancy import installs
 from plnt.tenancy.tenants import Tenant, TenantError, TenantNotFound, TenantStore
+from plnt.tenancy.workspace import WorkspaceError
 
 
 class TenantCreate(BaseModel):
@@ -83,6 +84,7 @@ class SecretBody(BaseModel):
 class SessionCreate(BaseModel):
     bundle: str = ""  # empty: the parent picks agents per message
     user_id: str = ""
+    workspace: str = ""  # demo:<name>, a local path, or a git URL (server policy applies)
 
 
 class MessageBody(BaseModel):
@@ -98,7 +100,9 @@ def create_app(
     playground: bool = False,
 ) -> FastAPI:
     store = store or TenantStore()
-    executor = executor or LocalExecutor(store)
+    if executor is None:
+        # `plnt dev` is a developer's own machine: the parent may invent roles.
+        executor = LocalExecutor(store, dynamic_roles=True if dev else None)
     admin_token = admin_token if admin_token is not None else os.environ.get("PLNT_ADMIN_TOKEN", "")
     app = FastAPI(title="plnt", version=__version__)
     app.state.store, app.state.executor, app.state.dev = store, executor, dev
@@ -328,9 +332,13 @@ def create_app(
         body: SessionCreate, tenant: Tenant = Depends(tenant_access)
     ) -> dict[str, str]:
         try:
-            sid = executor.start_session(tenant.id, body.bundle, body.user_id)
+            sid = executor.start_session(
+                tenant.id, body.bundle, body.user_id, workspace=body.workspace
+            )
         except BundleError as e:
             raise _bad(e, 409) from None
+        except WorkspaceError as e:
+            raise _bad(e, 422) from None
         return {"session_id": sid}
 
     @app.get("/v1/tenants/{t}/sessions")

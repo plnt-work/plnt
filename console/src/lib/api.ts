@@ -133,9 +133,13 @@ export type TenantDetail = TenantSummary & {
 export type Session = {
   id: string;
   bundle: string;
+  mode: "agent" | "parent";
   user_id: string;
   created_at: number;
   status: "idle" | "running";
+  title: string;
+  workspace: string;
+  workspace_kind: "" | "demo" | "path" | "git";
 };
 
 export type RunEvent = {

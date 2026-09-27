@@ -30,16 +30,18 @@ import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from plnt.agent import ToolDef, filesystem_tools, run_agent
 from plnt.agent import parent as parent_agent
 from plnt.agent.parent import AgentPlan, ParentError, Specialist
-from plnt.bundles.bundle import Bundle, BundleError
+from plnt.bundles.bundle import READ_ONLY_TOOLS, Bundle, BundleError
 from plnt.bundles.sdk import ToolContext
 from plnt.control.acc import ACCMonitor
 from plnt.models import ModelError, ModelProfile, ModelProvider, get_provider
 from plnt.tenancy import installs
+from plnt.tenancy import workspace as ws
 from plnt.tenancy.db import TenantDB
 from plnt.tenancy.tenants import Tenant, TenantError, TenantStore
 
@@ -96,23 +98,78 @@ class _AgentSpec:
         }
 
 
+def _env_flag(name: str, default: bool) -> bool:
+    v = os.environ.get(name, "").strip().lower()
+    if not v:
+        return default
+    return v in ("1", "true", "yes", "on")
+
+
 def dynamic_roles_allowed() -> bool:
-    """May the parent invent roles beyond the installed bundles? Off by default:
-    an invented role gets shell access to the session's working folder."""
-    return os.environ.get("PLNT_PARENT_DYNAMIC_ROLES", "").lower() in ("1", "true", "yes")
+    """May the parent invent roles beyond the installed bundles? Off by default
+    for a plain server: an invented role can read (and, unless the executor is
+    read-only, change and run things in) the session's working folder."""
+    return _env_flag("PLNT_PARENT_DYNAMIC_ROLES", False)
+
+
+def _title_from(text: str) -> str:
+    """A session's title: the first line of its first message, shortened."""
+    line = next((ln.strip() for ln in text.strip().splitlines() if ln.strip()), "")
+    return line if len(line) <= 80 else line[:77].rstrip() + "…"
+
+
+def _context_for(tenant: Tenant, session: dict[str, Any]) -> str:
+    """What the parent is told it works for/on."""
+    who = tenant.name or tenant.id
+    w = session.get("workspace")
+    return f"{who}, workspace {w!r}" if w else who
 
 
 class LocalExecutor:
+    """Runs sessions for tenants in this process.
+
+    Policy knobs (constructor first, then environment, then the default):
+      dynamic_roles     the parent may invent roles       PLNT_PARENT_DYNAMIC_ROLES  off
+      read_only         strip write_file/execute          PLNT_READ_ONLY             off
+      allow_local_paths a session may copy a local folder PLNT_WORKSPACE_PATHS       on
+      allow_git         a session may clone a git URL     PLNT_WORKSPACE_GIT         off
+    """
+
     def __init__(
         self,
         store: TenantStore | None = None,
         provider_factory: Callable[[ModelProfile], ModelProvider] | None = None,
+        *,
+        dynamic_roles: bool | None = None,
+        read_only: bool | None = None,
+        allow_local_paths: bool | None = None,
+        allow_git: bool | None = None,
     ):
         self.store = store or TenantStore()
         # Injectable for tests; defaults to the real providers.
         self.provider_factory = provider_factory or get_provider
         self._runs: dict[tuple[str, str], _RunState] = {}
         self._lock = threading.Lock()
+        self.dynamic_roles = (
+            dynamic_roles if dynamic_roles is not None else dynamic_roles_allowed()
+        )
+        self.read_only = read_only if read_only is not None else _env_flag("PLNT_READ_ONLY", False)
+        self.allow_local_paths = (
+            allow_local_paths if allow_local_paths is not None
+            else _env_flag("PLNT_WORKSPACE_PATHS", True)
+        )
+        self.allow_git = (
+            allow_git if allow_git is not None else _env_flag("PLNT_WORKSPACE_GIT", False)
+        )
+
+    def _builtin_tools(self, workdir: Path, names: list[str] | None = None) -> list[ToolDef]:
+        """The built-in tools `names` (all when None), minus what read-only
+        mode forbids."""
+        builtin = filesystem_tools(workdir, [workdir])
+        wanted = list(names) if names is not None else list(builtin)
+        if self.read_only:
+            wanted = [n for n in wanted if n in READ_ONLY_TOOLS]
+        return [builtin[n] for n in wanted if n in builtin]
 
     # ------------------------------------------------------------ helpers
 
@@ -127,17 +184,32 @@ class LocalExecutor:
 
     # ------------------------------------------------------------ API
 
-    def start_session(self, tenant_id: str, bundle: str = "", user_id: str = "") -> str:
-        """Open a conversation. With `bundle`, that one agent answers every
-        message; without it, the parent picks agents per message."""
+    def start_session(
+        self, tenant_id: str, bundle: str = "", user_id: str = "", workspace: str = ""
+    ) -> str:
+        """Open a session. With `bundle`, that one agent answers every message;
+        without it, the parent picks agents per message. With `workspace`
+        (demo:<name>, a local path, or a git URL), a private copy is put in the
+        session's working folder first, and that is what the agents work on."""
         tenant = self.store.get(tenant_id)
         if bundle:
             installs.active(tenant, bundle)  # raises if not installed / disabled
         elif not any(i.enabled for i in installs.list_installed(tenant)):
             raise BundleError(f"tenant {tenant_id!r} has no enabled agents to run")
-        sid = self.db(tenant).create_session(bundle, user_id)
+        info = None
+        sid = "s_" + uuid.uuid4().hex[:16]
+        if workspace:
+            info = ws.materialize(
+                workspace, tenant.workdir(sid),
+                allow_paths=self.allow_local_paths, allow_git=self.allow_git,
+            )
+        self.db(tenant).create_session_with_id(
+            sid, bundle, user_id,
+            workspace=info.name if info else "", workspace_kind=info.kind if info else "",
+        )
         tenant.audit("session.started", session_id=sid, bundle=bundle or None,
-                     mode="agent" if bundle else "parent", user_id=user_id)
+                     mode="agent" if bundle else "parent", user_id=user_id,
+                     workspace=info.source if info else None)
         return sid
 
     def send(self, tenant_id: str, sid: str, text: str, *, wait: bool = False) -> str:
@@ -191,8 +263,7 @@ class LocalExecutor:
         self, tenant: Tenant, sid: str, bundle: Bundle, config: dict[str, Any]
     ) -> list[ToolDef]:
         workdir = tenant.workdir(sid)
-        builtin = filesystem_tools(workdir, [workdir])
-        out = [builtin[n] for n in bundle.builtin_tools]
+        out = self._builtin_tools(workdir, bundle.builtin_tools)
         data_dir = tenant.home / "data" / bundle.slug
         data_dir.mkdir(parents=True, exist_ok=True)
         ctx = ToolContext(
@@ -202,6 +273,7 @@ class LocalExecutor:
             config=dict(config),
             _secrets=tenant.secret_values(),
             data_dir=data_dir,
+            workdir=workdir,
         )
         for spec in bundle.tools.values():
             out.append(
@@ -245,21 +317,26 @@ class LocalExecutor:
     def _spec_for_role(
         self, tenant: Tenant, sid: str, plan: AgentPlan
     ) -> _AgentSpec:
-        """An invented role: the parent's persona, search + execute in the
-        session's working folder, default budget."""
+        """An invented role: a single-purpose agent with the built-in file tools
+        over the session's working folder and the default budget."""
         workdir = tenant.workdir(sid)
-        builtin = filesystem_tools(workdir, [workdir])
+        tools = self._builtin_tools(workdir)
+        names = ", ".join(t.name for t in tools)
         system = (
-            f"You are {plan.role}, a single-purpose agent created by the parent for one "
-            "task. You can search files and run commands inside your working folder "
-            "only. Do the task, then answer with what you found or did, briefly."
+            f"You are {plan.role}, a single-purpose agent the parent created for one "
+            f"part of a larger task. Your tools ({names}) work inside the session's "
+            "working folder only. Look before you answer: list or search, then read "
+            "the files you talk about, and cite them as path:line. Do exactly the part "
+            "you were given, then answer briefly with what you found or changed."
+            + (" You cannot run programs or write files here; say so if the task needs it."
+               if self.read_only else "")
         )
         return _AgentSpec(
             id=plan.id,
             role=plan.role,
             intent=plan.intent,
             system=system,
-            tools=list(builtin.values()),
+            tools=tools,
             profile=tenant.model_profile("small"),
             max_steps=int(os.environ.get("PLNT_AGENT_MAX_STEPS", "6")),
             tokens=int(os.environ.get("PLNT_AGENT_TOKENS", "12000")),
@@ -279,6 +356,8 @@ class LocalExecutor:
 
         history = db.history(sid)  # before this message is appended
         db.set_status(sid, "running")
+        if not session.get("title"):
+            db.set_title(sid, _title_from(text))
         log("user_message", text=text)
         started = time.monotonic()
         outcome = "error"
@@ -313,7 +392,8 @@ class LocalExecutor:
         slug = db.session(sid)["bundle"]
         spec = self._spec_for_install(tenant, sid, slug, agent_id=slug, intent=text)
         log("run_started", mode="agent", bundle=spec.bundle, version=spec.version,
-            tools=[t.name for t in spec.tools], model=spec.profile.to_event())
+            tools=[t.name for t in spec.tools], model=spec.profile.to_event(),
+            workspace=(db.session(sid) or {}).get("workspace") or None)
         res = self._run_micro(tenant, sid, db, state, spec, history, text, {}, log,
                               finish_event=False)
         if res["stopped"] == "final":
@@ -335,15 +415,18 @@ class LocalExecutor:
             ))
         profile = tenant.model_profile("small")
         provider = self.provider_factory(profile)
-        dynamic = dynamic_roles_allowed()
+        dynamic = self.dynamic_roles
+        session = db.session(sid) or {}
+        context = _context_for(tenant, session)
         log("run_started", mode="parent", model=profile.to_event(),
-            specialists=[s.slug for s in specialists], dynamic_roles=dynamic)
+            specialists=[s.slug for s in specialists], dynamic_roles=dynamic,
+            read_only=self.read_only, workspace=session.get("workspace") or None)
 
         pemit = self._emit_for(tenant, sid, db, state, log, PARENT_ID, PARENT_ID, profile)
         try:
             decision = parent_agent.decide(
                 provider, text=text, history=history, specialists=specialists,
-                business=tenant.name or tenant.id, dynamic_roles=dynamic, emit=pemit,
+                context=context, dynamic_roles=dynamic, emit=pemit,
                 timeout=profile.timeout,
             )
         except ParentError as e:
@@ -376,7 +459,8 @@ class LocalExecutor:
             else:
                 specs[plan.id] = self._spec_for_role(tenant, sid, plan)
         for spec in specs.values():
-            log("agent_spawned", agent_id=spec.id, **spec.to_event())
+            log("agent_spawned", agent_id=spec.id, **spec.to_event(),
+                read_only=self.read_only)
 
         # Run in dependency order: everything ready runs in parallel.
         results: dict[str, dict[str, Any]] = {}
@@ -418,7 +502,7 @@ class LocalExecutor:
                 output=res["output"], agents=[plan.id])
             return "ok"
         reply = parent_agent.synthesize(
-            provider, text=text, results=done, business=tenant.name or tenant.id,
+            provider, text=text, results=done, context=context,
             emit=pemit, timeout=profile.timeout,
         )
         log("assistant_message", agent_id=PARENT_ID, text=reply, source="synth",

@@ -329,10 +329,15 @@ def serve_cmd(host: str, port: int, playground: bool) -> None:
 @click.option("--port", default=DEFAULT_PORT, type=int, show_default=True)
 @click.option("--config", "config", multiple=True, help="key=value for installing BUNDLE.")
 @click.option("--config-json", "config_json", multiple=True)
-def dev_cmd(bundle, port, config, config_json) -> None:
+@click.option(
+    "--workspace", default="", metavar="PATH",
+    help="Folder new sessions work on a copy of (printed in the example request).",
+)
+def dev_cmd(bundle, port, config, config_json, workspace) -> None:
     """Local development server: loopback only, no auth, tenant `dev`.
 
-    With BUNDLE (a path or slug), installs it for `dev` first.
+    With BUNDLE (a path or slug), installs it for `dev` first. The parent may
+    invent roles here, and sessions may copy any local folder as a workspace.
     """
     import uvicorn
 
@@ -351,9 +356,12 @@ def dev_cmd(bundle, port, config, config_json) -> None:
         console.print(f"[green]✓[/green] {inst.slug}@{inst.version} installed for tenant dev")
     base = f"http://127.0.0.1:{port}/v1"
     console.print(f"[bold]plnt dev[/bold] · {base} · auth disabled (loopback only)")
+    body = {"bundle": bundle and resolve(bundle).slug or ""}
+    if workspace:
+        body["workspace"] = str(Path(workspace).expanduser().resolve())
     console.print(
         f"  curl -X POST {base}/tenants/dev/sessions -H 'content-type: application/json' "
-        f'-d \'{{"bundle": "{bundle and resolve(bundle).slug or "<slug>"}"}}\''
+        f"-d '{json.dumps(body)}'"
     )
     uvicorn.run(create_app(store=store, dev=True), host="127.0.0.1", port=port, log_level="info")
 
