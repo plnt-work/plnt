@@ -51,7 +51,8 @@ _TOOL_NAME_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$")
 
 class SkillRuntime(BaseModel):
     model_hint: Literal["small", "deep", "auto"] = "auto"
-    # Built-ins are `search` / `execute`; bundles may also define their own
+    # Built-ins are `search`, `list_files`, `read_file`, `write_file` and
+    # `execute`; bundles may also define their own
     # tools in `tools/*.py`. Whether each name resolves is checked when the
     # bundle is loaded (plnt.bundles), not here.
     tools: list[str] = Field(default_factory=lambda: ["search", "execute"])

@@ -11,7 +11,7 @@ from plnt.executors import LocalExecutor
 from plnt.models import ChatResult, ScriptedProvider, ToolCall
 from plnt.tenancy import TenantStore, installs
 
-BUNDLE = Path(__file__).parents[1] / "registry" / "bundles" / "booking-desk"
+BUNDLE = Path(__file__).parents[1] / "examples" / "booking" / "bundles" / "booking-desk"
 FRIDAY = "2030-01-04"  # a Friday, safely in the future
 
 

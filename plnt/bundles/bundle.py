@@ -32,7 +32,10 @@ from pydantic import ValidationError
 from plnt.bundles.sdk import TOOL_ATTR, ToolSpec
 from plnt.control.skill_schema import SkillManifest
 
-BUILTIN_TOOLS = frozenset({"search", "execute"})
+# Built-ins a bundle may name in [runtime] tools without shipping tools/*.py.
+BUILTIN_TOOLS = frozenset({"search", "list_files", "read_file", "write_file", "execute"})
+# The subset that cannot change the workdir or run programs.
+READ_ONLY_TOOLS = frozenset({"search", "list_files", "read_file"})
 _CONFIG_REF_RE = re.compile(r"\{\{\s*config\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}")
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 

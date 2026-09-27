@@ -5,23 +5,25 @@ description: The bundle manifest.
 
 ```toml
 [meta]
-name = "support-desk"        # required; the slug. lowercase, digits, '-'
+name = "code-reviewer"       # required; the slug. lowercase, digits, '-'
 version = "0.1.0"            # dotted integers; installs are keyed by it
-description = "..."          # shown in the catalog and console
-tags = ["support"]
+description = "..."          # shown in the catalog, the console, and to the parent
+tags = ["code", "review"]
 
 [runtime]
 model_hint = "small"         # small | deep | auto  (which model slot to use)
-tools = ["lookup_faq"]       # @tool names from tools/, or built-ins: search, execute
-require_tool = "lookup_faq"  # optional; see Guardrails
-max_steps = 4                # model calls per message, 1..50 (default 6)
+tools = ["list_files", "read_file", "search"]
+                             # @tool names from tools/, or built-ins: list_files,
+                             # read_file, search, write_file, execute
+require_tool = "read_file"   # optional; see Guardrails
+max_steps = 10               # model calls per message, 1..50 (default 6)
 
 [budget]
-tokens = 8000                # per message (default 20000, min 100)
-wall_seconds = 60            # per message (default 300)
+tokens = 30000               # per message (default 20000, min 100)
+wall_seconds = 180           # per message (default 300)
 
 [secrets]
-required = ["CRM_API_KEY"]   # tenant must set these before a run can start
+required = ["TRACKER_TOKEN"] # tenant must set these before a run can start
 
 # optional: make the final answer a validated JSON object
 [response_schema]

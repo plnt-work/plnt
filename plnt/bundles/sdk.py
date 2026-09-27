@@ -41,6 +41,8 @@ class ToolContext:
     # Private, persistent directory for this bundle's data *for this tenant*
     # (e.g. a bookings ledger). Other tenants and other bundles never see it.
     data_dir: Path | None = None
+    # The session's working folder (the workspace copy), when the session has one.
+    workdir: Path | None = None
 
     def secret(self, name: str) -> str:
         """A secret the tenant set for this bundle. Raises KeyError when unset."""

@@ -1,0 +1,11 @@
+[project]
+name = "todo"
+version = "1.2.0"
+description = "A tiny command-line todo list"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+todo = "todo.cli:main"

@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "audience": {
+      "type": "string",
+      "enum": [
+        "new-contributor",
+        "reviewer",
+        "manager"
+      ],
+      "default": "new-contributor",
+      "description": "Who the explanation is for."
+    },
+    "max_words": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1500,
+      "default": 400
+    }
+  },
+  "additionalProperties": false
+}

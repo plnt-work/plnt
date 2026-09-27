@@ -12,9 +12,16 @@ from pathlib import Path
 import pytest
 
 
+REPO = Path(__file__).resolve().parents[1]
+BOOKING_BUNDLES = REPO / "examples" / "booking" / "bundles"
+
+
 @pytest.fixture(autouse=True)
 def isolated_home(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("PLNT_HOME", str(tmp_path / "plnt"))
+    # The booking example's bundles are not in the shipped catalog; several
+    # tests still use them as fixtures.
+    monkeypatch.setenv("PLNT_BUNDLE_PATH", str(BOOKING_BUNDLES))
     # Make sure every module that already imported `paths` sees the new value.
     import plnt.config as cfg
 

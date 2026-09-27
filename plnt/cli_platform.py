@@ -189,12 +189,17 @@ def init_cmd(slug: str, parent: str) -> None:
 @click.option("--config", "config", multiple=True, help="key=value (repeatable).")
 @click.option("--config-json", "config_json", multiple=True, help="key=<json> (repeatable).")
 @click.option("--secret", "secrets", multiple=True, help="NAME=value, stored for the tenant.")
-def run_cmd(bundle, message, tenant, config, config_json, secrets) -> None:
+@click.option(
+    "--workspace", default="", metavar="SPEC",
+    help="What the agent works on: demo:<name>, a folder, or a git URL (copied first).",
+)
+def run_cmd(bundle, message, tenant, config, config_json, secrets, workspace) -> None:
     """Install BUNDLE (path or catalog slug) for a tenant and send it one message."""
     from plnt.bundles import BundleError
     from plnt.bundles.catalog import resolve
     from plnt.executors import LocalExecutor
     from plnt.tenancy import installs
+    from plnt.tenancy.workspace import WorkspaceError
 
     store = _store()
     t = _ensure_tenant(store, tenant)
@@ -206,8 +211,11 @@ def run_cmd(bundle, message, tenant, config, config_json, secrets) -> None:
         installs.install(t, b, _parse_config(config, config_json))
     except BundleError as e:
         _fail(str(e))
-    ex = LocalExecutor(store)
-    sid = ex.start_session(t.id, b.slug, user_id="cli")
+    ex = LocalExecutor(store, allow_git=True)
+    try:
+        sid = ex.start_session(t.id, b.slug, user_id="cli", workspace=workspace)
+    except WorkspaceError as e:
+        _fail(str(e))
     ex.send(t.id, sid, " ".join(message))
     seen = 0
     while True:
@@ -329,10 +337,15 @@ def serve_cmd(host: str, port: int, playground: bool) -> None:
 @click.option("--port", default=DEFAULT_PORT, type=int, show_default=True)
 @click.option("--config", "config", multiple=True, help="key=value for installing BUNDLE.")
 @click.option("--config-json", "config_json", multiple=True)
-def dev_cmd(bundle, port, config, config_json) -> None:
+@click.option(
+    "--workspace", default="", metavar="PATH",
+    help="Folder new sessions work on a copy of (printed in the example request).",
+)
+def dev_cmd(bundle, port, config, config_json, workspace) -> None:
     """Local development server: loopback only, no auth, tenant `dev`.
 
-    With BUNDLE (a path or slug), installs it for `dev` first.
+    With BUNDLE (a path or slug), installs it for `dev` first. The parent may
+    invent roles here, and sessions may copy any local folder as a workspace.
     """
     import uvicorn
 
@@ -351,9 +364,12 @@ def dev_cmd(bundle, port, config, config_json) -> None:
         console.print(f"[green]✓[/green] {inst.slug}@{inst.version} installed for tenant dev")
     base = f"http://127.0.0.1:{port}/v1"
     console.print(f"[bold]plnt dev[/bold] · {base} · auth disabled (loopback only)")
+    body = {"bundle": bundle and resolve(bundle).slug or ""}
+    if workspace:
+        body["workspace"] = str(Path(workspace).expanduser().resolve())
     console.print(
         f"  curl -X POST {base}/tenants/dev/sessions -H 'content-type: application/json' "
-        f'-d \'{{"bundle": "{bundle and resolve(bundle).slug or "<slug>"}"}}\''
+        f"-d '{json.dumps(body)}'"
     )
     uvicorn.run(create_app(store=store, dev=True), host="127.0.0.1", port=port, log_level="info")
 

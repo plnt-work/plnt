@@ -1,50 +1,25 @@
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
-
-/* One set of tokens, light + dark. Components use the Tailwind names below. */
-:root {
-  --bg: #fafaf9;
-  --panel: #ffffff;
-  --sunken: #f4f4f3;
-  --line: #e7e5e4;
-  --ink: #1c1917;
-  --muted: #78716c;
-  --accent: #15803d;
-  --accent-ink: #ffffff;
-  --accent-soft: #dcfce7;
-  --danger: #b91c1c;
-  --danger-soft: #fee2e2;
-  --warn: #a16207;
-  --warn-soft: #fef9c3;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0c0a09;
-    --panel: #161412;
-    --sunken: #1f1c1a;
-    --line: #2e2a27;
-    --ink: #f5f5f4;
-    --muted: #a8a29e;
-    --accent: #4ade80;
-    --accent-ink: #052e16;
-    --accent-soft: #14532d;
-    --danger: #f87171;
-    --danger-soft: #450a0a;
-    --warn: #facc15;
-    --warn-soft: #422006;
-  }
-}
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+/* Design tokens (copy of design/tokens.css). Components use the Tailwind names below. */
+@import "./tokens.css";
 
 @theme {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius-md: 6px;
+  --radius-lg: 10px;
   --color-bg: var(--bg);
   --color-panel: var(--panel);
   --color-sunken: var(--sunken);
   --color-line: var(--line);
   --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
+  --color-line-strong: var(--line-strong);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);

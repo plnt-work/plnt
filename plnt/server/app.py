@@ -25,7 +25,9 @@ Routes (all under /v1):
   DELETE /tenants/{t}/secrets/{name}
   GET    /tenants/{t}/model           PUT {…} / DELETE      per-tenant model (BYO)
   GET    /tenants/{t}/model/health                  reachability + model present
-  POST   /tenants/{t}/sessions        {bundle, user_id?}    -> {session_id}
+  POST   /tenants/{t}/sessions        {bundle?, user_id?}   -> {session_id}
+                                      no bundle: the parent picks agents per message
+  GET    /tenants/{t}/sessions/{sid}/transcript             turns: parent decision, agents, reply
   GET    /tenants/{t}/sessions
   POST   /tenants/{t}/sessions/{sid}/messages {text}        -> {run_id}
   GET    /tenants/{t}/sessions/{sid}/events?after=N         JSON
@@ -57,6 +59,7 @@ from plnt.executors import LocalExecutor, SessionError
 from plnt.models import ModelError, get_provider
 from plnt.tenancy import installs
 from plnt.tenancy.tenants import Tenant, TenantError, TenantNotFound, TenantStore
+from plnt.tenancy.workspace import WorkspaceError
 
 
 class TenantCreate(BaseModel):
@@ -79,8 +82,9 @@ class SecretBody(BaseModel):
 
 
 class SessionCreate(BaseModel):
-    bundle: str
+    bundle: str = ""  # empty: the parent picks agents per message
     user_id: str = ""
+    workspace: str = ""  # demo:<name>, a local path, or a git URL (server policy applies)
 
 
 class MessageBody(BaseModel):
@@ -96,7 +100,18 @@ def create_app(
     playground: bool = False,
 ) -> FastAPI:
     store = store or TenantStore()
-    executor = executor or LocalExecutor(store)
+    if executor is None:
+        if playground:
+            # Anonymous visitors: invented roles on, no shell or writes unless
+            # explicitly enabled, and only the shipped demo workspaces.
+            executor = LocalExecutor(
+                store, dynamic_roles=True,
+                read_only=os.environ.get("PLNT_PLAYGROUND_EXECUTE") != "1",
+                allow_local_paths=False, allow_git=False,
+            )
+        else:
+            # `plnt dev` is a developer's own machine: the parent may invent roles.
+            executor = LocalExecutor(store, dynamic_roles=True if dev else None)
     admin_token = admin_token if admin_token is not None else os.environ.get("PLNT_ADMIN_TOKEN", "")
     app = FastAPI(title="plnt", version=__version__)
     app.state.store, app.state.executor, app.state.dev = store, executor, dev
@@ -326,9 +341,13 @@ def create_app(
         body: SessionCreate, tenant: Tenant = Depends(tenant_access)
     ) -> dict[str, str]:
         try:
-            sid = executor.start_session(tenant.id, body.bundle, body.user_id)
+            sid = executor.start_session(
+                tenant.id, body.bundle, body.user_id, workspace=body.workspace
+            )
         except BundleError as e:
             raise _bad(e, 409) from None
+        except WorkspaceError as e:
+            raise _bad(e, 422) from None
         return {"session_id": sid}
 
     @app.get("/v1/tenants/{t}/sessions")
@@ -351,6 +370,13 @@ def create_app(
     ) -> dict[str, Any]:
         try:
             return {"events": executor.events_since(tenant.id, sid, after)}
+        except SessionError as e:
+            raise _bad(e, 404) from None
+
+    @app.get("/v1/tenants/{t}/sessions/{sid}/transcript")
+    def get_transcript(sid: str, tenant: Tenant = Depends(tenant_access)) -> dict[str, Any]:
+        try:
+            return executor.transcript(tenant.id, sid)
         except SessionError as e:
             raise _bad(e, 404) from None
 

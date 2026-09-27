@@ -1,9 +1,9 @@
 ---
 title: Local models
-description: Run agents on Ollama, vLLM, llama.cpp or LM Studio, on your machine or your customer's.
+description: Run agents on Ollama, vLLM, llama.cpp or LM Studio, on your machine or your tenant's.
 ---
 
-Local models are first-class in plnt. The same bundle runs on a hosted API or on a GPU box in your customer's building, and you can choose per customer.
+Local models are first-class in plnt. The same bundle runs on a hosted API or on a GPU box in a tenant's own building, and you can choose per tenant.
 
 ## Pick a server
 
@@ -40,8 +40,8 @@ Each failed check prints the fix, for example ``fix: ollama pull qwen2.5:7b``. `
 
 Agents need a model that calls tools reliably. What we have measured:
 
-- **qwen2.5:1.5b** passes the doctor but often skips lookups. With [`require_tool`](/docs/guides/guardrails/) its answers are grounded or withheld, never invented. Fine for CI, too weak for customers.
-- **7B–8B instruction-tuned models with tool support** (qwen2.5:7b, llama3.1:8b) are the practical minimum for customer-facing agents.
+- **qwen2.5:1.5b** passes the doctor but often skips the read. With [`require_tool`](/docs/guides/guardrails/) its answers are grounded or withheld, never invented. Fine for CI, too weak for real work.
+- **7B–8B instruction-tuned models with tool support** (qwen2.5:7b, llama3.1:8b) are the practical minimum for the parent and the reviewer bundles; the parent's structured decision needs reliable JSON.
 
 Run your own bundle's `plnt run` against the model you intend to ship, and watch for `guardrail` events.
 
@@ -60,9 +60,9 @@ For each run, unless the tenant has its own model:
 
 `PLNT_FORCE=offline` uses a deterministic stub that makes no network calls. It exists for tests and never answers real questions.
 
-## One model per customer
+## One model per tenant
 
-A customer who wants their data to stay on their own hardware can have their own model. The rest of your customers are unaffected:
+A tenant whose code must stay on its own hardware can have its own model. The other tenants are unaffected:
 
 ```bash
 curl -X PUT $API/tenants/clinic/model -H "$AUTH" -H 'content-type: application/json' -d '{
@@ -74,7 +74,7 @@ curl -X PUT $API/tenants/clinic/model -H "$AUTH" -H 'content-type: application/j
 curl $API/tenants/clinic/model/health -H "$AUTH"
 ```
 
-Every `run_started` event records which model and endpoint served the run, so you can show a customer where their conversations went.
+Every `run_started` and `agent_spawned` event records which model and endpoint served the run, so you can show a tenant where its code went.
 
 ## Running plnt in Docker with Ollama on the host
 

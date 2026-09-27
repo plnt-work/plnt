@@ -95,7 +95,7 @@ function ModelCard({ tenant }: { tenant: TenantDetail }) {
         </div>
         {health.data && (
           <div className="rounded-md bg-sunken px-3 py-2 text-[12px]">
-            <Badge tone={health.data.ok ? "good" : "bad"}>{health.data.ok ? "healthy" : "not usable"}</Badge>
+            <Badge tone={health.data.ok ? "ok" : "bad"}>{health.data.ok ? "healthy" : "not usable"}</Badge>
             <span className="ml-2 font-mono">{health.data.model} @ {health.data.base_url}</span>
             {health.data.detail && <p className="mt-1 text-muted">{health.data.detail}</p>}
             {health.data.hint && <p className="mt-1">Fix: {health.data.hint}</p>}

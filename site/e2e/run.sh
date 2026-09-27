@@ -16,9 +16,12 @@ server=$!
 # A second server without playground mode, for the "not enabled" message.
 env -u PLNT_PLAYGROUND PLNT_HOME="$PLNT_HOME/plain" plnt serve --port 8788 &
 plain=$!
+set -m
 (cd "$site" && npx astro preview --port 4321 --host 127.0.0.1) &
 preview=$!
-trap 'kill $fake $server $plain $preview 2>/dev/null || true' EXIT
+set +m
+# `astro preview` runs in a subshell; kill its whole process group so no server lingers.
+trap 'kill $fake $server $plain 2>/dev/null || true; kill -- -$preview 2>/dev/null || kill $preview 2>/dev/null || true' EXIT
 
 for _ in $(seq 60); do
   curl -sf http://127.0.0.1:8787/v1/playground >/dev/null && \

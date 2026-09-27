@@ -22,9 +22,14 @@ jobs:
       - run: pip install -e ".[dev]"
       # Lint is enforced on modules rewritten for the platform; older modules
       # are brought under it as they are touched.
-      - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py registry/bundles setup.py
+      - run: ruff check plnt/models plnt/agent plnt/compute plnt/bundles plnt/tenancy plnt/executors plnt/server plnt/cli_platform.py registry/bundles examples/booking/bundles setup.py
       - run: python scripts/smoke_platform.py
       - run: pytest -q
+      # The event fold is one file, shipped twice (console + site).
+      - run: cmp console/src/lib/transcript.ts site/src/lib/transcript.ts
+      - run: cmp console/src/lib/run-view.ts site/src/lib/run-view.ts
+      # Design tokens: one source, copied into both apps.
+      - run: cmp design/tokens.css site/src/styles/tokens.css && cmp design/tokens.css console/src/tokens.css
 
   booking:
     name: examples/booking (pytest, Temporal in-process)
@@ -38,6 +43,8 @@ jobs:
       - run: pip install -e . -e "examples/booking[dev]"
       - run: pytest -q
         working-directory: examples/booking
+        env:
+          PLNT_BUNDLE_PATH: ${{ github.workspace }}/examples/booking/bundles
 
   booking-web:
     name: examples/booking/web (build + lint)
@@ -148,7 +155,7 @@ jobs:
           for i in $(seq 30); do curl -sf localhost:8787/v1/health && break; sleep 1; done
           curl -sf localhost:8787/v1/health | grep '"version"'
           curl -sf localhost:8787/console | grep -qi '<div id="root">'
-          curl -sf localhost:8787/v1/bundles | grep -q support-desk
+          curl -sf localhost:8787/v1/bundles | grep -q code-reviewer
           curl -sf -X POST localhost:8787/v1/tenants -H 'Authorization: Bearer ci' \
             -H 'content-type: application/json' -d '{"id":"acme"}' | grep -q pk_
           docker exec plnt ls /data/tenants/acme
@@ -156,7 +163,8 @@ jobs:
       - run: |
           docker run -d --name pg -p 9000:9000 -e PORT=9000 -e PLNT_PLAYGROUND=1 plnt:ci
           for i in $(seq 30); do curl -sf localhost:9000/v1/playground && break; sleep 1; done
-          curl -sf localhost:9000/v1/playground | grep -q bright-smile-dental
+          curl -sf localhost:9000/v1/playground | grep -q notes-api
+          curl -sf localhost:9000/v1/playground | grep -q file_count
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:9000/v1/tenants)" = 503
       - if: failure()
         run: docker logs plnt; docker logs pg || true

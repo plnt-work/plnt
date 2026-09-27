@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "focus": {
+      "type": "string",
+      "enum": [
+        "bugs",
+        "security",
+        "style",
+        "all"
+      ],
+      "default": "bugs",
+      "description": "What the review looks for first."
+    },
+    "max_findings": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 8,
+      "description": "Stop after this many findings."
+    },
+    "language_hint": {
+      "type": "string",
+      "default": "",
+      "description": "Main language or framework, if the reviewer should assume one."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "style": {
+      "type": "string",
+      "enum": [
+        "keepachangelog",
+        "plain",
+        "release-notes"
+      ],
+      "default": "keepachangelog"
+    },
+    "since": {
+      "type": "string",
+      "default": "",
+      "description": "Git ref or date to start from; empty = the last tag, or everything."
+    }
+  },
+  "additionalProperties": false
+}

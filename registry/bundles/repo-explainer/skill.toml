@@ -1,0 +1,15 @@
+[meta]
+name = "repo-explainer"
+version = "0.1.0"
+description = "Explains how a workspace is put together: layout, entry points, how the pieces connect, for a chosen audience."
+tags = ["code", "docs", "developer"]
+
+[runtime]
+model_hint = "small"
+tools = ["list_files", "read_file", "search"]
+require_tool = "list_files"
+max_steps = 10
+
+[budget]
+tokens = 30000
+wall_seconds = 180

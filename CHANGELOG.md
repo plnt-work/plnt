@@ -9,6 +9,41 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
+### Added
+
+- Sessions can be bound to a **workspace**: `demo:<name>`, a local folder, or a git URL.
+  A private copy lands in the session's working folder and that is what the agents
+  work on. `POST /v1/tenants/{t}/sessions` takes `workspace`; sessions carry `title`
+  (the first message), `workspace` and `workspace_kind`.
+- Built-in tools `list_files`, `read_file` and `write_file` next to `search` and
+  `execute`; bundles name them in `[runtime] tools`. `ToolContext.workdir` gives a
+  bundle's own tools the same folder.
+- Four developer bundles: `code-reviewer`, `test-writer`, `repo-explainer`,
+  `changelog-writer`.
+- Executor policy: `read_only` (strips `write_file`/`execute`), `allow_local_paths`,
+  `allow_git`, `dynamic_roles`; `plnt dev` turns invented roles on.
+- Two demo workspaces (`demo/workspaces/notes-api`, `cli-tool`) shipped in the wheel and
+  the image; the playground runs on them, read-only, one copy per visitor session.
+- Design tokens (`design/tokens.css`) shared by the console and the site: warm off-white,
+  one orange accent, mono uppercase labels.
+- Console **Sessions** (was Conversations): titled sessions with a workspace, and a session
+  view with Run / Agents / Files / Events tabs. The transcript records the files each agent
+  touched.
+- Playground rebuilt as a sessions app (sidebar, header with agents / messages / elapsed,
+  the same four tabs); `?tenant=&task=` presets a session.
+- Site: landing rebuilt around the parent and its micro-agents with a recorded real run
+  replayed; a use-cases page; docs rewritten for developer tasks, with new Workspaces and
+  shipped-bundles guides.
+
+### Changed
+
+- The parent's prompts talk about a user and a workspace, not a customer and a
+  business. `decide()`/`synthesize()` take `context=` instead of `business=`.
+- The bundle catalog no longer scans the legacy `skills/` folder.
+- `booking-desk` and `support-desk` moved to `examples/booking/bundles/`; they are no longer
+  in the shipped catalog (`PLNT_BUNDLE_PATH` makes them installable).
+- The playground's demo tenants are `notes-api` and `cli-tool`; `MAX_MESSAGE_CHARS` is 1000.
+
 ### Fixed
 
 - OpenAI-compatible calls retry temporary server errors (429, 500, 502, 503, 504) twice,

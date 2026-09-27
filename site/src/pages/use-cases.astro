@@ -1,0 +1,58 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BlueprintCard from '../components/BlueprintCard.astro';
+import { BLUEPRINTS, CATEGORIES } from '../data/blueprints';
+---
+
+<Layout
+  title="plnt use cases"
+  description="What a parent and its micro-agents are pointed at: repo audits, tests, code explanation, changelogs, research briefs, incident triage, and tasks across many repos."
+  path="/use-cases"
+>
+  <section class="hero uc-hero">
+    <div class="container">
+      <span class="eyebrow accent">Blueprints</span>
+      <h1>Use cases.</h1>
+      <p class="lead">
+        Whatever the task, the shape is the same: a parent decides, agents do one part each on a
+        private copy of the workspace, one reply comes back with the full trace. These are the
+        tasks people point it at, with an honest note on how far each one is.
+      </p>
+    </div>
+  </section>
+
+  <section class="block uc-block">
+    <div class="container">
+      <div class="filters" role="tablist" aria-label="Filter by category">
+        <button class="chip on" data-filter="all" role="tab" aria-selected="true">All</button>
+        {CATEGORIES.map((c) => <button class="chip" data-filter={c} role="tab" aria-selected="false">{c}</button>)}
+      </div>
+      <div class="bp-grid" id="bp-grid">
+        {BLUEPRINTS.map((bp) => <BlueprintCard bp={bp} />)}
+      </div>
+      <p class="legend muted small">
+        <span class="bp-status ships">ships today</span> the shipped bundles do it ·
+        <span class="bp-status bundle">with your bundle</span> the parent and the runtime are ready, you write the agent ·
+        <span class="bp-status roadmap">roadmap</span> not built yet
+      </p>
+    </div>
+  </section>
+
+  <script>
+    const chips = document.querySelectorAll<HTMLButtonElement>('.filters .chip');
+    const cards = document.querySelectorAll<HTMLElement>('#bp-grid .bp');
+    chips.forEach((chip) =>
+      chip.addEventListener('click', () => {
+        const f = chip.dataset.filter ?? 'all';
+        chips.forEach((c) => {
+          const on = c === chip;
+          c.classList.toggle('on', on);
+          c.setAttribute('aria-selected', String(on));
+        });
+        cards.forEach((card) => {
+          card.hidden = f !== 'all' && card.dataset.cat !== f;
+        });
+      }),
+    );
+  </script>
+</Layout>

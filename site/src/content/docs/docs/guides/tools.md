@@ -1,6 +1,6 @@
 ---
 title: Tools and ToolContext
-description: Give the model Python functions to call, scoped to one tenant.
+description: Give the model Python functions to call, scoped to one tenant and one workspace.
 ---
 
 Put tools in `tools/*.py` and mark them with `@tool`:
@@ -11,14 +11,15 @@ import httpx
 
 
 @tool
-def lookup_order(order_id: str, ctx: ToolContext) -> dict:
-    """Look up an order's status by id.
+def open_issues(label: str, ctx: ToolContext) -> list[dict]:
+    """List open issues with a label from the project's tracker.
 
     Anything after the first paragraph is not shown to the model.
     """
     r = httpx.get(
-        f"{ctx.config['shop_url']}/api/orders/{order_id}",
-        headers={"Authorization": f"Bearer {ctx.secret('SHOP_API_KEY')}"},
+        f"{ctx.config['tracker_url']}/issues",
+        params={"label": label, "state": "open"},
+        headers={"Authorization": f"Bearer {ctx.secret('TRACKER_TOKEN')}"},
         timeout=10,
     )
     r.raise_for_status()
@@ -37,24 +38,17 @@ def lookup_order(order_id: str, ctx: ToolContext) -> dict:
 | Field | What it is |
 | --- | --- |
 | `ctx.tenant_id` | The tenant this call is for. |
-| `ctx.session_id` | The conversation. |
+| `ctx.session_id` | The session. |
 | `ctx.bundle` | The bundle slug. |
 | `ctx.config` | This tenant's install config, after validation and defaults. Read-only. |
 | `ctx.secret(name)` | A secret the tenant set. Raises `KeyError` if it is not set. |
-| `ctx.data_dir` | A private, persistent directory for this bundle's data for this tenant (`<tenant>/data/<slug>/`). No other tenant or bundle gets the same path. |
-
-`data_dir` is where a bundle keeps state. `booking-desk` keeps its bookings ledger there in SQLite:
-
-```python
-def _db(ctx: ToolContext) -> sqlite3.Connection:
-    conn = sqlite3.connect(ctx.data_dir / "bookings.db", isolation_level=None)
-    ...
-```
+| `ctx.data_dir` | A private, persistent directory for this bundle's data for this tenant (`<tenant>/data/<slug>/`). |
+| `ctx.workdir` | The session's workspace copy (`<tenant>/work/<session>/`), or `None` when the session has none. Same folder the built-in file tools use. |
 
 ## Built-in tools
 
-Two built-ins are available by name: `search` (regex search over files) and `execute` (run one program, no shell). Both work inside the session's scratch directory under the tenant (`<tenant>/work/<session>/`). Most customer-facing agents should not list them.
+`list_files`, `read_file`, `search`, `write_file` and `execute` are available by name and need no code; they work inside the session's workspace copy. See [Workspaces](/docs/guides/workspaces/#tools-over-the-workspace). Read-only servers remove `write_file` and `execute`.
 
 ## Trust
 
-Tools run inside the server process with the server's permissions. The per-tenant scoping above is enforced by what the runtime hands the tool, not by an OS sandbox. **Only install bundles whose code you trust.** Running untrusted bundles in a sandbox is on the roadmap.
+Tools run inside the server process with the server's permissions, and `execute` runs programs as the server user inside the workspace copy. The per-tenant scoping above is enforced by what the runtime hands the tool, not by an OS sandbox. **Only install bundles whose code you trust**, and keep `execute` off on servers that anonymous users can reach. Running untrusted bundles in a sandbox is on the roadmap.

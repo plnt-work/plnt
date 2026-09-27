@@ -83,7 +83,7 @@ export function Overview({ tenant }: { tenant: TenantDetail }) {
                     <span className="font-medium">{i.slug}</span>
                     <span className="ml-1.5 text-muted">v{i.version}</span>
                   </span>
-                  <Badge tone={i.enabled ? "good" : "neutral"}>{i.enabled ? "enabled" : "disabled"}</Badge>
+                  <Badge tone={i.enabled ? "ok" : "neutral"}>{i.enabled ? "enabled" : "disabled"}</Badge>
                 </li>
               ))}
             </ul>

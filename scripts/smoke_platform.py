@@ -1,16 +1,16 @@
-"""End-to-end platform smoke: one bundle, two isolated tenants, over real HTTP.
+"""End-to-end smoke for the platform: two tenants, the same developer bundle,
+different workspaces, isolated data.
 
-    python scripts/smoke_platform.py                 # Ollama-shaped fake model
-    PLNT_SMOKE_MODEL=qwen2.5:1.5b python scripts/smoke_platform.py   # real Ollama
+Runs `plnt serve` against a fake Ollama (or a real model with
+PLNT_SMOKE_MODEL=<name>), then checks the guarantees that hold for any model:
 
-Starts `plnt serve` in a subprocess with a throwaway PLNT_HOME, then:
-  1. creates tenants `bistro` and `dental` (operator token)
-  2. installs the same `support-desk` bundle for each, with different FAQs
-  3. chats with each over the API, streaming events via SSE
-  4. checks no answer reaches a customer without an FAQ lookup (require_tool),
-     and — with the fake model — that each answer comes from its own FAQ
-  5. checks usage and audit are per tenant, and cross-tenant keys are refused
-Exits non-zero on any failure.
+  - a tenant's session works on its own copy of its workspace;
+  - an answer only reaches the user after the agent listed the workspace
+    (require_tool guardrail);
+  - usage is booked per tenant;
+  - one tenant's key is refused on another's routes.
+
+Usage: python scripts/smoke_platform.py
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 import httpx
 
@@ -31,15 +32,14 @@ ADMIN = "smoke-admin-token"
 
 
 def _free_port() -> int:
-    s = socket.socket()
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
 
 class FakeOllama(BaseHTTPRequestHandler):
-    """Calls lookup_faq with the user's question, then answers from the result."""
+    """Lists the workspace, reads its README, then answers from what it read.
+    As the parent, spawns repo-explainer for every task."""
 
     def log_message(self, *a):
         pass
@@ -58,23 +58,40 @@ class FakeOllama(BaseHTTPRequestHandler):
     def do_POST(self):
         req = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         msgs = req["messages"]
-        tool_msgs = [m for m in msgs if m["role"] == "tool"]
         usage = {"prompt_eval_count": 120, "eval_count": 20}
-        if tool_msgs:
-            matches = json.loads(tool_msgs[-1]["content"]).get("matches") or []
-            text = matches[0]["a"] if matches else "I don't know, someone will follow up."
-            self._send({"message": {"role": "assistant", "content": text}, **usage})
-            return
+        system = "\n".join(m["content"] for m in msgs if m["role"] == "system")
         question = [m for m in msgs if m["role"] == "user"][-1]["content"]
+        if "You are the parent agent" in system:
+            dec = {
+                "kind": "agents",
+                "reason": "the user asked about the workspace",
+                "agents": [
+                    {
+                        "id": "repo-explainer",
+                        "role": "repo-explainer",
+                        "bundle": "repo-explainer",
+                        "intent": question.rsplit("User: ", 1)[-1],
+                        "depends_on": [],
+                    }
+                ],
+            }
+            self._send({"message": {"role": "assistant", "content": json.dumps(dec)}, **usage})
+            return
+        tool_msgs = [m for m in msgs if m["role"] == "tool"]
+        if not tool_msgs:
+            call = {"name": "list_files", "arguments": {"path": ".", "depth": 2}}
+        elif len(tool_msgs) == 1:
+            call = {"name": "read_file", "arguments": {"path": "README.md"}}
+        else:
+            content = json.loads(tool_msgs[-1]["content"]).get("content", "")
+            first = next((ln.split(": ", 1)[1] for ln in content.splitlines() if ": " in ln), "")
+            self._send(
+                {"message": {"role": "assistant", "content": f"This project: {first}"}, **usage}
+            )
+            return
         self._send(
             {
-                "message": {
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [
-                        {"function": {"name": "lookup_faq", "arguments": {"question": question}}}
-                    ],
-                },
+                "message": {"role": "assistant", "content": "", "tool_calls": [{"function": call}]},
                 **usage,
             }
         )
@@ -92,6 +109,17 @@ def main() -> int:
         threading.Thread(target=fake.serve_forever, daemon=True).start()
         env["PLNT_LOCAL_URL"] = f"http://127.0.0.1:{fake.server_address[1]}"
         env["PLNT_PLANNER_MODEL"] = "fake:1b"
+
+    # Two workspaces that differ in one line each tenant should answer from.
+    work = Path(tempfile.mkdtemp(prefix="plnt-smoke-ws-"))
+    readmes = {
+        "acme": "# acme-billing\n\nInvoices and dunning for Acme.\n",
+        "globex": "# globex-inventory\n\nWarehouse stock levels for Globex.\n",
+    }
+    for tid, text in readmes.items():
+        (work / tid / "src").mkdir(parents=True)
+        (work / tid / "README.md").write_text(text)
+        (work / tid / "src" / "main.py").write_text("print('hi')\n")
 
     port = _free_port()
     server = subprocess.Popen(
@@ -113,48 +141,33 @@ def main() -> int:
             raise SystemExit("server did not start")
 
         admin = {"Authorization": f"Bearer {ADMIN}"}
-        tenants = {
-            "bistro": {
-                "business_name": "Luigi's Bistro",
-                "handoff_contact": "hi@luigis.example",
-                "faq": [
-                    {"q": "When are you open?", "a": "We're open Tuesday to Sunday, 5pm to 11pm."}
-                ],
-            },
-            "dental": {
-                "business_name": "Bright Smile Dental",
-                "handoff_contact": "front@bright.example",
-                "faq": [
-                    {
-                        "q": "When are you open?",
-                        "a": "Our clinic is open Monday to Friday, 8am to 4pm.",
-                    }
-                ],
-            },
-        }
         keys = {}
-        for tid, cfg in tenants.items():
+        for tid in readmes:
             r = c.post("/tenants", json={"id": tid}, headers=admin)
             r.raise_for_status()
             keys[tid] = {"Authorization": f"Bearer {r.json()['api_key']}"}
             r = c.post(
                 f"/tenants/{tid}/installs",
-                json={"bundle": "support-desk", "config": cfg},
+                json={"bundle": "repo-explainer", "config": {"audience": "reviewer"}},
                 headers=keys[tid],
             )
             r.raise_for_status()
-            print(f"✓ {tid}: support-desk installed")
+            print(f"✓ {tid}: repo-explainer installed")
 
         answers: dict[str, str] = {}
         real_model = bool(os.environ.get("PLNT_SMOKE_MODEL"))
-        for tid in tenants:
+        for tid in readmes:
             h = keys[tid]
-            sid = c.post(
-                f"/tenants/{tid}/sessions", json={"bundle": "support-desk"}, headers=h
-            ).json()["session_id"]
+            r = c.post(
+                f"/tenants/{tid}/sessions",
+                json={"bundle": "repo-explainer", "workspace": str(work / tid)},
+                headers=h,
+            )
+            r.raise_for_status()
+            sid = r.json()["session_id"]
             c.post(
                 f"/tenants/{tid}/sessions/{sid}/messages",
-                json={"text": "When are you open?"},
+                json={"text": "What is this project?"},
                 headers=h,
             ).raise_for_status()
             kinds = []
@@ -172,42 +185,33 @@ def main() -> int:
                             refused = evt["payload"]
             assert kinds[-1] == "run_finished", (tid, kinds)
             # The guarantee that holds for ANY model: an answer only reaches the
-            # customer after the FAQ lookup ran (require_tool guardrail).
+            # user after the agent looked at the workspace (require_tool).
             if tid in answers:
                 assert "tool_call" in kinds[: kinds.index("assistant_message")], (tid, kinds)
-                print(f"✓ {tid}: looked up the FAQ, then answered → {answers[tid]!r}")
+                print(f"✓ {tid}: looked at the workspace, then answered → {answers[tid]!r}")
             else:
                 assert refused and "withheld" in refused["error"], (tid, refused, kinds)
                 assert real_model, "the fake model always uses the tool"
                 print(f"✓ {tid}: model skipped the lookup twice; guardrail withheld its answer")
+            row = c.get(f"/tenants/{tid}/sessions", headers=h).json()["sessions"][0]
+            assert row["title"] == "What is this project?" and row["workspace"] == tid, row
 
-        answered = [t for t in tenants if t in answers]
-        grounded = {
-            "bistro": "Tuesday" in answers.get("bistro", "")
-            and "Monday" not in answers.get("bistro", ""),
-            "dental": "Monday" in answers.get("dental", "")
-            and "Tuesday" not in answers.get("dental", ""),
-        }
-        if real_model:
-            for tid in answered:
-                if not grounded[tid]:
-                    print(f"! {tid}: looked up the FAQ but paraphrased it loosely — model quality")
-        else:
-            assert answered == list(tenants) and all(grounded.values()), answers
-            print("✓ each tenant answered from its own FAQ only")
-        # No tenant's answer may contain the other tenant's FAQ text.
-        assert tenants["dental"]["faq"][0]["a"] not in answers.get("bistro", ""), answers
-        assert tenants["bistro"]["faq"][0]["a"] not in answers.get("dental", ""), answers
+        # Each tenant answered from its own workspace copy, never the other's.
+        if not real_model:
+            assert "acme-billing" in answers["acme"] and "globex-inventory" in answers["globex"]
+            print("✓ each tenant answered from its own workspace only")
+        assert "globex" not in answers.get("acme", "").lower(), answers
+        assert "acme" not in answers.get("globex", "").lower(), answers
 
-        for tid in tenants:
+        for tid in readmes:
             u = c.get(f"/tenants/{tid}/usage", headers=keys[tid]).json()
-            assert u["model_calls"] >= (1 if real_model else 2), u
+            assert u["model_calls"] >= (1 if real_model else 3), u
             print(
                 f"✓ {tid}: usage {u['model_calls']} calls, "
                 f"{u['prompt_tokens']}+{u['completion_tokens']} tokens"
             )
-        assert c.get("/tenants/bistro", headers=keys["dental"]).status_code == 401
-        print("✓ dental's key is refused on bistro's routes")
+        assert c.get("/tenants/acme", headers=keys["globex"]).status_code == 401
+        print("✓ globex's key is refused on acme's routes")
         return 0
     finally:
         server.terminate()

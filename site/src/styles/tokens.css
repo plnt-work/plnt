@@ -1,0 +1,67 @@
+/* plnt design tokens: one source of truth for the site and the console.
+   Copies live at site/src/styles/tokens.css and console/src/tokens.css;
+   CI checks they are identical to this file. */
+
+:root {
+  --bg: #f7f6f2;
+  --panel: #ffffff;
+  --sunken: #efede7;
+  --line: #e3e0d8;
+  --line-strong: #cfcbc1;
+  --ink: #14120f;
+  --ink-2: #3d3a34;
+  --muted: #7a766d;
+  --accent: #ff5a1f;
+  --accent-ink: #ffffff;
+  --accent-soft: #ffe8de;
+  --ok: #1a7f4b;
+  --ok-soft: #dcf5e6;
+  --warn: #a35e00;
+  --warn-soft: #fff1d6;
+  --danger: #c02626;
+  --danger-soft: #fde2e2;
+  --code-bg: #17150f;
+  --code-ink: #e9e6df;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121110;
+    --panel: #1a1816;
+    --sunken: #221f1c;
+    --line: #2f2b27;
+    --line-strong: #454039;
+    --ink: #f3f1ec;
+    --ink-2: #d5d1c9;
+    --muted: #9b968c;
+    --accent: #ff6a33;
+    --accent-ink: #1a0b04;
+    --accent-soft: #3a1a0e;
+    --ok: #4ade80;
+    --ok-soft: #14351f;
+    --warn: #f5b342;
+    --warn-soft: #3b2a0b;
+    --danger: #f87171;
+    --danger-soft: #3f1212;
+    --code-bg: #0e0d0b;
+    --code-ink: #e9e6df;
+  }
+}
+
+/* Mono uppercase label: section eyebrows, card categories, table headers. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.eyebrow.accent {
+  color: var(--accent);
+}

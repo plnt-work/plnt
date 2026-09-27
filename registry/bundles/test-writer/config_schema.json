@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "framework": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "pytest",
+        "unittest",
+        "jest",
+        "vitest",
+        "go"
+      ],
+      "default": "auto",
+      "description": "Test framework to use; auto picks from the project."
+    },
+    "test_dir": {
+      "type": "string",
+      "default": "tests",
+      "description": "Where new test files go, relative to the workspace."
+    }
+  },
+  "additionalProperties": false
+}
