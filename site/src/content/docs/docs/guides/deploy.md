@@ -68,7 +68,7 @@ The blueprint:
 
 - runs the repo's `Dockerfile` on a Starter instance. Free instances sleep when idle, so the first visitor would wait about a minute.
 - uses Gemini 2.5 Flash with a cap of 3M tokens a day across all visitors (agents that read files use more than chat).
-- allows only `plnt.work` origins.
+- allows only `plnt.work` origins and the site's Vercel preview deployments (`https://plnt-site*.vercel.app`). If you created the service by hand rather than from the blueprint, set `PLNT_PLAYGROUND_ORIGINS` to the same value in the Render dashboard.
 - leaves `PLNT_ADMIN_TOKEN` unset, so operator routes answer 503.
 - has no disk. Sessions and workspace copies are thrown away on each deploy, and the demo tenants are seeded again on start.
 - keeps `PLNT_PLAYGROUND_EXECUTE` unset: visitors never run programs on the server.

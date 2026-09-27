@@ -210,3 +210,24 @@ def test_root_points_to_the_playground(pg):
     client, _, _ = pg
     body = client.get("/").json()
     assert body["playground"] == "/v1/playground" and body["health"] == "/v1/health"
+
+
+def test_cors_origin_patterns(tmp_path, monkeypatch):
+    monkeypatch.setenv("PLNT_FORCE", "offline")
+    monkeypatch.setenv(
+        "PLNT_PLAYGROUND_ORIGINS", "https://plnt.work, https://plnt-site*.vercel.app"
+    )
+    store = TenantStore(tmp_path / "tenants")
+    ex = LocalExecutor(store, provider_factory=lambda p: ScriptedProvider(_script))
+    client = TestClient(create_app(store=store, executor=ex, admin_token="adm", playground=True))
+
+    def allowed(origin: str) -> str | None:
+        r = client.options("/v1/playground", headers={
+            "Origin": origin, "Access-Control-Request-Method": "GET"})
+        return r.headers.get("access-control-allow-origin")
+
+    assert allowed("https://plnt.work") == "https://plnt.work"
+    preview = "https://plnt-site-git-feature-x-someone.vercel.app"
+    assert allowed(preview) == preview
+    assert allowed("https://evil.example") is None
+    assert allowed("https://other-site.vercel.app") is None
