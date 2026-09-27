@@ -42,6 +42,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import secrets as _secrets
 from pathlib import Path
 from typing import Any
@@ -434,10 +435,18 @@ def create_app(
         app.include_router(playground_router(store, executor))
         # The playground routes are anonymous and cookie-less, so a wildcard
         # origin is safe for them; set PLNT_PLAYGROUND_ORIGINS to restrict.
-        origins = [o for o in os.environ.get("PLNT_PLAYGROUND_ORIGINS", "*").split(",") if o]
+        # An entry may contain `*` (e.g. https://plnt-site*.vercel.app for the
+        # site's preview deployments); those become one origin regex.
+        raw = [o.strip() for o in os.environ.get("PLNT_PLAYGROUND_ORIGINS", "*").split(",")]
+        exact = [o for o in raw if o and "*" not in o] + (["*"] if "*" in raw else [])
+        patterns = [o for o in raw if o and "*" in o and o != "*"]
+        regex = (
+            "|".join("^" + re.escape(o).replace(r"\*", ".*") + "$" for o in patterns) or None
+        )
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=origins,
+            allow_origins=exact,
+            allow_origin_regex=regex,
             allow_methods=["GET", "POST"],
             allow_headers=["content-type"],
             allow_credentials=False,

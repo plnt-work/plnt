@@ -101,6 +101,17 @@ def materialize(
     kind, value = parse(spec)
     limit = float(max_mb if max_mb is not None else os.environ.get("PLNT_WORKSPACE_MAX_MB", "50"))
     dest.mkdir(parents=True, exist_ok=True)
+    try:
+        return _materialize(kind, value, dest, allow_paths=allow_paths, allow_git=allow_git,
+                            limit=limit)
+    finally:
+        # copytree keeps the source's mtime; the copy's age must be its own.
+        os.utime(dest, None)
+
+
+def _materialize(
+    kind: str, value: str, dest: Path, *, allow_paths: bool, allow_git: bool, limit: float
+) -> WorkspaceInfo:
     if kind == "demo":
         src = demo_root(value)
         shutil.copytree(src, dest, dirs_exist_ok=True, ignore=_IGNORE)

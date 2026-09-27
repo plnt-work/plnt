@@ -56,7 +56,7 @@ Used for tenants without their own model. See [Local models](/docs/guides/local-
 | `PLNT_PLAYGROUND_MESSAGES_PER_10MIN` | `30` | Messages per IP. |
 | `PLNT_PLAYGROUND_DAILY_TOKENS` | `2000000` | Total tokens per day across all visitors; then 503. |
 | `PLNT_PLAYGROUND_EXECUTE` | unset | `1` gives playground agents `write_file` and `execute`. Visitors then run programs on your server; leave it unset on anything public. |
-| `PLNT_PLAYGROUND_ORIGINS` | `*` | Comma-separated CORS origins. |
+| `PLNT_PLAYGROUND_ORIGINS` | `*` | Comma-separated CORS origins. An entry may contain `*` as a wildcard, e.g. `https://plnt-site*.vercel.app` for preview deployments. |
 | `PLNT_TRUST_PROXY` | unset | `1` to take the client IP from the first `X-Forwarded-For` entry. Only behind a proxy that sets that entry itself (Render does); otherwise visitors can spoof it. |
 
 ## Site build

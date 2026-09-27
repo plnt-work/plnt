@@ -1,6 +1,6 @@
 /* plnt design tokens: one source of truth for the site and the console.
    Copies live at site/src/styles/tokens.css and console/src/tokens.css;
-   CI checks they are identical to this file. */
+   CI checks they are identical to this file. Light theme only. */
 
 :root {
   --bg: #f7f6f2;
@@ -28,29 +28,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121110;
-    --panel: #1a1816;
-    --sunken: #221f1c;
-    --line: #2f2b27;
-    --line-strong: #454039;
-    --ink: #f3f1ec;
-    --ink-2: #d5d1c9;
-    --muted: #9b968c;
-    --accent: #ff6a33;
-    --accent-ink: #1a0b04;
-    --accent-soft: #3a1a0e;
-    --ok: #4ade80;
-    --ok-soft: #14351f;
-    --warn: #f5b342;
-    --warn-soft: #3b2a0b;
-    --danger: #f87171;
-    --danger-soft: #3f1212;
-    --code-bg: #0e0d0b;
-    --code-ink: #e9e6df;
-  }
-}
+/* Light only. The product is one theme; there is no dark variant. */
 
 /* Mono uppercase label: section eyebrows, card categories, table headers. */
 .eyebrow {

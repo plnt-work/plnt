@@ -53,8 +53,9 @@ services:
       # Leave unset: visitors must not run programs on this server.
       # - key: PLNT_PLAYGROUND_EXECUTE
       #   value: "1"
+      # The site, plus its Vercel preview deployments (a `*` entry is a pattern).
       - key: PLNT_PLAYGROUND_ORIGINS
-        value: https://plnt.work,https://www.plnt.work
+        value: https://plnt.work,https://www.plnt.work,https://plnt-site*.vercel.app
       # Render's edge puts the real client IP first in X-Forwarded-For.
       - key: PLNT_TRUST_PROXY
         value: "1"
