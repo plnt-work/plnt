@@ -29,10 +29,15 @@ const PROMPTS: Record<string, string[]> = {
   'booking-desk': ['Table for 2 this Saturday at 7:30pm?', 'Can 10 of us come Friday?', 'Cancel my booking'],
 };
 
+// The hosted playground server (render.yaml). Used when the build has no
+// PUBLIC_PLNT_PLAYGROUND_URL and the page is not served from this machine.
+const HOSTED_API = 'https://plnt.onrender.com';
+
 function apiBase(): string {
   const q = new URLSearchParams(window.location.search).get('api');
   const env = (import.meta.env.PUBLIC_PLNT_PLAYGROUND_URL as string | undefined) ?? '';
-  return (q || env || 'http://localhost:8787').replace(/\/+$/, '');
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+  return (q || env || (local ? 'http://localhost:8787' : HOSTED_API)).replace(/\/+$/, '');
 }
 
 async function errText(r: Response): Promise<string> {
@@ -106,6 +111,7 @@ export default function Playground() {
   const [api, setApi] = useState('');
   const [info, setInfo] = useState<Info | null>(null);
   const [offline, setOffline] = useState<string | null>(null);
+  const [reachable, setReachable] = useState(false);
   const [tenantId, setTenantId] = useState('');
   const [slug, setSlug] = useState('');
   // One conversation per (tenant, agent), so switching back keeps it: the
@@ -136,6 +142,16 @@ export default function Playground() {
         setSlug(first.agents.find((a) => a.slug === 'support-desk')?.slug ?? first.agents[0]?.slug ?? '');
       }
     } catch (e) {
+      // Tell "server down" apart from "server up, but not serving this page".
+      // A no-cors request resolves whenever the server answers at all.
+      let up = false;
+      try {
+        await fetch(`${base}/v1/health`, { mode: 'no-cors' });
+        up = true;
+      } catch {
+        up = false;
+      }
+      setReachable(up);
       setOffline(e instanceof Error ? e.message : String(e));
     }
   };
@@ -222,11 +238,26 @@ export default function Playground() {
   if (offline !== null) {
     return (
       <div class="pg-offline container">
-        <h1>The playground server is offline</h1>
-        <p>
-          This page talks to a real plnt server at <code>{api}</code> and could not reach it
-          ({offline}). There are no pre-written answers to fall back on.
-        </p>
+        {reachable ? (
+          <>
+            <h1>The playground is not enabled on this server</h1>
+            <p>
+              The plnt server at <code>{api}</code> is running, but it did not serve the
+              playground to this page ({offline}). Either playground mode is off (start it with{' '}
+              <code>PLNT_PLAYGROUND=1</code> or <code>--playground</code>), or this site&rsquo;s
+              origin <code>{typeof window !== 'undefined' ? window.location.origin : ''}</code> is
+              not in <code>PLNT_PLAYGROUND_ORIGINS</code>.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>The playground server is offline</h1>
+            <p>
+              This page talks to a real plnt server at <code>{api}</code> and could not reach it
+              ({offline}). There are no pre-written answers to fall back on.
+            </p>
+          </>
+        )}
         <p>Run the same playground on your machine with any model:</p>
         <pre><code>{`pip install "git+https://github.com/plnt-work/plnt"
 ollama pull qwen2.5:7b          # or set PLNT_CLOUD_URL / PLNT_CLOUD_API_KEY

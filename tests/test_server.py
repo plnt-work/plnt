@@ -209,3 +209,10 @@ def test_console_route(api):
         assert r.status_code == 200 and '<div id="root">' in r.text
     else:
         assert r.status_code == 404 and "npm run build" in r.text
+
+
+def test_root_is_a_map_not_a_404(api):
+    client, _ = api
+    r = client.get("/")
+    assert r.status_code == 200
+    assert r.json()["console"] == "/console" and r.json()["playground"] is None

@@ -50,4 +50,4 @@ Used for tenants without their own model. See [Local models](/docs/guides/local-
 
 | Variable | |
 | --- | --- |
-| `PUBLIC_PLNT_PLAYGROUND_URL` | The playground server the site's `/playground` page talks to. Visitors can override it with `?api=`. |
+| `PUBLIC_PLNT_PLAYGROUND_URL` | The playground server the site's `/playground` page talks to. Defaults to `https://plnt.onrender.com` (or `http://localhost:8787` when the page is served from localhost). Visitors can override it with `?api=`. |

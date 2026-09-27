@@ -30,7 +30,7 @@ The `/playground` page has no canned answers. It calls a plnt server started wit
 plnt serve --port 8787 --playground     # from the repo root, with a model configured
 ```
 
-The page uses `PUBLIC_PLNT_PLAYGROUND_URL` (set at build time), then `?api=<url>` in the page URL, then `http://localhost:8787`. If the server is unreachable, it says so and shows how to run it locally. See the [deploy guide](src/content/docs/docs/guides/deploy.md#hosting-the-public-playground) for hosting it.
+The page uses `?api=<url>` in the page URL, then `PUBLIC_PLNT_PLAYGROUND_URL` (set at build time), then `http://localhost:8787` when the page itself is served from localhost, else the hosted server `https://plnt.onrender.com`. If the server is unreachable, it says so and shows how to run it locally. See the [deploy guide](src/content/docs/docs/guides/deploy.md#hosting-the-public-playground) for hosting it.
 
 ## Test
 

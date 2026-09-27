@@ -316,6 +316,11 @@ def serve_cmd(host: str, port: int, playground: bool) -> None:
             "[yellow]PLNT_ADMIN_TOKEN is not set: operator routes (create tenants, "
             "list tenants) will answer 503. Tenant API keys still work.[/yellow]"
         )
+    if playground:
+        origins = os.environ.get("PLNT_PLAYGROUND_ORIGINS", "*")
+        console.print(f"playground: on · /v1/playground · allowed origins: {escape(origins)}")
+    else:
+        console.print("playground: off (set PLNT_PLAYGROUND=1 or pass --playground)")
     uvicorn.run(create_app(playground=playground), host=host, port=port, log_level="info")
 
 

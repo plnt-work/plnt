@@ -60,7 +60,9 @@ The repo has a Render Blueprint, `render.yaml`:
 1. In the Render dashboard, choose **New → Blueprint** and pick the repository.
 2. When asked for `PLNT_CLOUD_API_KEY`, paste a Gemini API key made only for the playground. Set a budget alert on it in Google Cloud.
 3. Deploy. Check `https://<service>.onrender.com/v1/playground` returns the demo tenants.
-4. In the site's hosting (Vercel), set `PUBLIC_PLNT_PLAYGROUND_URL=https://<service>.onrender.com` and redeploy the site.
+4. In the site's hosting (Vercel), set `PUBLIC_PLNT_PLAYGROUND_URL=https://<service>.onrender.com` and redeploy the site. The Vercel project's **Root Directory** must be `site` with the **Astro** preset. From the repository root, Vercel finds the Python code and tries to deploy it as a FastAPI app, which fails.
+
+Opening the service's bare URL returns a small JSON map of its endpoints; the playground API is under `/v1/playground`.
 
 The blueprint:
 

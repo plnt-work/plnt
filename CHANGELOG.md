@@ -11,6 +11,13 @@ Dates are ISO-8601, UTC.
 
 ### Added
 
+- `GET /` returns a map of the server's endpoints, not a 404.
+- `plnt serve` logs whether playground mode is on and which origins it allows.
+- The site's playground tells "server unreachable" apart from "server up but playground
+  off or origin not allowed", and names the setting to fix.
+
+### Added
+
 - `render.yaml`: a Render Blueprint that hosts the public playground. It runs the
   Docker image with Gemini 2.5 Flash, a 1M-tokens-a-day cap, `plnt.work`-only CORS,
   no admin token, and deploys only after CI passes.

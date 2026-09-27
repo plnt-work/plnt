@@ -13,12 +13,16 @@ fake=$!
 PLNT_LOCAL_URL=http://127.0.0.1:11556 PLNT_PLANNER_MODEL=fake:1b \
   plnt serve --port 8787 --playground &
 server=$!
+# A second server without playground mode, for the "not enabled" message.
+env -u PLNT_PLAYGROUND PLNT_HOME="$PLNT_HOME/plain" plnt serve --port 8788 &
+plain=$!
 (cd "$site" && npx astro preview --port 4321 --host 127.0.0.1) &
 preview=$!
-trap 'kill $fake $server $preview 2>/dev/null || true' EXIT
+trap 'kill $fake $server $plain $preview 2>/dev/null || true' EXIT
 
 for _ in $(seq 60); do
   curl -sf http://127.0.0.1:8787/v1/playground >/dev/null && \
+    curl -sf http://127.0.0.1:8788/v1/health >/dev/null && \
     curl -sf http://127.0.0.1:4321/ >/dev/null && break
   sleep 0.5
 done

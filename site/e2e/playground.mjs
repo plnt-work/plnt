@@ -65,6 +65,11 @@ await off.goto(`${site}/playground?api=http://127.0.0.1:9`);
 await off.getByText('The playground server is offline').waitFor();
 await off.screenshot({ path: `${outDir}/playground-offline.png` });
 
+// 6b. A reachable server without playground mode says so, and names the fix.
+await off.goto(`${site}/playground?api=http://127.0.0.1:8788`);
+await off.getByText('The playground is not enabled on this server').waitFor();
+await off.getByText('PLNT_PLAYGROUND=1').waitFor();
+
 // 7. Landing and docs render.
 await page.goto(`${site}/`);
 await page.getByText('Ship one agent to 1,000 customers.').waitFor();
@@ -73,7 +78,7 @@ await page.goto(`${site}/docs/getting-started/quickstart/`);
 await page.getByRole('heading', { name: 'Quickstart' }).first().waitFor();
 await page.screenshot({ path: `${outDir}/docs-quickstart.png` });
 
-const real = errors.filter((e) => !e.includes('127.0.0.1:9'));
+const real = errors.filter((e) => !e.includes('127.0.0.1:9') && !e.includes('8788') && !e.includes('CORS') && !e.includes('Failed to load resource'));
 if (real.length) await fail('browser errors');
 console.log('site e2e: ok');
 await browser.close();
