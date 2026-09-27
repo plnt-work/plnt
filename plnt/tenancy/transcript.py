@@ -9,7 +9,7 @@ ran (with their spec and what they did), and the reply.
       "turns": [
         {
           "run_id": "r_…", "ts": 1758800000.1,
-          "user": {"text": "table for 2 tonight?"},
+          "user": {"text": "audit app/store.py for bugs"},
           "parent": {"kind": "agents", "reason": "…", "reply": "", "plan": [...]},
           "agents": [
             {"id": "code-reviewer", "role": "code-reviewer", "bundle": "code-reviewer",
