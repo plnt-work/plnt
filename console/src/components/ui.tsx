@@ -54,7 +54,7 @@ export function Card({ title, actions, children, className }: {
 }
 
 export function Badge({ tone = "neutral", children }: {
-  tone?: "neutral" | "good" | "bad" | "warn";
+  tone?: "neutral" | "ok" | "bad" | "warn";
   children: ReactNode;
 }) {
   return (
@@ -62,7 +62,7 @@ export function Badge({ tone = "neutral", children }: {
       className={cx(
         "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium",
         tone === "neutral" && "bg-sunken text-muted",
-        tone === "good" && "bg-accent-soft text-accent",
+        tone === "ok" && "bg-ok-soft text-ok",
         tone === "bad" && "bg-danger-soft text-danger",
         tone === "warn" && "bg-warn-soft text-warn",
       )}
@@ -72,10 +72,18 @@ export function Badge({ tone = "neutral", children }: {
   );
 }
 
+export function Eyebrow({ children, accent, className }: {
+  children: ReactNode;
+  accent?: boolean;
+  className?: string;
+}) {
+  return <span className={cx("eyebrow", accent && "accent", className)}>{children}</span>;
+}
+
 export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="rounded-lg border border-line bg-panel px-4 py-3">
-      <div className="text-[12px] text-muted">{label}</div>
+      <Eyebrow>{label}</Eyebrow>
       <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
       {sub && <div className="mt-0.5 text-[12px] text-muted">{sub}</div>}
     </div>

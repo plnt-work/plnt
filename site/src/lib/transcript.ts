@@ -34,6 +34,8 @@ export type Step =
 
 export type AgentStatus = "running" | "done" | "failed" | "killed";
 
+export type FileTouch = { path: string; op: "read" | "write" | "list" | "search" | "run"; detail?: string };
+
 export type AgentCard = {
   id: string;
   role: string;
@@ -45,6 +47,7 @@ export type AgentCard = {
   model: ModelInfo | null;
   status: AgentStatus;
   steps: Step[];
+  files: FileTouch[];
   tokens: number;
   wall_seconds: number | null;
   answer: string | null;
@@ -91,6 +94,24 @@ export type Transcript = {
 
 export const PARENT_ID = "parent";
 
+/** The file (or folder / command) a built-in tool call touched, or null. */
+export function fileOf(tool: string, args: unknown): FileTouch | null {
+  const a = (args && typeof args === "object" ? args : {}) as Record<string, unknown>;
+  if (tool === "read_file" || tool === "write_file" || tool === "list_files") {
+    const op = tool === "read_file" ? "read" : tool === "write_file" ? "write" : "list";
+    return { path: String(a.path || "."), op };
+  }
+  if (tool === "search") {
+    return { path: String(a.root || "."), op: "search", detail: String(a.pattern || "") };
+  }
+  if (tool === "execute") {
+    const argv = a.argv;
+    const cmd = Array.isArray(argv) ? argv.map(String).join(" ") : String(argv ?? "");
+    return { path: cmd.slice(0, 120), op: "run" };
+  }
+  return null;
+}
+
 export function foldTurns(events: Ev[]): Turn[] {
   const turns: Turn[] = [];
   let cur: Turn | null = null;
@@ -101,7 +122,7 @@ export function foldTurns(events: Ev[]): Turn[] {
       agents[aid] = {
         id: aid, role: aid, bundle: null, version: null, intent: "",
         depends_on: [], tools: [], model: null, status: "running",
-        steps: [], tokens: 0, wall_seconds: null, answer: null, error: null,
+        steps: [], files: [], tokens: 0, wall_seconds: null, answer: null, error: null,
       };
       if (cur) cur.agents.push(agents[aid]);
     }
@@ -146,6 +167,8 @@ export function foldTurns(events: Ev[]): Turn[] {
       const a = agent(aid);
       if (k === "tool_call") {
         a.steps.push({ kind: "tool_call", step: p.step, tool: String(p.tool ?? ""), args: p.args, ok: null });
+        const f = fileOf(String(p.tool ?? ""), p.args);
+        if (f && !a.files.some((x) => x.path === f.path && x.op === f.op && x.detail === f.detail)) a.files.push(f);
       } else if (k === "tool_result") {
         for (let i = a.steps.length - 1; i >= 0; i--) {
           const s = a.steps[i];
@@ -200,6 +223,26 @@ export function foldTurns(events: Ev[]): Turn[] {
 export function isRunning(turns: Turn[]): boolean {
   const last = turns[turns.length - 1];
   return !!last && last.outcome === null;
+}
+
+/** Every file the session's agents touched, grouped by path, in first-touch order. */
+export function filesOf(turns: Turn[]): { path: string; ops: string[]; agents: string[] }[] {
+  const out: { path: string; ops: string[]; agents: string[] }[] = [];
+  for (const t of turns) {
+    for (const a of t.agents) {
+      for (const f of a.files) {
+        if (f.op === "run") continue;
+        let row = out.find((r) => r.path === f.path);
+        if (!row) {
+          row = { path: f.path, ops: [], agents: [] };
+          out.push(row);
+        }
+        if (!row.ops.includes(f.op)) row.ops.push(f.op);
+        if (!row.agents.includes(a.role)) row.agents.push(a.role);
+      }
+    }
+  }
+  return out;
 }
 
 /** Group a plan/agents list into dependency layers for a left-to-right DAG. */

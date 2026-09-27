@@ -6,13 +6,13 @@ import { useAuth } from "@/lib/auth";
 import { ErrorNote, Spinner, Tabs } from "@/components/ui";
 import { Agents } from "./tenant/Agents";
 import { Audit } from "./tenant/Audit";
-import { Conversations } from "./tenant/Conversations";
+import { Sessions } from "./tenant/Sessions";
 import { Overview } from "./tenant/Overview";
 import { Settings } from "./tenant/Settings";
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "conversations", label: "Conversations" },
+  { id: "sessions", label: "Sessions" },
   { id: "agents", label: "Agents" },
   { id: "settings", label: "Settings" },
   { id: "audit", label: "Audit log" },
@@ -22,7 +22,8 @@ type TabId = (typeof TABS)[number]["id"];
 export function Tenant({ tid }: { tid: string }) {
   const { isOperator } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tab = (TABS.find((t) => t.id === params.get("tab"))?.id ?? "overview") as TabId;
+  const wanted = params.get("tab") === "conversations" ? "sessions" : params.get("tab");
+  const tab = (TABS.find((t) => t.id === wanted)?.id ?? "overview") as TabId;
   const q = useQuery({
     queryKey: ["tenant", tid],
     queryFn: () => api.get<TenantDetail>(`/tenants/${tid}`),
@@ -37,7 +38,7 @@ export function Tenant({ tid }: { tid: string }) {
       )}
       <div>
         <h1 className="text-lg font-semibold">{q.data?.name ?? tid}</h1>
-        <p className="font-mono text-[12px] text-muted">{tid}</p>
+        <p className="eyebrow mt-1">{tid}</p>
       </div>
       <Tabs tabs={[...TABS]} value={tab} onChange={(t) => setParams({ tab: t })} />
       {q.isPending && <Spinner />}
@@ -45,7 +46,7 @@ export function Tenant({ tid }: { tid: string }) {
       {q.data && (
         <div className="pt-2">
           {tab === "overview" && <Overview tenant={q.data} />}
-          {tab === "conversations" && <Conversations tenant={q.data} />}
+          {tab === "sessions" && <Sessions tenant={q.data} />}
           {tab === "agents" && <Agents tenant={q.data} />}
           {tab === "settings" && <Settings tenant={q.data} />}
           {tab === "audit" && <Audit tid={tid} />}

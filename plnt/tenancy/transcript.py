@@ -15,8 +15,9 @@ ran (with their spec and what they did), and the reply.
             {"id": "booking-desk", "role": "booking-desk", "bundle": "booking-desk",
              "version": "0.1.0", "intent": "…", "depends_on": [], "tools": [...],
              "model": {...}, "status": "done" | "running" | "failed" | "killed",
-             "steps": [{"kind": "tool_call", "tool": "check_availability",
+             "steps": [{"kind": "tool_call", "tool": "read_file",
                         "args": {...}, "ok": true}, …],
+             "files": [{"path": "app/store.py", "op": "read"}, …],
              "tokens": 1163, "wall_seconds": 2.5, "answer": "…", "error": null}
           ],
           "reply": {"text": "…", "source": "agent" | "synth" | "parent" | "clarify"},
@@ -34,6 +35,24 @@ from __future__ import annotations
 from typing import Any
 
 
+_FILE_OPS = {"read_file": "read", "write_file": "write", "list_files": "list", "search": "search"}
+
+
+def file_of(tool: str, args: Any) -> dict[str, str] | None:
+    """The file (or folder / command) a built-in tool call touched, or None."""
+    a = args if isinstance(args, dict) else {}
+    if tool in ("read_file", "write_file", "list_files"):
+        return {"path": str(a.get("path") or "."), "op": _FILE_OPS[tool]}
+    if tool == "search":
+        return {"path": str(a.get("root") or "."), "op": "search",
+                "detail": str(a.get("pattern") or "")}
+    if tool == "execute":
+        argv = a.get("argv")
+        cmd = " ".join(str(x) for x in argv) if isinstance(argv, list) else str(argv or "")
+        return {"path": cmd[:120], "op": "run"}
+    return None
+
+
 def build_transcript(session: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, Any]:
     turns: list[dict[str, Any]] = []
     cur: dict[str, Any] | None = None
@@ -44,7 +63,8 @@ def build_transcript(session: dict[str, Any], events: list[dict[str, Any]]) -> d
             agents[aid] = {
                 "id": aid, "role": aid, "bundle": None, "version": None, "intent": "",
                 "depends_on": [], "tools": [], "model": None, "status": "running",
-                "steps": [], "tokens": 0, "wall_seconds": None, "answer": None, "error": None,
+                "steps": [], "files": [], "tokens": 0, "wall_seconds": None,
+                "answer": None, "error": None,
             }
             if cur is not None:
                 cur["agents"].append(agents[aid])
@@ -86,6 +106,9 @@ def build_transcript(session: dict[str, Any], events: list[dict[str, Any]]) -> d
             if k == "tool_call":
                 a["steps"].append({"kind": "tool_call", "step": p.get("step"),
                                    "tool": p.get("tool"), "args": p.get("args"), "ok": None})
+                f = file_of(str(p.get("tool") or ""), p.get("args"))
+                if f and f not in a["files"]:
+                    a["files"].append(f)
             elif k == "tool_result":
                 for s in reversed(a["steps"]):
                     if s["kind"] == "tool_call" and s["tool"] == p.get("tool") and s["ok"] is None:

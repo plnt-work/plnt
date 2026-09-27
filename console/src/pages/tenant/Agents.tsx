@@ -101,12 +101,13 @@ function InstalledCard({ tid, inst, secrets, onEdit }: {
 
   return (
     <Card>
+      <div data-install={inst.slug}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium">{inst.slug}</span>
             <span className="text-muted">v{inst.version}</span>
-            <Badge tone={inst.enabled ? "good" : "neutral"}>{inst.enabled ? "enabled" : "disabled"}</Badge>
+            <Badge tone={inst.enabled ? "ok" : "neutral"}>{inst.enabled ? "enabled" : "disabled"}</Badge>
           </div>
           {inst.description && <p className="mt-1 text-[13px] text-muted">{inst.description}</p>}
           <p className="mt-1 text-[12px] text-muted">
@@ -131,6 +132,7 @@ function InstalledCard({ tid, inst, secrets, onEdit }: {
         </Button>
       </div>
       <ErrorNote error={toggle.error ?? remove.error} />
+      </div>
     </Card>
   );
 }

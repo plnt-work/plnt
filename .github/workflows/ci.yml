@@ -27,6 +27,9 @@ jobs:
       - run: pytest -q
       # The event fold is one file, shipped twice (console + site).
       - run: cmp console/src/lib/transcript.ts site/src/lib/transcript.ts
+      - run: cmp console/src/lib/run-view.ts site/src/lib/run-view.ts
+      # Design tokens: one source, copied into both apps.
+      - run: cmp design/tokens.css site/src/styles/tokens.css && cmp design/tokens.css console/src/tokens.css
 
   booking:
     name: examples/booking (pytest, Temporal in-process)
