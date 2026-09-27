@@ -34,7 +34,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 _FILE_OPS = {"read_file": "read", "write_file": "write", "list_files": "list", "search": "search"}
 
 
