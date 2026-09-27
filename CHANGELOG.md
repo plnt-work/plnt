@@ -12,6 +12,9 @@ Dates are ISO-8601, UTC.
 ### Added
 
 - `GET /` returns a map of the server's endpoints, not a 404.
+- `plnt serve` logs whether playground mode is on and which origins it allows.
+- The site's playground tells "server unreachable" apart from "server up but playground
+  off or origin not allowed", and names the setting to fix.
 
 ### Added
 
