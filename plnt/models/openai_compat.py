@@ -74,6 +74,9 @@ _TOOLS_UNSUPPORTED_MARKERS = (
 # "auto" from then on and the agent loop's re-ask/refuse guardrail does the work.
 _NO_FORCED_CHOICE: set[tuple[str, str]] = set()
 
+_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+_RETRY_DELAYS = (1.0, 2.0)
+
 
 class OpenAICompatProvider:
     name = "openai"
@@ -132,36 +135,41 @@ class OpenAICompatProvider:
         url = v1_base(p.base_url) + "/chat/completions"
         t = float(timeout or p.timeout)
         started = time.monotonic()
-        try:
-            with self._client(t) as c:
-                r = c.post(url, json=payload, headers=self._headers())
-        except httpx.TimeoutException as e:
-            raise ModelTimeout(
-                f"{url} did not answer within {t:.0f}s",
-                hint="use a smaller model, raise PLNT_MODEL_TIMEOUT, or give the agent more "
-                "wall budget",
-                **self._err_kw(),
-            ) from e
-        except httpx.HTTPError as e:
-            raise ModelUnavailable(
-                f"cannot reach {url}: {e}",
-                hint="check the server is running and the base URL is right",
-                **self._err_kw(),
-            ) from e
-        if forced and r.status_code == 400 and "tool_choice" in r.text.lower():
-            # Some OpenAI-compatible servers accept tools but not a named
-            # tool_choice. Retry unforced; the caller still checks the reply.
-            _NO_FORCED_CHOICE.add(key)
-            payload["tool_choice"] = "auto"
+        def post() -> httpx.Response:
             try:
                 with self._client(t) as c:
-                    r = c.post(url, json=payload, headers=self._headers())
+                    return c.post(url, json=payload, headers=self._headers())
+            except httpx.TimeoutException as e:
+                raise ModelTimeout(
+                    f"{url} did not answer within {t:.0f}s",
+                    hint="use a smaller model, raise PLNT_MODEL_TIMEOUT, or give the agent more "
+                    "wall budget",
+                    **self._err_kw(),
+                ) from e
             except httpx.HTTPError as e:
                 raise ModelUnavailable(
                     f"cannot reach {url}: {e}",
                     hint="check the server is running and the base URL is right",
                     **self._err_kw(),
                 ) from e
+
+        r = post()
+        # Hosted APIs return occasional 5xx/429 that succeed on retry. Retry
+        # twice with backoff while the call's time budget allows; a server
+        # that keeps failing is still reported as a failure below.
+        for delay in _RETRY_DELAYS:
+            if r.status_code not in _RETRY_STATUS:
+                break
+            if time.monotonic() - started + delay >= t:
+                break
+            time.sleep(delay)
+            r = post()
+        if forced and r.status_code == 400 and "tool_choice" in r.text.lower():
+            # Some OpenAI-compatible servers accept tools but not a named
+            # tool_choice. Retry unforced; the caller still checks the reply.
+            _NO_FORCED_CHOICE.add(key)
+            payload["tool_choice"] = "auto"
+            r = post()
         latency_ms = int((time.monotonic() - started) * 1000)
 
         if r.status_code != 200:

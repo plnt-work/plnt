@@ -9,6 +9,13 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
+### Fixed
+
+- OpenAI-compatible calls retry temporary server errors (429, 500, 502, 503, 504) twice,
+  with backoff, within the call's time budget. A server that keeps failing is still
+  reported. Gemini occasionally returns `500 INTERNAL` on requests that succeed on retry.
+- With `PLNT_FORCE=cloud`, the error names which `PLNT_CLOUD_*` settings are missing.
+
 ### Added
 
 - `GET /` returns a map of the server's endpoints, not a 404.
