@@ -1,50 +1,13 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
 
-/* Same tokens as the console (console/src/styles.css), so the site and the
-   product read as one thing. */
+/* Design tokens: a copy of design/tokens.css (CI checks it). */
+@import './tokens.css';
+
 :root {
-  --bg: #fafaf9;
-  --panel: #ffffff;
-  --sunken: #f4f4f3;
-  --line: #e7e5e4;
-  --ink: #1c1917;
-  --ink-2: #44403c;
-  --muted: #78716c;
-  --accent: #15803d;
-  --accent-ink: #ffffff;
-  --accent-soft: #dcfce7;
-  --warn: #a16207;
-  --warn-soft: #fef9c3;
-  --danger: #b91c1c;
-  --danger-soft: #fee2e2;
-  --code-bg: #1c1917;
-  --code-ink: #e7e5e4;
-
-  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --max: 1120px;
   --pad: clamp(1rem, 4vw, 2rem);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0c0a09;
-    --panel: #161412;
-    --sunken: #1f1c1a;
-    --line: #2e2a27;
-    --ink: #f5f5f4;
-    --ink-2: #d6d3d1;
-    --muted: #a8a29e;
-    --accent: #4ade80;
-    --accent-ink: #052e16;
-    --accent-soft: #14532d;
-    --warn: #facc15;
-    --warn-soft: #422006;
-    --danger: #f87171;
-    --danger-soft: #450a0a;
-    --code-bg: #1f1c1a;
-  }
 }
 
 * { box-sizing: border-box; }
@@ -88,7 +51,7 @@ pre .s { color: #fde68a; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 0.4rem;
-  height: 2.5rem; padding: 0 1.1rem; border-radius: 8px;
+  height: 2.5rem; padding: 0 1.1rem; border-radius: var(--radius);
   font-weight: 600; font-size: 0.95rem; text-decoration: none;
   border: 1px solid var(--line); background: var(--panel);
 }
@@ -121,7 +84,7 @@ pre .s { color: #fde68a; }
 /* ---------------------------------------------------------------- landing */
 
 .hero { padding: 5rem 0 3rem; }
-.hero .eyebrow { font-size: 0.85rem; color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
+.hero .eyebrow { color: var(--accent); }
 .hero h1 { font-size: clamp(2.1rem, 5.2vw, 3.6rem); line-height: 1.08; letter-spacing: -0.025em; margin: 0.6rem 0 1rem; max-width: 18ch; }
 .hero p.lead { font-size: 1.15rem; color: var(--ink-2); max-width: 60ch; margin: 0 0 1.75rem; }
 .hero .ctas { display: flex; flex-wrap: wrap; gap: 0.75rem; }
@@ -153,7 +116,7 @@ section.block > .container > p.sub { color: var(--muted); max-width: 62ch; margi
 .evidence .label { color: var(--muted); font-size: 0.85rem; }
 .pill { display: inline-block; font-size: 0.75rem; font-weight: 600; border-radius: 4px; padding: 0.05rem 0.4rem; }
 .pill.bad { background: var(--danger-soft); color: var(--danger); }
-.pill.good { background: var(--accent-soft); color: var(--accent); }
+.pill.good { background: var(--ok-soft); color: var(--ok); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 @media (max-width: 560px) { .evidence .row { grid-template-columns: 1fr; gap: 0.25rem; } }
 
