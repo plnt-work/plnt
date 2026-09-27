@@ -152,6 +152,19 @@ def create_app(
     def health() -> dict[str, Any]:
         return {"ok": True, "version": __version__, "dev": dev}
 
+    @app.get("/", include_in_schema=False)
+    def root() -> dict[str, Any]:
+        """A map of the server for anyone who opens its bare URL."""
+        return {
+            "name": "plnt",
+            "version": __version__,
+            "health": "/v1/health",
+            "console": "/console",
+            "api_reference": "/docs",
+            "playground": "/v1/playground" if playground else None,
+            "docs": "https://plnt.work/docs/",
+        }
+
     @app.get("/v1/bundles")
     def list_bundles() -> dict[str, Any]:
         found, errors = catalog.available()

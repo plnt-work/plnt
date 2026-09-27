@@ -11,6 +11,10 @@ Dates are ISO-8601, UTC.
 
 ### Added
 
+- `GET /` returns a map of the server's endpoints, not a 404.
+
+### Added
+
 - `render.yaml`: a Render Blueprint that hosts the public playground. It runs the
   Docker image with Gemini 2.5 Flash, a 1M-tokens-a-day cap, `plnt.work`-only CORS,
   no admin token, and deploys only after CI passes.

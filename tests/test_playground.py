@@ -176,3 +176,9 @@ def test_cors_for_playground(pg):
         headers={"Origin": "https://plnt.work", "Access-Control-Request-Method": "GET"},
     )
     assert r.headers.get("access-control-allow-origin") in ("*", "https://plnt.work")
+
+
+def test_root_points_to_the_playground(pg):
+    client, _, _ = pg
+    body = client.get("/").json()
+    assert body["playground"] == "/v1/playground" and body["health"] == "/v1/health"
