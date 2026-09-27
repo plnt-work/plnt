@@ -1,6 +1,5 @@
 # build output
 dist/
-dist-app/
 # generated types
 .astro/
 # vercel

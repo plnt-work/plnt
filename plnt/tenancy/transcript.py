@@ -12,7 +12,7 @@ ran (with their spec and what they did), and the reply.
           "user": {"text": "table for 2 tonight?"},
           "parent": {"kind": "agents", "reason": "…", "reply": "", "plan": [...]},
           "agents": [
-            {"id": "booking-desk", "role": "booking-desk", "bundle": "booking-desk",
+            {"id": "code-reviewer", "role": "code-reviewer", "bundle": "code-reviewer",
              "version": "0.1.0", "intent": "…", "depends_on": [], "tools": [...],
              "model": {...}, "status": "done" | "running" | "failed" | "killed",
              "steps": [{"kind": "tool_call", "tool": "read_file",

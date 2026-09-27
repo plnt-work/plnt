@@ -5,14 +5,14 @@ description: Limits the runtime enforces on every run, whatever the model does.
 
 These limits are enforced by the runtime, not by the prompt. A model can ignore a prompt. It cannot ignore these.
 
-## Required tool: no ungrounded answers
+## Required tool: look before you answer
 
-Small models often answer from memory instead of looking things up. In our CI, a 1.5B model asked a dental clinic's opening hours answered "8am to 5pm". The clinic's FAQ says 4pm.
+Small models often answer from memory instead of looking. A reviewer that "finds" a bug in a file it never opened is worse than no reviewer. The shipped bundles all require a look first:
 
 ```toml
 [runtime]
-tools = ["lookup_faq"]
-require_tool = "lookup_faq"
+tools = ["list_files", "read_file", "search"]
+require_tool = "read_file"
 ```
 
 With `require_tool` set:
@@ -21,14 +21,20 @@ With `require_tool` set:
 2. If the model still answers without calling it, the runtime **drops the answer**, records a `guardrail` event with `action: "reprompt"`, and tells the model to call the tool.
 3. If the model skips it a second time, the runtime records `action: "refused"` and ends the run with an error. **No answer is sent.** The event includes the answer that was withheld, so you can see what it would have said.
 
-In the same CI run, the reprompt fixed the dental answer ("8 AM to 4 PM"). For the restaurant, the model skipped the lookup twice and the answer was withheld. If you see many refusals, the model is too weak for the bundle: run `plnt models doctor` and try a larger one.
+In our CI a 1.5B local model skips the read on the first try more often than not; the reprompt fixes most of those, and the rest are withheld rather than sent. If you see many refusals, the model is too weak for the bundle: run `plnt models doctor` and try a larger one.
+
+## Read-only mode
+
+`PLNT_READ_ONLY=1` (on by default for the playground) removes `write_file` and `execute` from every agent, installed or invented, before the model sees its tools. `agent_spawned` events carry `read_only: true` so a run view can say so. Use it wherever people you do not know can start sessions.
 
 ## Budgets
 
+Per agent, from its bundle (or the `PLNT_AGENT_*` defaults for invented roles):
+
 ```toml
 [budget]
-tokens = 8000        # prompt + completion tokens, per message
-wall_seconds = 60    # per message
+tokens = 30000       # prompt + completion tokens, per message
+wall_seconds = 180   # per message
 ```
 
 - **Tokens:** counted after every model call. Past the limit, the run is stopped (`killed` event, `run_error` with `stopped: "killed"`).
@@ -47,7 +53,11 @@ Stop a run in flight:
 curl -X POST $API/tenants/acme/sessions/$SID/kill -H "$AUTH"
 ```
 
-The run stops before its next model or tool call and records `killed`. The console has a **Kill** button on live conversations, and the [playground](/playground) has one too.
+Running agents stop before their next model or tool call and record `killed`; agents the parent planned but had not started are recorded as `agent_finished` with `outcome: skipped`. The console and the [playground](/playground) have a **Kill run** button.
+
+## The parent's limits
+
+At most 4 agents per message, at most `PLNT_MAX_CONCURRENCY` (3) running at once, and only installed bundles unless invented roles are on. See [The parent and its agents](/docs/guides/parent/).
 
 ## Model errors are errors
 

@@ -51,7 +51,7 @@ Everything is under `$PLNT_HOME`: SQLite files, JSON and JSONL. Back up the dire
 
 ## Hosting the public playground
 
-The [playground](/playground) on this site is a normal plnt server with `PLNT_PLAYGROUND=1` (or `--playground`). It seeds two fictional businesses and opens an anonymous API limited to them, with per-IP rate limits and a daily token cap (`PLNT_PLAYGROUND_*`, see [Environment variables](/docs/reference/env/)). Don't enable it on a server with real customers.
+The [playground](/playground) on this site is a normal plnt server with `PLNT_PLAYGROUND=1` (or `--playground`). It seeds two demo tenants, each bound to a sample workspace (`notes-api`, `cli-tool`) with the four developer bundles installed, and opens an anonymous API limited to them: every visitor session gets its own copy of the workspace, the executor is read-only (no `write_file`, no `execute`) unless `PLNT_PLAYGROUND_EXECUTE=1`, invented roles are on, and there are per-IP rate limits and a daily token cap (`PLNT_PLAYGROUND_*`, see [Environment variables](/docs/reference/env/)). Copies older than 24 hours are swept. Don't enable it on a server with real tenants.
 
 ### On Render
 
@@ -59,7 +59,7 @@ The repo has a Render Blueprint, `render.yaml`:
 
 1. In the Render dashboard, choose **New → Blueprint** and pick the repository.
 2. When asked for `PLNT_CLOUD_API_KEY`, paste a Gemini API key made only for the playground. Set a budget alert on it in Google Cloud.
-3. Deploy. Check `https://<service>.onrender.com/v1/playground` returns the demo tenants.
+3. Deploy. Check `https://<service>.onrender.com/v1/playground` returns the two demo workspaces with a `file_count`.
 4. In the site's hosting (Vercel), set `PUBLIC_PLNT_PLAYGROUND_URL=https://<service>.onrender.com` and redeploy the site. The Vercel project's **Root Directory** must be `site` with the **Astro** preset. From the repository root, Vercel finds the Python code and tries to deploy it as a FastAPI app, which fails.
 
 Opening the service's bare URL returns a small JSON map of its endpoints; the playground API is under `/v1/playground`.
@@ -67,10 +67,11 @@ Opening the service's bare URL returns a small JSON map of its endpoints; the pl
 The blueprint:
 
 - runs the repo's `Dockerfile` on a Starter instance. Free instances sleep when idle, so the first visitor would wait about a minute.
-- uses Gemini 2.5 Flash with a cap of 1M tokens a day across all visitors.
+- uses Gemini 2.5 Flash with a cap of 3M tokens a day across all visitors (agents that read files use more than chat).
 - allows only `plnt.work` origins.
 - leaves `PLNT_ADMIN_TOKEN` unset, so operator routes answer 503.
-- has no disk. Conversations are thrown away on each deploy, and the demo tenants are seeded again on start.
+- has no disk. Sessions and workspace copies are thrown away on each deploy, and the demo tenants are seeded again on start.
+- keeps `PLNT_PLAYGROUND_EXECUTE` unset: visitors never run programs on the server.
 - redeploys only after CI passes, and only when server code changes.
 
 ### Anywhere else

@@ -52,8 +52,8 @@ Model profile fields: `provider` (`ollama` or `openai`), `base_url`, `model` (re
 
 | Method | Path | Auth | Body → Response |
 | --- | --- | --- | --- |
-| POST | `/tenants/{t}/sessions` | tenant | `{bundle?, user_id?}` → 201 `{session_id}`. No `bundle` starts a [parent](/docs/guides/parent/) session. |
-| GET | `/tenants/{t}/sessions?limit=100` | tenant | `{sessions: [...]}` |
+| POST | `/tenants/{t}/sessions` | tenant | `{bundle?, user_id?, workspace?}` → 201 `{session_id}`. No `bundle` starts a [parent](/docs/guides/parent/) session; `workspace` is `demo:<name>`, a folder, or a git URL ([policy](/docs/guides/workspaces/#policy)); 422 when refused. |
+| GET | `/tenants/{t}/sessions?limit=100` | tenant | `{sessions: [{id, title, workspace, workspace_kind, bundle, mode, user_id, status, created_at}]}` |
 | POST | `/tenants/{t}/sessions/{sid}/messages` | tenant | `{text}` → 202 `{run_id}`. 409 if a run is in progress. |
 | GET | `/tenants/{t}/sessions/{sid}/events?after=N` | tenant | `{events: [...]}` with `seq > N` |
 | GET | `/tenants/{t}/sessions/{sid}/stream?after=N&until_idle=0` | tenant | Server-sent events. `until_idle=1` closes after the next `run_finished`. |
@@ -76,7 +76,8 @@ Anonymous, limited to the seeded demo tenants, rate-limited per IP.
 | Method | Path | |
 | --- | --- | --- |
 | GET | `/playground` | Demo tenants, their agents and config, limits. |
-| POST | `/playground/sessions` | `{tenant, bundle?}` → `{session_id, token}`. No `bundle` = parent mode. |
+| GET | `/playground` | Demo tenants with their workspace (`name`, `file_count`, `suggested_tasks`) and agents, `parent`, `execute_enabled`, `models`, `limits`. |
+| POST | `/playground/sessions` | `{tenant, bundle?}` → `{session_id, token}`. No `bundle` = parent mode. The workspace is the tenant's own demo; a copy is made per session. |
 | GET | `/playground/sessions/{sid}/transcript?token=` | The turns, as above. |
 | POST | `/playground/sessions/{sid}/messages?token=` | `{text}` (≤ 500 chars). 429 when rate-limited, 503 when the daily budget is used up. |
 | GET | `/playground/sessions/{sid}/stream?token=&after=` | SSE, as above. |

@@ -11,9 +11,9 @@ const { title, description, path = '/' } = Astro.props;
 const canonical = new URL(path, Astro.site).toString();
 const repo = 'https://github.com/plnt-work/plnt';
 const nav = [
+  { href: '/use-cases', label: 'Use cases' },
   { href: '/playground', label: 'Playground' },
   { href: '/docs/', label: 'Docs' },
-  { href: `${repo}/blob/main/ROADMAP.md`, label: 'Roadmap' },
 ];
 
 const jsonLd = {
@@ -21,7 +21,7 @@ const jsonLd = {
   '@type': 'SoftwareApplication',
   name: 'plnt',
   description:
-    'Open-source runtime for shipping one AI agent to many customers, each isolated, on any model, local or cloud.',
+    'Open-source runtime where a parent agent takes a task on a repository, spawns micro-agents, runs them isolated and merges the result, with every step on the record.',
   applicationCategory: 'DeveloperApplication',
   license: 'https://www.apache.org/licenses/LICENSE-2.0',
   url: 'https://plnt.work',
@@ -74,8 +74,9 @@ const jsonLd = {
     <footer class="site-footer">
       <div class="container inner">
         <div>
-          <a href="/docs/">Docs</a>
+          <a href="/use-cases">Use cases</a>
           <a href="/playground">Playground</a>
+          <a href="/docs/">Docs</a>
           <a href={repo}>GitHub</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>

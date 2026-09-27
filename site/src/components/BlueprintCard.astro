@@ -1,0 +1,22 @@
+---
+import type { Blueprint } from '../data/blueprints';
+import { STATUS_LABEL } from '../data/blueprints';
+interface Props { bp: Blueprint }
+const { bp } = Astro.props;
+const href = bp.playground
+  ? `/playground?tenant=${bp.playground.tenant}&task=${encodeURIComponent(bp.playground.task)}`
+  : bp.docs ?? '/docs/';
+const cta = bp.playground ? 'Open in playground' : bp.status === 'roadmap' ? 'Roadmap' : 'How to build it';
+---
+<a class="bp" href={href} data-cat={bp.category} data-status={bp.status}>
+  <div class="bp-top">
+    <span class="eyebrow">{bp.category}</span>
+    <span class:list={['bp-status', bp.status]}>{STATUS_LABEL[bp.status]}</span>
+  </div>
+  <h3>{bp.title}</h3>
+  <p>{bp.summary}</p>
+  <div class="bp-agents">
+    {bp.agents.map((a) => <span class="node">{a}</span>)}
+  </div>
+  <span class="bp-cta">{cta} →</span>
+</a>

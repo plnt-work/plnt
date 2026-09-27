@@ -97,11 +97,11 @@ function CreateTenant({ open, onClose }: { open: boolean; onClose: () => void })
       ) : (
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); m.mutate(); }}>
           <Field label="ID" hint="Lowercase letters, digits and dashes. Used in URLs." required>
-            <input className={inputClass} value={id} placeholder="luigis-bistro"
+            <input className={inputClass} value={id} placeholder="acme-platform"
                    onChange={(e) => setId(e.target.value.toLowerCase())} />
           </Field>
           <Field label="Name">
-            <input className={inputClass} value={name} placeholder="Luigi's Bistro"
+            <input className={inputClass} value={name} placeholder="Acme platform team"
                    onChange={(e) => setName(e.target.value)} />
           </Field>
           <ErrorNote error={m.error} />

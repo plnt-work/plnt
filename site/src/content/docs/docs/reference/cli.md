@@ -10,8 +10,8 @@ description: plnt commands.
 | Command | |
 | --- | --- |
 | `plnt init SLUG [--dir DIR]` | Scaffold a working bundle in `DIR/SLUG`. |
-| `plnt run BUNDLE MESSAGE… [--tenant local] [--config …] [--config-json …] [--secret NAME=value]` | Install BUNDLE for the tenant (created if missing), send one message, and print every event. Exit code 0 only if the run answered. |
-| `plnt dev [BUNDLE] [--port 8787] [--config …]` | API server on `127.0.0.1` with auth off, tenant `dev`. Optionally installs BUNDLE first. |
+| `plnt run BUNDLE MESSAGE… [--workspace SPEC] [--tenant local] [--config …] [--config-json …] [--secret NAME=value]` | Install BUNDLE for the tenant (created if missing), copy the workspace (`demo:<name>`, a folder, or a git URL), send one message, and print every event. Exit code 0 only if the run answered. |
+| `plnt dev [BUNDLE] [--workspace PATH] [--port 8787] [--config …]` | API server on `127.0.0.1` with auth off, tenant `dev`, invented roles on. Optionally installs BUNDLE first. |
 
 ## Models
 
@@ -24,7 +24,7 @@ description: plnt commands.
 
 | Command | |
 | --- | --- |
-| `plnt serve [--host 127.0.0.1] [--port 8787] [--playground]` | The multi-tenant API and console. Set `PLNT_ADMIN_TOKEN`. `--playground` (or `PLNT_PLAYGROUND=1`) also seeds demo tenants and opens the anonymous playground API. Don't use it with real customers. Host and port also come from `PLNT_HOST` and `PORT`. |
+| `plnt serve [--host 127.0.0.1] [--port 8787] [--playground]` | The multi-tenant API and console. Set `PLNT_ADMIN_TOKEN`. `--playground` (or `PLNT_PLAYGROUND=1`) also seeds the demo workspaces and opens the anonymous, read-only playground API. Don't use it with real tenants. Host and port also come from `PLNT_HOST` and `PORT`. |
 | `plnt tenants create ID [--name NAME]` | Prints the tenant's API key once. |
 | `plnt tenants list` | Tenants and their installs. |
 | `plnt tenants delete ID` | Deletes the tenant and all its data (asks first). |

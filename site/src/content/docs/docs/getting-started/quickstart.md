@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Install plnt, point it at a model, and run an agent for two customers.
+description: Install plnt, point it at a model, and run a parent session on your own repository.
 ---
 
 ## 1. Install
@@ -41,63 +41,61 @@ plnt models doctor
 
 The doctor checks that the server is reachable, the model is pulled, it calls tools, and it returns JSON. For anything that fails, it prints the fix. See [Local models](/docs/guides/local-models/).
 
-## 3. Run a bundle
+## 3. Run one agent on a repo
 
-`support-desk` ships with plnt. It answers questions from a business's own FAQ.
-
-```bash
-plnt run support-desk "when are you open?" \
-  --config business_name="Bright Smile Dental" \
-  --config handoff_contact=front@brightsmile.example \
-  --config-json faq='[{"q":"When are you open?","a":"Monday to Friday, 8am to 4pm."}]'
-```
-
-You see each step as it happens: the model call, the `lookup_faq` tool call, and the answer.
-
-## 4. Two customers, one agent
+`code-reviewer` ships with plnt. It reads files and reports findings with `path:line` citations.
 
 ```bash
-plnt tenants create dental
-plnt tenants create bistro
-
-plnt install support-desk --tenant dental --config business_name=Dental \
-  --config handoff_contact=a@dental.example \
-  --config-json faq='[{"q":"Hours?","a":"Mon-Fri 8-4."}]'
-plnt install support-desk --tenant bistro --config business_name=Bistro \
-  --config handoff_contact=b@bistro.example \
-  --config-json faq='[{"q":"Hours?","a":"Tue-Sun 6pm-11pm."}]'
-
-plnt run support-desk "what are your hours?" --tenant dental
-plnt run support-desk "what are your hours?" --tenant bistro
+cd ~/src/my-project
+plnt run code-reviewer "review src/auth.py for bugs" --workspace .
 ```
 
-Same bundle, two answers. Each tenant's sessions, usage and audit log are stored under `~/.plnt/tenants/<id>/`. Set `PLNT_HOME` to store them somewhere else.
+`--workspace .` copies the folder into the session's working directory first (ignoring `.git`, `node_modules` and the like). You see each step as it happens: `list_files`, `read_file`, the model calls, and the answer. Try `repo-explainer`, `test-writer` and `changelog-writer` the same way.
 
-## 5. Serve it
+## 4. A parent session
+
+The parent decides which agents a task needs. Start the local server with the bundles installed:
+
+```bash
+plnt install code-reviewer --tenant dev --config focus=bugs
+plnt install test-writer --tenant dev
+plnt dev repo-explainer --workspace ~/src/my-project
+```
+
+Open `http://127.0.0.1:8787/console`, go to **Sessions**, click **New session**, enter the workspace path, keep **Parent (all agents)**, and give it a task:
+
+> Audit src/auth.py for bugs and write tests for it.
+
+The Run tab shows the parent's decision and its reason, the plan, one card per agent as it works (spec, tool calls, files), and the merged reply. The Agents, Files and Events tabs show the same run from the other sides.
+
+`plnt dev` turns invented roles on: if no installed bundle fits part of the task, the parent may create a single-purpose role with the built-in file tools.
+
+Over HTTP it is the same thing:
+
+```bash
+API=http://127.0.0.1:8787/v1
+SID=$(curl -s -X POST $API/tenants/dev/sessions -H 'content-type: application/json' \
+  -d '{"workspace": "'$HOME'/src/my-project"}' | jq -r .session_id)
+curl -s -X POST $API/tenants/dev/sessions/$SID/messages -H 'content-type: application/json' \
+  -d '{"text": "Audit src/auth.py for bugs and write tests for it."}'
+curl -N "$API/tenants/dev/sessions/$SID/stream?until_idle=1"
+curl -s $API/tenants/dev/sessions/$SID/transcript | jq .turns[0].parent
+```
+
+## 5. Serve it for real
 
 ```bash
 export PLNT_ADMIN_TOKEN=$(openssl rand -hex 24)
 plnt serve --port 8787
 ```
 
-```bash
-API=http://127.0.0.1:8787/v1
-AUTH="Authorization: Bearer $PLNT_ADMIN_TOKEN"
+`plnt serve` has auth on, invented roles off, and local folders allowed as workspaces; git URLs need `PLNT_WORKSPACE_GIT=1`. See [Serve many tenants](/docs/guides/multi-tenant/) and [Workspaces](/docs/guides/workspaces/).
 
-SID=$(curl -s -X POST $API/tenants/dental/sessions -H "$AUTH" \
-  -H 'content-type: application/json' -d '{"bundle":"support-desk"}' | jq -r .session_id)
-curl -s -X POST $API/tenants/dental/sessions/$SID/messages -H "$AUTH" \
-  -H 'content-type: application/json' -d '{"text":"are you open on Friday?"}'
-curl -N "$API/tenants/dental/sessions/$SID/stream?until_idle=1" -H "$AUTH"
-```
-
-The console is at `http://127.0.0.1:8787/console`. Sign in with the admin token, or with a tenant's own `pk_…` key to see only that tenant.
-
-## 6. Write your own
+## 6. Write your own bundle
 
 ```bash
-plnt init hello-desk
-plnt run ./hello-desk "when are you open?" --config business_name=Acme
+plnt init my-agent
+plnt run ./my-agent "do the thing" --workspace .
 ```
 
 Next: [Write a bundle](/docs/guides/bundles/).

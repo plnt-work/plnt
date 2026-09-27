@@ -1,17 +1,16 @@
 ---
 title: Config and secrets
-description: Per-customer settings and credentials.
+description: Per-tenant settings and credentials.
 ---
 
 ## Config
 
-Config is what varies between customers and is safe to show: business name, opening hours, FAQ entries, tone. It is declared by the bundle's `config_schema.json` and given at install time.
+Config is what varies between tenants and is safe to show: review focus, test framework, audience, house rules. It is declared by the bundle's `config_schema.json` and given at install time.
 
 ```bash
-plnt install support-desk --tenant dental \
-  --config business_name="Bright Smile Dental" \
-  --config handoff_contact=front@brightsmile.example \
-  --config-json faq='[{"q":"When are you open?","a":"Mon-Fri 8-4."}]'
+plnt install code-reviewer --tenant acme \
+  --config focus=security --config max_findings=5 \
+  --config-json language_hint='"Django 5, Python 3.12"'
 ```
 
 `--config key=value` sets a string. `--config-json key=<json>` sets any JSON value.
@@ -19,35 +18,35 @@ plnt install support-desk --tenant dental \
 Over HTTP:
 
 ```bash
-curl -X POST $API/tenants/dental/installs -H "$AUTH" -H 'content-type: application/json' \
-  -d '{"bundle":"support-desk","config":{"business_name":"Bright Smile Dental", ...}}'
+curl -X POST $API/tenants/acme/installs -H "$AUTH" -H 'content-type: application/json' \
+  -d '{"bundle":"code-reviewer","config":{"focus":"security","max_findings":5}}'
 
 # change settings later
-curl -X PATCH $API/tenants/dental/installs/support-desk -H "$AUTH" \
-  -H 'content-type: application/json' -d '{"config":{...}}'
+curl -X PATCH $API/tenants/acme/installs/code-reviewer -H "$AUTH" \
+  -H 'content-type: application/json' -d '{"config":{"focus":"all"}}'
 ```
 
 Invalid config is rejected (HTTP 422) with the failing path. Config changes are recorded in the tenant's audit log.
 
 ## Secrets
 
-Secrets are credentials: a CRM key, a shop API token. A bundle declares which ones it needs:
+Secrets are credentials: a tracker token, a registry key. A bundle declares which ones it needs:
 
 ```toml
 [secrets]
-required = ["SHOP_API_KEY"]
+required = ["TRACKER_TOKEN"]
 ```
 
 Each tenant sets its own:
 
 ```bash
-curl -X PUT $API/tenants/acme/secrets/SHOP_API_KEY -H "$AUTH" \
-  -H 'content-type: application/json' -d '{"value":"sk_live_..."}'
+curl -X PUT $API/tenants/acme/secrets/TRACKER_TOKEN -H "$AUTH" \
+  -H 'content-type: application/json' -d '{"value":"ghp_..."}'
 ```
 
 - Secrets are **write-only** over the API. Listing returns names, never values.
 - A session whose bundle needs a secret the tenant hasn't set fails with a clear error before any model call.
-- Tools read them with `ctx.secret("SHOP_API_KEY")`.
+- Tools read them with `ctx.secret("TRACKER_TOKEN")`.
 - They are stored in `<tenant>/secrets.json` with file mode `0600`. They are not encrypted at rest in 0.1, so protect the disk.
 - A tool can read any secret its tenant has set, not only the ones its bundle declares.
 
@@ -68,4 +67,4 @@ curl -X PUT $API/tenants/acme/model -H "$AUTH" -H 'content-type: application/jso
 curl $API/tenants/acme/model/health -H "$AUTH"
 ```
 
-See [Local models](/docs/guides/local-models/#one-model-per-customer) for the on-prem case.
+See [Local models](/docs/guides/local-models/#one-model-per-tenant) for the on-prem case.

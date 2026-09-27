@@ -91,10 +91,18 @@ await off.goto(`${site}/playground?api=http://127.0.0.1:8788`);
 await off.getByText('The playground is not enabled on this server').waitFor();
 await off.getByText('PLNT_PLAYGROUND=1').waitFor();
 
-// 8. Landing and docs render.
+// 8. Landing (with the recorded replay), use cases (filter chips) and docs render.
 await page.goto(`${site}/`);
-await page.locator('.hero h1').waitFor();
+await page.getByRole('heading', { name: 'A task in. Micro-agents out.' }).waitFor();
+await page.locator('[data-replay]').scrollIntoViewIfNeeded(); // client:visible island
+await page.locator('[data-replay] .run-agent').first().waitFor({ timeout: 20000 });
 await page.screenshot({ path: `${outDir}/home.png`, fullPage: true });
+await page.goto(`${site}/use-cases`);
+const total = await page.locator('#bp-grid .bp').count();
+await page.getByRole('tab', { name: 'Coding' }).click();
+const coding = await page.locator('#bp-grid .bp:not([hidden])').count();
+if (!(coding > 0 && coding < total)) await fail(`use-case filter: ${coding} of ${total}`);
+await page.screenshot({ path: `${outDir}/use-cases.png`, fullPage: true });
 await page.goto(`${site}/docs/getting-started/quickstart/`);
 await page.getByRole('heading', { name: 'Quickstart' }).first().waitFor();
 await page.screenshot({ path: `${outDir}/docs-quickstart.png` });
