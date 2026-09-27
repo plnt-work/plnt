@@ -161,6 +161,39 @@ def test_openai_http_errors_raise():
         _oa(lambda r: httpx.Response(200, text="<html>")).chat([])
 
 
+def test_openai_retries_transient_server_errors(monkeypatch):
+    monkeypatch.setattr("plnt.models.openai_compat.time.sleep", lambda s: None)
+    calls = []
+
+    def flaky(req):
+        calls.append(1)
+        if len(calls) < 3:
+            return httpx.Response(500, text='{"error":{"status":"INTERNAL"}}')
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]})
+
+    assert _oa(flaky).chat([]).content == "ok" and len(calls) == 3
+
+    calls.clear()
+
+    def down(req):
+        calls.append(1)
+        return httpx.Response(503, text="unavailable")
+
+    with pytest.raises(ModelBadResponse):
+        _oa(down).chat([])
+    assert len(calls) == 3  # first try + two retries, then reported
+
+    calls.clear()
+
+    def bad_request(req):
+        calls.append(1)
+        return httpx.Response(400, text="bad request")
+
+    with pytest.raises(ModelBadResponse):
+        _oa(bad_request).chat([])
+    assert len(calls) == 1  # client errors are not retried
+
+
 def test_openai_tools_rejected_raises_tools_unsupported():
     def handler(req):
         return httpx.Response(400, text="this model does not support tools")

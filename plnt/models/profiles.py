@@ -190,8 +190,14 @@ def resolve_profile(hint: Hint = "auto", force: Force | None = None) -> ModelPro
     if force == "cloud":
         cp = cloud_profile(hint)
         if cp is None:
+            missing = [
+                n
+                for n in ("PLNT_CLOUD_URL", "PLNT_CLOUD_API_KEY", "PLNT_CLOUD_SMALL_MODEL")
+                if not _env(n)
+            ]
             raise NoModelConfigured(
-                "PLNT_FORCE=cloud but the cloud model is not configured",
+                f"PLNT_FORCE=cloud but {', '.join(missing)} "
+                f"{'is' if len(missing) == 1 else 'are'} not set",
                 hint="set PLNT_CLOUD_URL, PLNT_CLOUD_API_KEY and PLNT_CLOUD_SMALL_MODEL",
             )
         return replace(cp, reason="forced")
