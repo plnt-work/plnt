@@ -33,6 +33,12 @@ await page.getByText("merged by the parent").waitFor({ timeout: 15000 });
 await page.getByText(/ok · \d+ tokens/).waitFor({ timeout: 15000 });
 // The session list shows the task as the title and the workspace.
 await page.getByRole("button", { name: /Audit app\/store\.py/ }).first().waitFor();
+// The stream state is shown as a status light with a label, and no unknown
+// value leaks as "undefined" or "?s".
+await page.locator('[data-stream="live"]', { hasText: "Live" }).waitFor();
+for (const bad of ["undefined", "?s"]) {
+  if (await page.locator("section", { hasText: bad }).count()) throw new Error(`run view prints ${bad}`);
+}
 await shot("2-session-run");
 
 // The session's own tabs live inside its card; the page tabs are outside it.
@@ -78,10 +84,23 @@ await page.getByRole("tab", { name: "Audit log" }).click();
 await page.getByText("bundle.updated").first().waitFor();
 await shot("7-audit");
 
-await page.setViewportSize({ width: 390, height: 800 });
-await page.getByRole("tab", { name: "Sessions" }).click();
+// Every tab fits a 375px phone without horizontal scroll, including an open session.
+await page.setViewportSize({ width: 375, height: 800 });
+let overflow = false;
+for (const tab of ["Overview", "Sessions", "Agents", "Settings", "Audit log"]) {
+  await page.getByRole("tab", { name: tab, exact: true }).first().click();
+  await page.waitForTimeout(300);
+  const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  if (over > 1) { overflow = true; errors.push(`${tab}: ${over}px horizontal overflow at 375px`); }
+}
+await page.getByRole("tab", { name: "Sessions", exact: true }).first().click();
+await page.getByRole("button", { name: /Audit app\/store\.py/ }).first().click();
+await page.locator('[data-stream="live"]').waitFor();
+await page.locator("section").getByRole("tab", { name: "Events" }).click();
+await page.waitForTimeout(300);
+const sessOver = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+if (sessOver > 1) { overflow = true; errors.push(`open session: ${sessOver}px horizontal overflow at 375px`); }
 await shot("8-mobile");
-const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 console.log(JSON.stringify({ errors, mobileHorizontalOverflow: overflow }));
 await browser.close();
 if (errors.length || overflow) process.exit(1);

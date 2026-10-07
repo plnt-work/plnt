@@ -5,11 +5,10 @@
 /* Design tokens (copy of design/tokens.css). Components use the Tailwind names below. */
 @import "./tokens.css";
 
+/* Fonts, --radius-sm and --radius-lg come straight from tokens.css (unlayered,
+   so they win over Tailwind's defaults). Only names tokens.css lacks are mapped. */
 @theme {
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-md: var(--radius);
   --color-bg: var(--bg);
   --color-panel: var(--panel);
   --color-sunken: var(--sunken);
@@ -23,6 +22,7 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warn: var(--warn);
@@ -45,4 +45,33 @@ body {
 
 dialog::backdrop {
   background: rgb(0 0 0 / 0.4);
+}
+
+/* One focus style for every control (inputs included). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Touch: every control is at least 44px tall on a coarse pointer. */
+@media (pointer: coarse) {
+  button,
+  select,
+  input:not([type="checkbox"]):not([type="radio"]),
+  [role="tab"] {
+    min-height: 44px;
+  }
+}
+
+/* Visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

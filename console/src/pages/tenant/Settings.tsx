@@ -90,9 +90,10 @@ function ModelCard({ tenant }: { tenant: TenantDetail }) {
         <div className="flex gap-2">
           <Button type="submit" variant="primary" busy={save.isPending}>Save</Button>
           <Button type="button" busy={health.isFetching} onClick={() => void health.refetch()}>
-            <Activity className="size-3.5" /> Check model
+            <Activity className="size-3.5" /> Check saved model
           </Button>
         </div>
+        <p className="text-[12px] text-muted">The check uses the saved settings. Save first to check a change.</p>
         {health.data && (
           <div className="rounded-md bg-sunken px-3 py-2 text-[12px]">
             <Badge tone={health.data.ok ? "ok" : "bad"}>{health.data.ok ? "healthy" : "not usable"}</Badge>
@@ -130,13 +131,14 @@ function SecretsCard({ tenant }: { tenant: TenantDetail }) {
         {tenant.secrets.map((s) => (
           <li key={s} className="flex items-center justify-between text-[13px]">
             <span className="font-mono">{s}</span>
-            <Button variant="ghost" aria-label={`Delete ${s}`} onClick={() => del.mutate(s)}>
+            <Button variant="ghost" aria-label={`Delete ${s}`}
+                    onClick={() => confirm(`Delete ${s}? Agents that read ${s} will fail on their next run.`) && del.mutate(s)}>
               <Trash2 className="size-3.5" />
             </Button>
           </li>
         ))}
       </ul>
-      <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); put.mutate(); }}>
+      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); put.mutate(); }}>
         <input className={inputClass} placeholder="NAME" value={name} aria-label="Secret name"
                onChange={(e) => setName(e.target.value.toUpperCase())} />
         <input className={inputClass} type="password" placeholder="value" value={value} aria-label="Secret value"
@@ -163,7 +165,7 @@ function KeyCard({ tid }: { tid: string }) {
       {key && (
         <div className="mt-3 flex gap-2">
           <code className="flex-1 overflow-x-auto rounded-md bg-sunken px-2.5 py-1.5 text-[12px]">{key}</code>
-          <Button onClick={() => { void navigator.clipboard.writeText(key); setCopied(true); }}>
+          <Button aria-label={copied ? "Copied" : "Copy the key"} onClick={() => { void navigator.clipboard.writeText(key); setCopied(true); }}>
             {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
           </Button>
         </div>

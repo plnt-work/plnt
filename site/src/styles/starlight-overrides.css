@@ -1,8 +1,10 @@
 /* Docs theme: same palette and type as the landing page and the console.
    Light only: the dark palette is overridden with the light one and the
-   theme toggle is hidden. */
+   theme toggle is hidden. Colours come from tokens.css; links use the
+   text-safe --accent-text, never the bright --accent. */
 @import '@fontsource-variable/geist';
 @import '@fontsource/jetbrains-mono/400.css';
+@import './tokens.css';
 
 :root,
 :root[data-theme='dark'],
@@ -10,25 +12,25 @@
   color-scheme: light;
   --sl-font: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --sl-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --sl-color-accent-low: #ffe8de;
-  --sl-color-accent: #ff5a1f;
+  --sl-color-accent-low: var(--accent-soft);
+  --sl-color-accent: var(--accent);
   --sl-color-accent-high: #8a2a08;
-  --sl-color-white: #14120f;
-  --sl-color-gray-1: #3d3a34;
+  --sl-color-white: var(--ink);
+  --sl-color-gray-1: var(--ink-2);
   --sl-color-gray-2: #57534a;
-  --sl-color-gray-3: #7a766d;
-  --sl-color-gray-4: #cfcbc1;
-  --sl-color-gray-5: #e3e0d8;
-  --sl-color-gray-6: #efede7;
-  --sl-color-gray-7: #f7f6f2;
-  --sl-color-black: #ffffff;
-  --sl-color-bg: #f7f6f2;
-  --sl-color-bg-nav: #ffffff;
-  --sl-color-bg-sidebar: #f7f6f2;
-  --sl-color-text: #3d3a34;
-  --sl-color-text-accent: #ff5a1f;
-  --sl-color-hairline: #e3e0d8;
-  --sl-color-hairline-light: #e3e0d8;
-  --sl-color-hairline-shade: #cfcbc1;
+  --sl-color-gray-3: var(--muted);
+  --sl-color-gray-4: var(--line-strong);
+  --sl-color-gray-5: var(--line);
+  --sl-color-gray-6: var(--sunken);
+  --sl-color-gray-7: var(--bg);
+  --sl-color-black: var(--panel);
+  --sl-color-bg: var(--bg);
+  --sl-color-bg-nav: var(--panel);
+  --sl-color-bg-sidebar: var(--bg);
+  --sl-color-text: var(--ink-2);
+  --sl-color-text-accent: var(--accent-text);
+  --sl-color-hairline: var(--line);
+  --sl-color-hairline-light: var(--line);
+  --sl-color-hairline-shade: var(--line-strong);
 }
 starlight-theme-select { display: none; }

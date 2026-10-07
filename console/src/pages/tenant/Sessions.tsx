@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, FolderGit2, GitFork, OctagonX, Plus, RotateCcw, Send } from "lucide-react";
+import { Bot, FolderGit2, GitFork, OctagonX, Plus, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api, streamEvents, type RunEvent, type Session, type TenantDetail } from "@/lib/api";
-import { Badge, Button, Card, Empty, ErrorNote, Eyebrow, Modal, Spinner, Tabs } from "@/components/ui";
+import { api, streamEvents, type RunEvent, type Session, type StreamState, type TenantDetail } from "@/lib/api";
+import { Badge, Button, Card, Empty, ErrorNote, Eyebrow, Modal, Spinner, StatusLight, Tabs } from "@/components/ui";
 import { AgentView, TurnView } from "@/components/run";
 import { cx, fmtTime, inputClass } from "@/lib/format";
 import { fmtElapsed, summary } from "@/lib/run-view";
@@ -21,21 +21,29 @@ export function Sessions({ tenant }: { tenant: TenantDetail }) {
     refetchInterval: 5_000,
   });
   const select = (sid: string) => setParams({ tab: "sessions", session: sid });
+  const canStart = tenant.installs.some((i) => i.enabled);
 
   return (
     <div className="grid gap-4 md:grid-cols-[300px_1fr]">
       <div className="space-y-2">
         <Button variant="primary" className="w-full" onClick={() => setStarting(true)}
-                disabled={!tenant.installs.some((i) => i.enabled)}>
+                disabled={!canStart} aria-describedby={canStart ? undefined : "no-agents-hint"}>
           <Plus className="size-3.5" /> New session
         </Button>
+        {!canStart && (
+          <p id="no-agents-hint" className="text-[12px] text-muted">
+            No agent is enabled for this tenant. Enable one in the Agents tab first.
+          </p>
+        )}
         <ErrorNote error={q.error} />
         {q.isPending && <Spinner />}
         <ul className="space-y-1">
           {q.data?.sessions.map((s) => (
             <li key={s.id}>
               <button
+                type="button"
                 onClick={() => select(s.id)}
+                aria-current={s.id === selected ? "true" : undefined}
                 className={cx(
                   "w-full rounded-md border px-3 py-2 text-left text-[13px]",
                   s.id === selected ? "border-accent bg-accent-soft/40" : "border-line bg-panel hover:bg-sunken",
@@ -46,7 +54,7 @@ export function Sessions({ tenant }: { tenant: TenantDetail }) {
                     {s.bundle ? <Bot className="size-3.5 shrink-0 text-muted" /> : <GitFork className="size-3.5 shrink-0 text-accent" />}
                     <span className="truncate">{s.title || "New session"}</span>
                   </span>
-                  {s.status === "running" && <Badge tone="warn">running</Badge>}
+                  {s.status === "running" && <StatusLight state="live">running</StatusLight>}
                 </div>
                 <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted">
                   {s.workspace && <><FolderGit2 className="size-3" /><span className="font-mono">{s.workspace}</span><span>·</span></>}
@@ -137,7 +145,10 @@ const TABS: { id: TabId; label: string }[] = [
 function SessionView({ tid, sid, session }: { tid: string; sid: string; session?: Session }) {
   const qc = useQueryClient();
   const [events, setEvents] = useState<RunEvent[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [stream, setStream] = useState<StreamState>("connecting");
   const [streamError, setStreamError] = useState<Error | null>(null);
+  const top = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
   const [tab, setTab] = useState<TabId>("run");
   const [now, setNow] = useState(() => Date.now());
@@ -151,8 +162,18 @@ function SessionView({ tid, sid, session }: { tid: string; sid: string; session?
         if (e.kind === "run_finished") void qc.invalidateQueries({ queryKey: ["sessions", tid] });
       },
       setStreamError,
+      setStream,
+      (history) => {
+        setEvents(history);
+        setLoaded(true);
+      },
     );
   }, [tid, sid, qc]);
+
+  // On a narrow screen the list sits above the session: bring the session into view.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) top.current?.scrollIntoView({ block: "start" });
+  }, [sid]);
 
   const turns = useMemo(() => foldTurns(events), [events]);
   const running = isRunning(turns);
@@ -175,30 +196,31 @@ function SessionView({ tid, sid, session }: { tid: string; sid: string; session?
   const first = events.find((e) => e.kind === "user_message");
   const last = turns[turns.length - 1];
   const elapsed = first ? (running ? now / 1000 - first.ts : (last?.ts ?? first.ts) - first.ts + (last?.wall_seconds ?? 0)) : 0;
-  const title = session?.title || (session ? (session.bundle || PARENT_LABEL) : "Session");
+  const title = session?.title || (session ? (session.bundle || PARENT_LABEL) : "—");
+  const streamLabel = { connecting: "Connecting…", live: "Live", reconnecting: "Reconnecting…", ended: "Disconnected" }[stream];
 
   return (
+    <div ref={top} className="min-w-0 scroll-mt-4">
     <Card className="flex min-h-[520px] flex-col" title={
-      <div className="flex flex-col gap-0.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate">{title}</span>
-        <span className="flex items-center gap-2 font-mono text-[11px] font-normal text-muted">
-          {session?.workspace && <span className="flex items-center gap-1"><FolderGit2 className="size-3" />{session.workspace}</span>}
-          <span>{session?.bundle || "parent"}</span>
-          <span>{sid}</span>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 font-mono text-[11px] font-normal text-muted">
+          {session?.workspace && <span className="flex min-w-0 items-center gap-1"><FolderGit2 className="size-3 shrink-0" /><span className="truncate">{session.workspace}</span></span>}
+          <span>{session ? (session.bundle || "parent") : "—"}</span>
+          <span className="truncate">{sid}</span>
+          <StatusLight state={stream}>{streamLabel}</StatusLight>
         </span>
       </div>
     } actions={
       <>
-        <Stat n={agents.length} label="agents" />
-        <Stat n={turns.length} label="messages" />
-        <Stat n={fmtElapsed(elapsed)} label="elapsed" />
-        {running ? (
+        <div className="hidden gap-4 sm:flex">
+          <HeadStat n={loaded ? agents.length : "—"} label="agents" />
+          <HeadStat n={loaded ? turns.length : "—"} label="messages" />
+          <HeadStat n={loaded && first ? fmtElapsed(elapsed) : "—"} label="elapsed" />
+        </div>
+        {running && (
           <Button variant="danger" busy={kill.isPending} onClick={() => kill.mutate()}>
             <OctagonX className="size-3.5" /> Kill run
-          </Button>
-        ) : (
-          <Button variant="ghost" onClick={() => { setEvents([]); setTab("run"); }} title="Clear the view; the session keeps its history on the server">
-            <RotateCcw className="size-3.5" />
           </Button>
         )}
       </>
@@ -206,34 +228,39 @@ function SessionView({ tid, sid, session }: { tid: string; sid: string; session?
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <div className="flex-1 space-y-4 pt-4">
         <ErrorNote error={streamError ?? send.error ?? kill.error} />
-        {tab === "run" && (
+        {!loaded && !streamError && (
+          <div className="flex items-center gap-2 text-[13px] text-muted" data-loading><Spinner /> Loading the transcript…</div>
+        )}
+        {loaded && tab === "run" && (
           <>
             {turns.length === 0 && <p className="text-[13px] text-muted">No messages yet. Give the {session?.bundle || "parent"} a task.</p>}
             {turns.map((t) => <TurnView key={t.run_id || t.ts} turn={t} />)}
             <div ref={bottom} />
           </>
         )}
-        {tab === "agents" && <AgentsTab turns={turns} />}
-        {tab === "files" && <FilesTab turns={turns} />}
-        {tab === "events" && <EventsTab events={events} />}
+        {loaded && tab === "agents" && <AgentsTab turns={turns} />}
+        {loaded && tab === "files" && <FilesTab turns={turns} />}
+        {loaded && tab === "events" && <EventsTab events={events} />}
       </div>
       <form
         className="sticky bottom-0 mt-4 flex gap-2 border-t border-line bg-panel pt-3"
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
       >
-        <input className={inputClass} placeholder="Give the parent a task…" value={text}
+        <input className={inputClass} value={text}
+               placeholder={running ? "A run is in progress. Wait for it, or kill it." : "Give the parent a task…"}
                onChange={(e) => setText(e.target.value)} disabled={running} aria-label="Message" />
         <Button type="submit" variant="primary" busy={send.isPending} disabled={running || !text.trim()}>
           <Send className="size-3.5" /> Send
         </Button>
       </form>
     </Card>
+    </div>
   );
 }
 
-function Stat({ n, label }: { n: number | string; label: string }) {
+function HeadStat({ n, label }: { n: number | string; label: string }) {
   return (
-    <div className="hidden flex-col items-end leading-none sm:flex">
+    <div className="flex flex-col items-end gap-1 leading-none">
       <span className="font-mono text-[13px] tabular-nums">{n}</span>
       <Eyebrow>{label}</Eyebrow>
     </div>
@@ -262,7 +289,8 @@ function FilesTab({ turns }: { turns: Turn[] }) {
   return (
     <div className="space-y-4" data-files-tab>
       {rows.length > 0 && (
-        <table className="w-full text-[12px]">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[28rem] text-[12px]">
           <thead><tr className="text-left"><th className="pb-1"><Eyebrow>path</Eyebrow></th><th className="pb-1"><Eyebrow>ops</Eyebrow></th><th className="pb-1"><Eyebrow>by</Eyebrow></th></tr></thead>
           <tbody>
             {rows.map((r) => (
@@ -274,6 +302,7 @@ function FilesTab({ turns }: { turns: Turn[] }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       {runs.length > 0 && (
         <div>
@@ -292,14 +321,14 @@ function EventsTab({ events }: { events: RunEvent[] }) {
   return (
     <ol className="font-mono text-[11px]" data-events-tab>
       {events.map((e) => (
-        <li key={e.seq} className="grid grid-cols-[2.5rem_6rem_8rem_1fr] gap-2 border-t border-line py-1" data-kind={e.kind}>
+        <li key={e.seq} className="grid grid-cols-[2rem_7.5rem_1fr] gap-2 border-t border-line py-1 sm:grid-cols-[2.5rem_6rem_8rem_1fr]" data-kind={e.kind}>
           <span className="text-muted">{e.seq}</span>
-          <span className="truncate text-muted">{e.agent_id || "—"}</span>
+          <span className="hidden truncate text-muted sm:block">{e.agent_id || "—"}</span>
           <span className={cx(
             e.kind === "run_error" || e.kind === "model_error" ? "text-danger"
-            : e.kind === "guardrail" || e.kind === "killed" ? "text-warn" : "text-accent",
+            : e.kind === "guardrail" || e.kind === "killed" ? "text-warn" : "text-accent-text",
           )}>{e.kind}</span>
-          <span className="break-words text-ink-2">{summary(e)}</span>
+          <span className="min-w-0 text-ink-2 [overflow-wrap:anywhere]">{summary(e)}</span>
         </li>
       ))}
     </ol>

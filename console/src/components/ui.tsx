@@ -21,7 +21,7 @@ export function Button({
         "inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-[13px] font-medium",
         "transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        variant === "primary" && "bg-accent text-accent-ink hover:opacity-90",
+        variant === "primary" && "bg-accent text-accent-ink hover:brightness-105",
         variant === "secondary" && "border border-line bg-panel hover:bg-sunken",
         variant === "ghost" && "hover:bg-sunken",
         variant === "danger" && "border border-line bg-panel text-danger hover:bg-danger-soft",
@@ -41,11 +41,11 @@ export function Card({ title, actions, children, className }: {
   className?: string;
 }) {
   return (
-    <section className={cx("rounded-lg border border-line bg-panel", className)}>
+    <section className={cx("min-w-0 rounded-lg border border-line bg-panel", className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-          <h2 className="text-[13px] font-semibold">{title}</h2>
-          <div className="flex items-center gap-2">{actions}</div>
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+          <h2 className="min-w-0 flex-1 text-[13px] font-semibold">{title}</h2>
+          <div className="flex shrink-0 items-center gap-2">{actions}</div>
         </header>
       )}
       <div className="p-4">{children}</div>
@@ -60,7 +60,7 @@ export function Badge({ tone = "neutral", children }: {
   return (
     <span
       className={cx(
-        "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium",
         tone === "neutral" && "bg-sunken text-muted",
         tone === "ok" && "bg-ok-soft text-ok",
         tone === "bad" && "bg-danger-soft text-danger",
@@ -160,7 +160,7 @@ export function Modal({ open, onClose, title, children, wide }: {
         <div>
           <header className="flex items-center justify-between border-b border-line px-4 py-3">
             <h2 className="font-semibold">{title}</h2>
-            <button onClick={onClose} className="rounded p-1 hover:bg-sunken" aria-label="Close">
+            <button type="button" onClick={onClose} className="rounded-sm p-2 hover:bg-sunken" aria-label="Close">
               <X className="size-4" />
             </button>
           </header>
@@ -181,6 +181,7 @@ export function Tabs<T extends string>({ tabs, value, onChange }: {
       {tabs.map((t) => (
         <button
           key={t.id}
+          type="button"
           role="tab"
           aria-selected={value === t.id}
           onClick={() => onChange(t.id)}
@@ -193,5 +194,14 @@ export function Tabs<T extends string>({ tabs, value, onChange }: {
         </button>
       ))}
     </nav>
+  );
+}
+
+/** The brand square as a status light, always with a text label. */
+export function StatusLight({ state, children }: { state: "connecting" | "live" | "reconnecting" | "ended"; children: ReactNode }) {
+  return (
+    <span className="status-light" data-state={state} data-stream={state}>
+      {children}
+    </span>
   );
 }

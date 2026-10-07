@@ -1,39 +1,61 @@
 /* plnt design tokens: one source of truth for the site and the console.
    Copies live at site/src/styles/tokens.css and console/src/tokens.css;
-   CI checks they are identical to this file. Light theme only. */
+   CI checks they are identical to this file and that every text pair
+   below passes WCAG AA (scripts/check_contrast.py). Light theme only.
+   Rules are written down in design/README.md. */
 
 :root {
+  /* Surfaces */
   --bg: #f7f6f2;
   --panel: #ffffff;
   --sunken: #efede7;
   --line: #e3e0d8;
   --line-strong: #cfcbc1;
+
+  /* Text. Every text colour is >= 4.5:1 on bg, panel and sunken. */
   --ink: #14120f;
   --ink-2: #3d3a34;
-  --muted: #7a766d;
+  --muted: #6b675f;
+
+  /* Two accents, split by contrast.
+     --accent is for shapes only: fills, rules, focus rings, the status light.
+     --accent-text is the orange you may set text in (links, eyebrows, labels).
+     Text on an --accent fill is --accent-ink. */
   --accent: #ff5a1f;
-  --accent-ink: #ffffff;
+  --accent-text: #b8401a;
+  --accent-ink: #14120f;
   --accent-soft: #ffe8de;
-  --ok: #1a7f4b;
+
+  /* Status. The strong colour is text-safe on its -soft fill and on sunken. */
+  --ok: #166b3f;
   --ok-soft: #dcf5e6;
-  --warn: #a35e00;
+  --warn: #8a4f00;
   --warn-soft: #fff1d6;
   --danger: #c02626;
   --danger-soft: #fde2e2;
+
+  /* Code blocks */
   --code-bg: #17150f;
   --code-ink: #e9e6df;
+  --code-dim: #a29d92;
+
+  /* One radius multiplier: change --radius and every corner follows. */
   --radius: 6px;
-  --radius-lg: 10px;
+  --radius-sm: calc(var(--radius) * 0.66);
+  --radius-lg: calc(var(--radius) * 1.66);
+  --radius-pill: 999px;
+
+  /* Type. Nothing is set below --text-label. */
+  --text-label: 11px;
+  --text-small: 12px;
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* Light only. The product is one theme; there is no dark variant. */
-
 /* Mono uppercase label: section eyebrows, card categories, table headers. */
 .eyebrow {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-label);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.12em;
@@ -41,5 +63,42 @@
   color: var(--muted);
 }
 .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-text);
 }
+/* "01 — Label" with the brand square in front. */
+.eyebrow.numbered {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  color: var(--accent-text);
+}
+.eyebrow.numbered::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  flex: none;
+}
+
+/* The brand square as a status light. Always paired with a text label. */
+.status-light {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.status-light::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--line-strong);
+  flex: none;
+}
+.status-light[data-state="live"]::before { background: var(--accent); }
+.status-light[data-state="reconnecting"]::before { background: var(--warn); }
+.status-light[data-state="live"] { color: var(--ink-2); }
+.status-light[data-state="reconnecting"] { color: var(--warn); }

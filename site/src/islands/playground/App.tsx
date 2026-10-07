@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { fmtElapsed, summary } from '../../lib/run-view';
 import { filesOf, foldTurns, isRunning, type Ev, type Turn } from '../../lib/transcript';
 import { AgentView, TurnView } from '../run';
-import { apiBase, createSession, fetchInfo, isUp, killRun, sendMessage, streamUrl, KINDS, type Info } from './api';
+import { apiBase, createSession, fetchInfo, isLimit, isUp, killRun, sendMessage, streamUrl, KINDS, type Info } from './api';
 import { loadSessions, saveSessions, type Stored } from './store';
 
 type Tab = 'run' | 'agents' | 'files' | 'events';
@@ -23,14 +23,16 @@ export default function Playground() {
   const [events, setEvents] = useState<Record<string, Ev[]>>({});
   const [tab, setTab] = useState<Tab>('run');
   const [draft, setDraft] = useState('');
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; limit?: boolean } | null>(null);
+  // Event stream state for the open session, shown as the status light.
+  const [stream, setStream] = useState<'live' | 'reconnecting' | 'ended'>('ended');
   const [sending, setSending] = useState(false);
   const [composing, setComposing] = useState<{ tenant: string; bundle: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const chatEnd = useRef<HTMLDivElement>(null);
 
   const session = sessions.find((s) => s.session_id === current) ?? null;
-  const evs = (current && events[current]) ?? [];
+  const evs = (current ? events[current] : undefined) ?? [];
   const turns = useMemo(() => foldTurns(evs), [evs]);
   const busy = isRunning(turns);
   const tenant = info?.tenants.find((t) => t.id === (session?.tenant ?? composing?.tenant));
@@ -71,6 +73,7 @@ export default function Playground() {
     const sid = session.session_id;
     const last = (events[sid] ?? []).at(-1)?.seq ?? 0;
     const es = new EventSource(streamUrl(api, sid, session.token, last));
+    es.onopen = () => setStream('live');
     const onEvent = (m: MessageEvent) => {
       const e: Ev = JSON.parse(m.data);
       setEvents((all) => {
@@ -80,11 +83,21 @@ export default function Playground() {
       });
     };
     es.onerror = () => {
-      // The server restarted or the token expired: keep the title, drop the stream.
-      if (es.readyState === EventSource.CLOSED) markExpired(sid);
+      // CONNECTING: the browser is retrying a dropped connection; say so.
+      // CLOSED: the server refused the stream (restarted, or the token
+      // expired), so the session is gone; keep its title, mark it expired.
+      if (es.readyState === EventSource.CLOSED) {
+        setStream('ended');
+        markExpired(sid);
+      } else {
+        setStream('reconnecting');
+      }
     };
     KINDS.forEach((kind) => es.addEventListener(kind, onEvent as EventListener));
-    return () => es.close();
+    return () => {
+      es.close();
+      setStream('ended');
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.session_id, api]);
 
@@ -155,7 +168,7 @@ export default function Playground() {
       }
       setDraft('');
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : String(e));
+      setNotice({ text: e instanceof Error ? e.message : String(e), limit: isLimit(e) });
     } finally {
       setSending(false);
     }
@@ -214,6 +227,21 @@ plnt serve --playground --port 8787`}</code></pre>
     : 0;
   const model = info.models[0];
   const showComposeCard = !session || session.expired;
+  const active = !!session && !session.expired;
+  const budgetGone = info.limits.daily_tokens_left <= 0;
+  const blocked = busy
+    ? 'A run is in progress. Wait for it to finish, or kill it.'
+    : budgetGone
+      ? 'The shared daily budget is used up.'
+      : '';
+  const kill = async () => {
+    if (!session) return;
+    try {
+      await killRun(api, session.session_id, session.token);
+    } catch (e) {
+      setNotice({ text: `Could not stop the run: ${e instanceof Error ? e.message : String(e)}` });
+    }
+  };
 
   return (
     <div class="pg">
@@ -261,6 +289,7 @@ plnt serve --playground --port 8787`}</code></pre>
                 <li key={s.session_id}>
                   <button
                     type="button"
+                    aria-current={s.session_id === current ? 'true' : undefined}
                     class={`row ${s.session_id === current ? 'on' : ''} ${s.expired ? 'expired' : ''}`}
                     onClick={() => { setCurrent(s.session_id); setComposing(null); setNotice(null); setTab('run'); }}
                   >
@@ -281,15 +310,20 @@ plnt serve --playground --port 8787`}</code></pre>
       <section class="pg-main" aria-label="Session">
         <header class="pg-head">
           <div class="min">
-            <span class="eyebrow">{session && !session.expired ? `session · ${session.session_id.split('.').pop()}` : 'new session'}</span>
-            <h1>{session && !session.expired ? session.title || 'Untitled' : `${tenant?.workspace.name ?? ''} — give the parent a task`}</h1>
+            <span class="eyebrow">{active ? `session · ${session.session_id.split('.').pop()}` : 'new session'}</span>
+            <h1>{active ? session.title || 'Untitled' : tenant ? `${tenant.workspace.name} — give the parent a task` : 'Give the parent a task'}</h1>
+            {active && (
+              <span class="status-light" data-state={stream} data-stream={stream}>
+                {stream === 'live' ? 'Live' : stream === 'reconnecting' ? 'Reconnecting…' : 'Not connected'}
+              </span>
+            )}
           </div>
           <div class="stats">
-            <div><b>{agents.length}</b><span class="eyebrow">agents</span></div>
-            <div><b>{turns.length}</b><span class="eyebrow">messages</span></div>
-            <div><b class="mono">{fmtElapsed(elapsed)}</b><span class="eyebrow">elapsed</span></div>
+            <div><b>{active ? agents.length : '—'}</b><span class="eyebrow">agents</span></div>
+            <div><b>{active ? turns.length : '—'}</b><span class="eyebrow">messages</span></div>
+            <div><b class="mono">{active && first ? fmtElapsed(elapsed) : '—'}</b><span class="eyebrow">elapsed</span></div>
             {busy ? (
-              <button type="button" class="btn danger" onClick={() => session && void killRun(api, session.session_id, session.token)}>Kill run</button>
+              <button type="button" class="btn danger" onClick={() => void kill()}>Kill run</button>
             ) : (
               session && !session.expired && <button type="button" class="btn" onClick={() => void restart()}>↺ Restart</button>
             )}
@@ -332,7 +366,17 @@ plnt serve --playground --port 8787`}</code></pre>
           {tab === 'events' && <EventsTab evs={evs} />}
         </div>
 
-        {notice && <div class="pg-notice" role="alert">{notice}</div>}
+        {budgetGone && !notice && (
+          <div class="pg-notice info" role="status">
+            The playground&rsquo;s shared model budget for today is used up. It resets tomorrow. Meanwhile you can run
+            the same playground on your machine: <a href="/docs/getting-started/quickstart/">quickstart</a>.
+          </div>
+        )}
+        {notice && (
+          <div class={`pg-notice ${notice.limit ? 'info' : ''}`} role="alert">
+            {notice.limit ? `Slow down: ${notice.text}.` : notice.text}
+          </div>
+        )}
         <form
           class="pg-composer"
           onSubmit={(ev) => {
@@ -344,7 +388,8 @@ plnt serve --playground --port 8787`}</code></pre>
             value={draft}
             rows={2}
             maxLength={info.limits.max_message_chars}
-            placeholder={session && !session.expired ? 'Follow up…' : `Give the parent a task on ${tenant?.workspace.name ?? 'the workspace'}…`}
+            disabled={budgetGone}
+            placeholder={blocked || (active ? 'Follow up…' : `Give the parent a task on ${tenant?.workspace.name ?? 'the workspace'}…`)}
             aria-label="Message"
             onInput={(ev) => setDraft((ev.target as HTMLTextAreaElement).value)}
             onKeyDown={(ev) => {
@@ -354,7 +399,9 @@ plnt serve --playground --port 8787`}</code></pre>
               }
             }}
           />
-          <button type="submit" class="btn primary" disabled={!draft.trim() || sending || busy}>Send</button>
+          <button type="submit" class="btn primary" disabled={!draft.trim() || sending || busy || budgetGone} title={blocked || (draft.trim() ? undefined : 'Type a task first')}>
+            {sending ? 'Sending…' : 'Send'}
+          </button>
         </form>
       </section>
     </div>
@@ -388,7 +435,8 @@ function NewSession({ info, tenant, bundle, onChange, onPreset }: {
       </label>
       <label>
         <span class="eyebrow">Model</span>
-        <select disabled aria-label="Model"><option>{model ? `${model.id} (${model.provider})` : 'server default'}</option></select>
+        <select disabled aria-label="Model" aria-describedby="pg-model-why"><option>{model ? `${model.id} (${model.provider})` : 'server default'}</option></select>
+        <span id="pg-model-why" class="muted small">Set by the server for everyone on the playground.</span>
       </label>
       {t && (
         <div class="presets">

@@ -35,7 +35,8 @@ function Shell() {
           </span>
           {who.role !== "dev" && (
             <button
-              className="flex items-center gap-1 hover:text-ink"
+              type="button"
+              className="-my-1 flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-sunken hover:text-ink"
               onClick={() => { setToken(""); void qc.invalidateQueries(); }}
             >
               <LogOut className="size-3.5" /> Sign out

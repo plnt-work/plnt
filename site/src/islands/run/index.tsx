@@ -2,8 +2,7 @@
 // The run view (Preact twin of console/src/components/run): one turn = the
 // task, what the parent decided, the plan, one card per agent, the reply.
 // Same names and data attributes as the console so the e2e tests match.
-import { useState } from 'preact/hooks';
-import { parentSummary, replySource } from '../../lib/run-view';
+import { dash, parentSummary, replySource, statusGlyph } from '../../lib/run-view';
 import { layers, type AgentCard, type Step, type Turn } from '../../lib/transcript';
 
 export function TurnView({ turn }: { turn: Turn }) {
@@ -40,7 +39,7 @@ export function TurnView({ turn }: { turn: Turn }) {
       {open ? (
         <div class="msg agent pending">working…</div>
       ) : (
-        <div class="run-meta eyebrow">{turn.outcome} · {turn.tokens} tokens · {turn.wall_seconds}s</div>
+        <div class="run-meta eyebrow">{dash(turn.outcome)} · {dash(turn.tokens, ' tokens')} · {dash(turn.wall_seconds, 's')}</div>
       )}
     </div>
   );
@@ -55,7 +54,12 @@ function Plan({ turn }: { turn: Turn }) {
         <>
           {i > 0 && <span class="arrow">→</span>}
           <div class="layer">
-            {layer.map((a) => <span key={a.id} class={`node ${a.status}`}>{a.role}</span>)}
+            {layer.map((a) => (
+              <span key={a.id} class={`node ${a.status}`} title={`${a.role}: ${a.status}`}>
+                <span aria-hidden="true">{statusGlyph(a.status)}</span> {a.role}
+                <span class="sr-only"> ({a.status})</span>
+              </span>
+            ))}
           </div>
         </>
       ))}
@@ -64,7 +68,6 @@ function Plan({ turn }: { turn: Turn }) {
 }
 
 export function AgentView({ a, full }: { a: AgentCard; full?: boolean }) {
-  const [showSpec, setShowSpec] = useState(!!full);
   const calls = a.steps.filter((s) => s.kind === 'tool_call').length;
   return (
     <div class={`run-agent ${a.status}`} data-agent={a.id}>
@@ -75,19 +78,20 @@ export function AgentView({ a, full }: { a: AgentCard; full?: boolean }) {
       </div>
       {a.intent && <p class="intent">{a.intent}</p>}
       {a.depends_on.length > 0 && <p class="muted small">after {a.depends_on.join(', ')}</p>}
-      <button type="button" class="linkish" onClick={() => setShowSpec(!showSpec)}>
-        <span class={`chev ${showSpec ? 'open' : ''}`}>›</span> spec · {a.tools.length} tool{a.tools.length === 1 ? '' : 's'}
-        {a.model?.model ? ` · ${a.model.model}` : ''}
-      </button>
-      {showSpec && (
+      {/* A native disclosure: opens without JavaScript too. */}
+      <details class="spec-toggle" open={full}>
+        <summary class="linkish">
+          <span class="chev">›</span> spec · {a.tools.length} tool{a.tools.length === 1 ? '' : 's'}
+          {a.model?.model ? ` · ${a.model.model}` : ''}
+        </summary>
         <dl class="spec">
           <div><dt>id</dt><dd>{a.id}</dd></div>
           <div><dt>bundle</dt><dd>{a.bundle ?? '(invented by the parent)'}</dd></div>
           <div><dt>tools</dt><dd>{a.tools.join(', ') || 'none'}</dd></div>
-          <div><dt>model</dt><dd>{a.model ? `${a.model.provider} ${a.model.model} (${a.model.source})` : '?'}</dd></div>
+          <div><dt>model</dt><dd>{a.model ? `${a.model.provider} ${a.model.model} (${a.model.source})` : '—'}</dd></div>
           <div><dt>depends_on</dt><dd>{a.depends_on.join(', ') || '—'}</dd></div>
         </dl>
-      )}
+      </details>
       {a.steps.length > 0 && (
         <ol class="steps">
           {a.steps.map((s, i) => <StepRow key={i} s={s} />)}
@@ -96,7 +100,7 @@ export function AgentView({ a, full }: { a: AgentCard; full?: boolean }) {
       {a.answer && a.status !== 'running' && <p class={`answer ${full ? '' : 'clamp'}`}>{a.answer}</p>}
       {a.error && <p class="bad small">{a.error}</p>}
       <p class="eyebrow">
-        {calls} call{calls === 1 ? '' : 's'} · {a.tokens} tokens{a.wall_seconds != null ? ` · ${a.wall_seconds}s` : ''}
+        {calls} call{calls === 1 ? '' : 's'} · {dash(a.tokens, ' tokens')}{a.wall_seconds != null ? ` · ${a.wall_seconds}s` : ''}
       </p>
     </div>
   );
@@ -109,7 +113,7 @@ function argSummary(args: unknown): string {
   return v === undefined ? '' : String(v).slice(0, 60);
 }
 
-export function StepRow({ s }: { s: Step }) {
+function StepRow({ s }: { s: Step }) {
   if (s.kind === 'guardrail') {
     return (
       <li class="guardrail">
@@ -123,7 +127,7 @@ export function StepRow({ s }: { s: Step }) {
         <summary>
           <span class="mono">{s.tool}</span> <span class="mono muted">{argSummary(s.args)}</span>
           {s.ok === false && <span class="bad"> failed</span>}
-          {s.ok === null && ' …'}
+          {s.ok === null && <span class="muted"> running</span>}
         </summary>
         <pre>{JSON.stringify(s.args, null, 2)}</pre>
       </details>

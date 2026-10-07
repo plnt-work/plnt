@@ -23,6 +23,20 @@ export function statusTone(s: AgentCard["status"]): Tone {
   return s === "done" ? "ok" : s === "failed" ? "bad" : s === "killed" ? "warn" : "neutral";
 }
 
+/** A text mark per agent status, so colour is never the only signal. */
+export function statusGlyph(s: AgentCard["status"]): string {
+  return s === "done" ? "✓" : s === "failed" ? "✗" : s === "killed" ? "■" : "…";
+}
+
+/** Unknown values render as an em dash, never "undefined", "?" or 0. */
+export function dash(v: unknown, unit = ""): string {
+  return v === undefined || v === null || v === "" ? "—" : `${v}${unit}`;
+}
+
+function withReason(head: string, reason: unknown): string {
+  return reason ? `${head} — ${reason}` : head;
+}
+
 /** One line per raw event, for the Events tab. */
 export function summary(e: Ev): string {
   const p = e.payload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -32,20 +46,20 @@ export function summary(e: Ev): string {
       return String(p.text ?? "").slice(0, 100);
     case "run_started":
       return p.mode === "parent"
-        ? `parent · ${(p.specialists ?? []).join(", ") || "no specialists"} · ${p.model?.model ?? "?"}`
-        : `${p.bundle}@${p.version} · ${p.model?.model ?? "?"}`;
+        ? `parent · ${(p.specialists ?? []).join(", ") || "no specialists"} · ${dash(p.model?.model)}`
+        : `${p.bundle}@${p.version} · ${dash(p.model?.model)}`;
     case "parent_decision":
       return p.decision === "agents"
-        ? `spawn ${(p.agents ?? []).map((a: { role: string }) => a.role).join(", ")} — ${p.reason ?? ""}`
-        : `${p.decision} — ${p.reason ?? ""}`;
+        ? withReason(`spawn ${(p.agents ?? []).map((a: { role: string }) => a.role).join(", ")}`, p.reason)
+        : withReason(String(p.decision), p.reason);
     case "agent_spawned":
       return `${p.role}${p.bundle ? ` (${p.bundle}@${p.version})` : " (invented)"}: ${p.intent ?? ""}`;
     case "agent_finished":
-      return `${p.outcome} · ${p.tokens} tok · ${p.wall_seconds}s`;
+      return `${dash(p.outcome)} · ${dash(p.tokens, " tok")} · ${dash(p.wall_seconds, "s")}`;
     case "model_call":
-      return `${p.purpose ? p.purpose : `step ${p.step}`} → ${p.model}`;
+      return `${p.purpose ? p.purpose : `step ${dash(p.step)}`} → ${dash(p.model)}`;
     case "model_result":
-      return `${p.decision_kind} · ${p.tokens} tok · ${p.latency_ms} ms`;
+      return `${dash(p.decision_kind)} · ${dash(p.tokens, " tok")} · ${dash(p.latency_ms, " ms")}`;
     case "tool_call":
       return `${p.tool}(${Object.entries(p.args ?? {}).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")})`;
     case "tool_result":
@@ -58,7 +72,7 @@ export function summary(e: Ev): string {
     case "killed":
       return String(p.reason ?? "");
     case "run_finished":
-      return `${p.outcome} · ${p.tokens} tok · ${p.wall_seconds}s`;
+      return `${dash(p.outcome)} · ${dash(p.tokens, " tok")} · ${dash(p.wall_seconds, "s")}`;
     default:
       return "";
   }

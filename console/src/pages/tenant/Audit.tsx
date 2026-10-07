@@ -15,7 +15,8 @@ export function Audit({ tid }: { tid: string }) {
   if (!events.length) return <Empty title="No audit events yet" />;
   return (
     <Card>
-      <table className="w-full text-left text-[13px]">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[32rem] text-left text-[13px]">
         <thead className="text-[12px] text-muted">
           <tr>
             <th className="pb-2 font-medium">When</th>
@@ -38,6 +39,7 @@ export function Audit({ tid }: { tid: string }) {
           })}
         </tbody>
       </table>
+      </div>
     </Card>
   );
 }

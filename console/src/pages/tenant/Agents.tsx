@@ -36,6 +36,19 @@ export function Agents({ tenant }: { tenant: TenantDetail }) {
         <h2 className="text-[13px] font-semibold">Catalog</h2>
         {catalog.isPending && <Spinner />}
         <ErrorNote error={catalog.error} />
+        {catalog.data && catalog.data.bundles.length === 0 && (
+          <Empty title="The catalog is empty">
+            No bundles were found on this server. Add one under registry/bundles or set PLNT_BUNDLE_PATH.
+          </Empty>
+        )}
+        {catalog.data && Object.keys(catalog.data.errors ?? {}).length > 0 && (
+          <div role="alert" className="rounded-md bg-warn-soft px-3 py-2 text-[13px] text-warn" data-bundle-errors>
+            <div className="font-medium">Some bundles failed to load and are not listed:</div>
+            <ul className="mt-1 space-y-0.5 font-mono text-[12px]">
+              {Object.entries(catalog.data.errors).map(([slug, err]) => <li key={slug}>{slug}: {err}</li>)}
+            </ul>
+          </div>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           {catalog.data?.bundles.map((b) => (
             <Card key={b.slug}>

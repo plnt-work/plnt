@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Session, type TenantDetail, type Usage } from "@/lib/api";
-import { Badge, Card, Empty, ErrorNote, Stat } from "@/components/ui";
+import { Badge, Card, Empty, ErrorNote, Spinner, Stat } from "@/components/ui";
 import { fmtNum, fmtTime, fmtUsd } from "@/lib/format";
 
 const DAY = 86_400;
@@ -20,15 +20,16 @@ export function Overview({ tenant }: { tenant: TenantDetail }) {
     refetchInterval: 10_000,
   });
   const u = usage.data;
-  const recent = sessions.data?.sessions ?? [];
-  const active = recent.filter((s) => s.created_at >= since).length;
+  // Unknown (loading or failed) renders "—", never 0.
+  const recent = sessions.data?.sessions;
+  const active = recent ? fmtNum(recent.filter((s) => s.created_at >= since).length) : "—";
   const enabled = tenant.installs.filter((i) => i.enabled);
 
   return (
     <div className="space-y-4">
       <ErrorNote error={usage.error ?? sessions.error} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Conversations · 30 days" value={fmtNum(active)} />
+        <Stat label="Sessions · 30 days" value={active} />
         <Stat label="Model calls · 30 days" value={u ? fmtNum(u.model_calls) : "—"} />
         <Stat
           label="Tokens · 30 days"
@@ -44,10 +45,15 @@ export function Overview({ tenant }: { tenant: TenantDetail }) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Usage by agent and model">
-          {!u || u.by_bundle_model.length === 0 ? (
+          {usage.isPending ? (
+            <div className="flex items-center gap-2 text-[13px] text-muted"><Spinner /> Loading usage…</div>
+          ) : !u ? (
+            <p className="text-[13px] text-muted">Usage could not be loaded (see the error above).</p>
+          ) : u.by_bundle_model.length === 0 ? (
             <p className="text-[13px] text-muted">No model calls in the last 30 days.</p>
           ) : (
-            <table className="w-full text-left text-[13px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[26rem] text-left text-[13px]">
               <thead className="text-[12px] text-muted">
                 <tr>
                   <th className="pb-2 font-medium">Agent</th>
@@ -69,6 +75,7 @@ export function Overview({ tenant }: { tenant: TenantDetail }) {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </Card>
 
@@ -89,8 +96,8 @@ export function Overview({ tenant }: { tenant: TenantDetail }) {
             </ul>
           )}
           <p className="mt-3 text-[12px] text-muted">
-            {enabled.length} of {tenant.installs.length} enabled · last conversation{" "}
-            {fmtTime(recent[0]?.created_at)}
+            {enabled.length} of {tenant.installs.length} enabled · last session{" "}
+            {fmtTime(recent?.[0]?.created_at)}
           </p>
         </Card>
       </div>
