@@ -10,28 +10,57 @@ const featured = BLUEPRINTS.filter((b) => b.status === 'ships').slice(0, 6);
 
 const enforced = [
   {
+    meta: 'workdir',
     title: 'A private workspace per session',
     body: 'Every session works on its own copy of the folder or repo. Agents read and change the copy; the source is never touched.',
   },
   {
+    meta: 'policy',
     title: 'Tools by policy, not by prompt',
     body: 'Read-only mode strips write_file and execute before the agent ever sees them. The public playground runs that way.',
   },
   {
+    meta: 'guardrail',
     title: 'Look before you answer',
     body: 'A bundle can require a tool. An answer the model gives before reading a file is withheld, not sent.',
   },
   {
+    meta: 'budget',
     title: 'Budgets and a kill switch',
     body: 'Token, wall-clock and step limits per agent, a loop detector, and a kill that stops the running agents and skips the rest.',
   },
   {
+    meta: 'audit',
     title: 'Everything on the record',
     body: 'The parent’s decision and reason, each agent’s spec, every model call, tool call and file, usage per agent. Streamed live, folded into a transcript.',
   },
   {
+    meta: 'models',
     title: 'Any model, per tenant',
     body: 'Gemini, OpenAI, or a local Ollama, vLLM or llama.cpp box. Chosen per tenant, checked with plnt models doctor before you rely on it.',
+  },
+];
+
+const how = [
+  {
+    meta: 'task',
+    title: 'You give a task',
+    body: '“Audit <code>app/store.py</code> for bugs and write tests for it.” On a workspace: a demo repo, a folder, or a git URL.',
+  },
+  {
+    meta: 'decide',
+    title: 'The parent decides',
+    body: 'One structured model call: answer, ask, or spawn. For each agent: which bundle, an intent in your words, what it depends on. Recorded with its reason.',
+  },
+  {
+    meta: 'run',
+    title: 'Agents run isolated',
+    body: 'Independent agents run in parallel; dependent ones wait and get the upstream results. Each has its own tools, budget and guardrails on the session’s copy.',
+  },
+  {
+    meta: 'merge',
+    title: 'One reply, full trace',
+    body: 'The parent merges the answers. The transcript keeps the plan, every agent’s spec, steps, files and tokens. Watch it in the console or the playground.',
   },
 ];
 ---
@@ -66,36 +95,25 @@ plnt dev code-reviewer --workspace .      <span class="c"># API + console on 127
 
   <section class="block">
     <div class="container">
-      <span class="eyebrow">How a run works</span>
+      <span class="eyebrow numbered">01 — How a run works</span>
       <h2>One task, one parent, as many agents as it takes.</h2>
-      <div class="how">
-        <div class="how-step">
-          <span class="num">01</span>
-          <h3>You give a task</h3>
-          <p>“Audit <code>app/store.py</code> for bugs and write tests for it.” On a workspace: a demo repo, a folder, or a git URL.</p>
-        </div>
-        <div class="how-step">
-          <span class="num">02</span>
-          <h3>The parent decides</h3>
-          <p>One structured model call: answer, ask, or spawn. For each agent: which bundle, an intent in your words, what it depends on. Recorded with its reason.</p>
-        </div>
-        <div class="how-step">
-          <span class="num">03</span>
-          <h3>Agents run isolated</h3>
-          <p>Independent agents run in parallel; dependent ones wait and get the upstream results. Each has its own tools, budget and guardrails on the session’s copy.</p>
-        </div>
-        <div class="how-step">
-          <span class="num">04</span>
-          <h3>One reply, full trace</h3>
-          <p>The parent merges the answers. The transcript keeps the plan, every agent’s spec, steps, files and tokens. Watch it in the console or the playground.</p>
-        </div>
-      </div>
+      <ol class="index">
+        {how.map((h, i) => (
+          <li class="index-row">
+            <span class="index-meta">{String(i + 1).padStart(2, '0')} · {h.meta}</span>
+            <div>
+              <h3>{h.title}</h3>
+              <p set:html={h.body} />
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   </section>
 
-  <section class="block">
+  <section class="block" id="replay">
     <div class="container">
-      <span class="eyebrow">A real run, replayed</span>
+      <span class="eyebrow numbered">02 — A real run, replayed</span>
       <h2>What you see while it works.</h2>
       <p class="sub">
         Recorded from the playground on the <code>notes-api</code> demo workspace, with the events
@@ -107,7 +125,7 @@ plnt dev code-reviewer --workspace .      <span class="c"># API + console on 127
 
   <section class="block">
     <div class="container">
-      <span class="eyebrow">Blueprints</span>
+      <span class="eyebrow numbered">03 — Blueprints</span>
       <h2>What people point it at.</h2>
       <p class="sub">The four shipped bundles cover the coding tasks. Everything else is a bundle you write, or a role the parent invents.</p>
       <div class="bp-grid">
@@ -119,22 +137,25 @@ plnt dev code-reviewer --workspace .      <span class="c"># API + console on 127
 
   <section class="block">
     <div class="container">
-      <span class="eyebrow">What the runtime enforces</span>
+      <span class="eyebrow numbered">04 — What the runtime enforces</span>
       <h2>Not left to each agent to get right.</h2>
-      <div class="grid three">
+      <ol class="index">
         {enforced.map((f) => (
-          <div class="card">
-            <h3>{f.title}</h3>
-            <p>{f.body}</p>
-          </div>
+          <li class="index-row">
+            <span class="index-meta">{f.meta}</span>
+            <div>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </div>
+          </li>
         ))}
-      </div>
+      </ol>
     </div>
   </section>
 
   <section class="block">
     <div class="container">
-      <span class="eyebrow">Local models</span>
+      <span class="eyebrow numbered">05 — Local models</span>
       <h2>Checked before you rely on them.</h2>
       <p class="sub">
         <code>plnt models doctor</code> checks what an agent needs: the server is up, the model is
@@ -160,7 +181,7 @@ qwen2.5:7b  ollama · http://127.0.0.1:11434 · local
 
   <section class="block">
     <div class="container">
-      <span class="eyebrow">Status</span>
+      <span class="eyebrow numbered">06 — Status</span>
       <p class="status">
         Pre-alpha (0.1). The parent, the four developer bundles, workspaces, the multi-tenant API,
         the console and the playground are built and tested in CI, including against a real local

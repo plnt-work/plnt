@@ -10,10 +10,23 @@ import { TurnView } from './run';
 type Recording = { workspace: string; model: string; events: Ev[] };
 const rec = recording as Recording;
 
+// The server renders the finished run, so readers without JavaScript (and
+// crawlers) see the whole recorded transcript. Once hydrated it replays from
+// the start, unless the reader asked for reduced motion.
 export default function RunReplay() {
-  const [n, setN] = useState(0);
-  const [playing, setPlaying] = useState(true);
   const events = rec.events;
+  const [n, setN] = useState(events.length);
+  const [playing, setPlaying] = useState(false);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    setLive(true);
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce) {
+      setN(0);
+      setPlaying(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!playing || n >= events.length) return;
@@ -33,19 +46,19 @@ export default function RunReplay() {
       <div class="replay-head">
         <div>
           <span class="eyebrow">{rec.workspace} · {rec.model}</span>
-          <h3>{turns[0]?.user.text ?? '…'}</h3>
+          <h3>{turns[0]?.user.text ?? rec.events.find((e) => e.kind === 'user_message')?.payload.text as string}</h3>
         </div>
-        <div class="agents" style="margin:0">
+        {live && <div class="agents" style="margin:0">
           {done ? (
             <button type="button" class="btn" onClick={() => { setN(0); setPlaying(true); }}>↺ Replay</button>
           ) : (
             <button type="button" class="btn" onClick={() => (playing ? setPlaying(false) : setPlaying(true))}>{playing ? 'Pause' : 'Play'}</button>
           )}
           {!done && <button type="button" class="btn" onClick={() => setN(events.length)}>Skip to the end</button>}
-        </div>
+        </div>}
       </div>
       <div class="replay-body">
-        {turns.length === 0 && <p class="muted">Starting…</p>}
+        {turns.length === 0 && <p class="muted">Replaying from the first event…</p>}
         {turns.map((t) => <TurnView key={t.run_id || t.ts} turn={t} />)}
       </div>
     </div>

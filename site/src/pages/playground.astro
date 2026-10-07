@@ -10,4 +10,15 @@ import '../styles/playground.css';
   path="/playground"
 >
   <Playground client:only="preact" />
+  <noscript>
+    <div class="pg-noscript">
+      <h1>The playground needs JavaScript</h1>
+      <p>
+        It talks to a live plnt server and streams each agent&rsquo;s steps as they happen, which
+        takes JavaScript. Without it you can still read a
+        <a href="/#replay">real recorded run on the home page</a>, or run the same playground on
+        your machine with the <a href="/docs/getting-started/quickstart/">quickstart</a>.
+      </p>
+    </div>
+  </noscript>
 </Layout>

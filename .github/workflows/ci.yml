@@ -30,6 +30,8 @@ jobs:
       - run: cmp console/src/lib/run-view.ts site/src/lib/run-view.ts
       # Design tokens: one source, copied into both apps.
       - run: cmp design/tokens.css site/src/styles/tokens.css && cmp design/tokens.css console/src/tokens.css
+      # Every text colour in the tokens passes WCAG AA on its backgrounds.
+      - run: python scripts/check_contrast.py
 
   booking:
     name: examples/booking (pytest, Temporal in-process)

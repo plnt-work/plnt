@@ -28,6 +28,18 @@ export function apiBase(): string {
   return (q || env || (local ? 'http://localhost:8787' : HOSTED_API)).replace(/\/+$/, '');
 }
 
+/** An HTTP failure with its status, so the UI can tell a rate limit from a bug. */
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+/** True for "slow down" answers: rate limits and the shared daily budget. */
+export function isLimit(e: unknown): boolean {
+  return e instanceof ApiError && (e.status === 429 || (e.status === 503 && /budget/.test(e.message)));
+}
+
 export async function errText(r: Response): Promise<string> {
   try {
     const j = await r.json();
@@ -59,7 +71,7 @@ export async function createSession(base: string, tenant: string, bundle = ''): 
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ tenant, bundle }),
   });
-  if (!r.ok) throw new Error(await errText(r));
+  if (!r.ok) throw new ApiError(r.status, await errText(r));
   return (await r.json()) as { session_id: string; token: string };
 }
 
@@ -69,13 +81,12 @@ export async function sendMessage(base: string, sid: string, token: string, text
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ text }),
   });
-  if (!r.ok) throw new Error(await errText(r));
+  if (!r.ok) throw new ApiError(r.status, await errText(r));
 }
 
 export async function killRun(base: string, sid: string, token: string): Promise<void> {
-  await fetch(`${base}/v1/playground/sessions/${encodeURIComponent(sid)}/kill?token=${token}`, { method: 'POST' }).catch(
-    () => undefined,
-  );
+  const r = await fetch(`${base}/v1/playground/sessions/${encodeURIComponent(sid)}/kill?token=${token}`, { method: 'POST' });
+  if (!r.ok) throw new ApiError(r.status, await errText(r));
 }
 
 export function streamUrl(base: string, sid: string, token: string, after: number): string {

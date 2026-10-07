@@ -9,6 +9,31 @@ Dates are ISO-8601, UTC.
 
 ## [Unreleased]
 
+### Changed
+
+- **Design pass on the site, playground and console** (lessons from a design teardown):
+  - Contrast: every text colour now passes WCAG AA. Muted text, status colours and the
+    primary button text were darkened, and a text-safe orange (`--accent-text`) is used for
+    orange text; the bright orange is for shapes only. `scripts/check_contrast.py` enforces
+    it in CI. Rules are written down in `design/README.md`.
+  - One radius multiplier and an 11px type floor in `design/tokens.css`.
+  - One brand mark everywhere (site, docs, favicon, console), plus a PNG OG image,
+    apple-touch-icon, `theme-color`, and the right sitemap domain in `robots.txt`.
+  - The home page replay renders the recorded run on the server, so it reads without
+    JavaScript, and does not autoplay under reduced motion. The playground explains itself
+    in a `<noscript>`. Section heads use numbered eyebrows; "How a run works" and the
+    guardrails are hairline index rows.
+  - Honest states: unknown values show "—" (never `undefined`, `?` or a fake 0); the
+    console has loading states for the transcript, usage and sign-in, tells a server error
+    from a logout, lists bundles that failed to load, and its event stream reconnects with
+    a Live / Reconnecting status light (the playground has the same light). Rate limits and
+    a spent daily budget get their own notice, and a failed kill is reported.
+  - No dead controls: disabled buttons say why, deleting a secret says what breaks, the
+    console's "clear view" button is gone, and agent specs open with a native disclosure.
+  - Touch targets are 44px on coarse pointers, one focus ring style, plan pills carry a
+    status mark (not colour alone), and every page and console tab fits 375px.
+  - The PR template has a UI checklist.
+
 ### Added
 
 - Sessions can be bound to a **workspace**: `demo:<name>`, a local folder, or a git URL.

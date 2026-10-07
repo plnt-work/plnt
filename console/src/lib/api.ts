@@ -181,10 +181,15 @@ export type ModelHealth = {
 
 // ------------------------------------------------------------------ SSE
 
+export type StreamState = "connecting" | "live" | "reconnecting" | "ended";
+
 /**
  * Stream a session's events. EventSource cannot send an Authorization
- * header, so this reads the SSE response body with fetch. Returns a
- * function that stops the stream.
+ * header, so this reads the SSE response body with fetch. History is loaded
+ * first with GET /events (so the UI can tell "loading" from "empty"), then the
+ * stream picks up after the last event. A dropped connection is retried with
+ * backoff and reported as "reconnecting"; a 4xx ends the stream. Returns a
+ * function that stops it.
  */
 export function streamEvents(
   tenant: string,
@@ -192,20 +197,26 @@ export function streamEvents(
   after: number,
   onEvent: (e: RunEvent) => void,
   onError: (err: Error) => void,
+  onState: (s: StreamState) => void = () => undefined,
+  onHistory: (events: RunEvent[]) => void = (evs) => evs.forEach(onEvent),
 ): () => void {
   const ctrl = new AbortController();
-  (async () => {
-    const res = await fetch(`/v1/tenants/${tenant}/sessions/${sid}/stream?after=${after}`, {
+  let last = after;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  async function once(): Promise<void> {
+    const res = await fetch(`/v1/tenants/${tenant}/sessions/${sid}/stream?after=${last}`, {
       headers: headers(),
       signal: ctrl.signal,
     });
     if (!res.ok || !res.body) throw new ApiError(res.status, await res.text());
+    onState("live");
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
     for (;;) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) return;
       buf += decoder.decode(value, { stream: true });
       let idx;
       while ((idx = buf.indexOf("\n\n")) !== -1 || (idx = buf.indexOf("\r\n\r\n")) !== -1) {
@@ -216,11 +227,38 @@ export function streamEvents(
           .filter((l) => l.startsWith("data:"))
           .map((l) => l.slice(5).trimStart())
           .join("\n");
-        if (data) onEvent(JSON.parse(data) as RunEvent);
+        if (data) {
+          const e = JSON.parse(data) as RunEvent;
+          last = Math.max(last, e.seq);
+          onEvent(e);
+        }
       }
     }
+  }
+
+  (async () => {
+    onState("connecting");
+    const history = await request<{ events: RunEvent[] }>(
+      "GET", `/tenants/${tenant}/sessions/${sid}/events?after=${after}`,
+    );
+    for (const e of history.events) last = Math.max(last, e.seq);
+    onHistory(history.events);
+    for (let attempt = 0; !ctrl.signal.aborted; attempt++) {
+      try {
+        await once();
+        attempt = 0; // the server closed a healthy stream: reconnect at once
+      } catch (err) {
+        if (ctrl.signal.aborted) return;
+        if (err instanceof ApiError && err.status >= 400 && err.status < 500) throw err;
+      }
+      if (ctrl.signal.aborted) return;
+      onState("reconnecting");
+      await sleep(Math.min(10_000, 500 * 2 ** attempt));
+    }
   })().catch((err: unknown) => {
-    if (!ctrl.signal.aborted) onError(err instanceof Error ? err : new Error(String(err)));
+    if (ctrl.signal.aborted) return;
+    onState("ended");
+    onError(err instanceof Error ? err : new Error(String(err)));
   });
   return () => ctrl.abort();
 }

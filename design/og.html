@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- Layout for site/public/og.png (1200x630). Rebuilt by site/scripts/make_brand_assets.mjs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  @font-face { font-family: "Geist Variable"; src: url("../site/node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "JetBrains Mono"; src: url("../site/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+  html, body { margin: 0; width: 1200px; height: 630px; background: var(--bg); color: var(--ink); font-family: var(--font-sans); }
+  .frame { box-sizing: border-box; height: 100%; padding: 72px 80px; display: flex; flex-direction: column; justify-content: space-between; border-bottom: 12px solid var(--accent); }
+  .brand { display: flex; align-items: center; gap: 16px; font-weight: 700; font-size: 40px; letter-spacing: -0.02em; }
+  .brand img { width: 48px; height: 48px; }
+  h1 { margin: 0; font-size: 92px; line-height: 1.02; letter-spacing: -0.04em; font-weight: 650; }
+  .row { display: flex; justify-content: space-between; align-items: flex-end; }
+  .eyebrow { font-size: 20px; }
+  .agents { display: flex; gap: 12px; }
+  .agents span { font-family: var(--font-mono); font-size: 20px; border: 2px solid var(--line-strong); border-radius: var(--radius-pill); padding: 6px 18px; color: var(--ink-2); background: var(--panel); }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="brand"><img src="../site/public/mark.svg" alt="" />plnt</div>
+    <h1>A task in.<br />Micro-agents out.</h1>
+    <div class="row">
+      <span class="eyebrow numbered">Open-source runtime · plnt.work</span>
+      <div class="agents"><span>code-reviewer</span><span>test-writer</span></div>
+    </div>
+  </div>
+</body>
+</html>

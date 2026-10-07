@@ -21,6 +21,10 @@ page.on('console', (m) => m.type() === 'error' && errors.push('console: ' + m.te
 await page.goto(`${site}/playground`);
 await page.getByLabel('Workspace').waitFor();
 
+// 0. Before any session the header stats are unknown ("—"), not zeros.
+await page.locator('.pg-head .stats b', { hasText: '—' }).first().waitFor();
+if (await page.locator('.pg-head .stats b', { hasText: /^0$/ }).count()) await fail('stats show 0 before any session');
+
 // 1. A parent session on notes-api: one task, two agents, the second after the
 //    first, one merged reply, and every tab filled from the same run.
 await page.getByLabel('Workspace').selectOption('notes-api');
@@ -33,6 +37,8 @@ await page.locator('.reply .msg.agent', { hasText: 'Findings' }).waitFor({ timeo
 await page.getByText('merged by the parent').waitFor();
 await page.locator('.pg-head h1', { hasText: 'Audit app/store.py' }).waitFor();
 await page.locator('.pg-list .row', { hasText: 'Audit app/store.py' }).waitFor();
+await page.locator('.pg-head .status-light[data-stream="live"]', { hasText: 'Live' }).waitFor();
+if (await page.locator('.pg-body', { hasText: 'undefined' }).count()) await fail('run view prints "undefined"');
 await page.screenshot({ path: `${outDir}/playground-run.png` });
 
 await page.getByRole('tab', { name: 'Agents' }).click();
@@ -95,7 +101,10 @@ await off.getByText('PLNT_PLAYGROUND=1').waitFor();
 await page.goto(`${site}/`);
 await page.getByRole('heading', { name: 'A task in. Micro-agents out.' }).waitFor();
 await page.locator('[data-replay]').scrollIntoViewIfNeeded(); // client:visible island
+// Hydrated: the replay restarts from the first event and shows its controls.
+await page.getByRole('button', { name: 'Skip to the end' }).click({ timeout: 20000 });
 await page.locator('[data-replay] .run-agent').first().waitFor({ timeout: 20000 });
+await page.getByRole('button', { name: '↺ Replay' }).waitFor();
 await page.screenshot({ path: `${outDir}/home.png`, fullPage: true });
 await page.goto(`${site}/use-cases`);
 const total = await page.locator('#bp-grid .bp').count();
@@ -106,6 +115,48 @@ await page.screenshot({ path: `${outDir}/use-cases.png`, fullPage: true });
 await page.goto(`${site}/docs/getting-started/quickstart/`);
 await page.getByRole('heading', { name: 'Quickstart' }).first().waitFor();
 await page.screenshot({ path: `${outDir}/docs-quickstart.png` });
+
+// 9. Shipping details: absolute OG image and icons are served as PNG.
+for (const asset of ['/og.png', '/apple-touch-icon.png', '/favicon-32.png']) {
+  const r = await page.request.get(`${site}${asset}`);
+  if (!r.ok() || r.headers()['content-type'] !== 'image/png') await fail(`${asset}: ${r.status()} ${r.headers()['content-type']}`);
+}
+await page.goto(`${site}/`);
+const og = await page.locator('meta[property="og:image"]').getAttribute('content');
+if (!og?.startsWith('https://')) await fail(`og:image is not absolute: ${og}`);
+
+// 10. No JavaScript: the home page still shows the recorded run, without
+//     dead replay controls; the playground explains why it needs JS.
+const nojs = await browser.newContext({ javaScriptEnabled: false });
+const nj = await nojs.newPage();
+await nj.goto(`${site}/`);
+if (!(await nj.locator('[data-replay] .run-agent').count())) await fail('replay is empty without JS');
+if (await nj.locator('[data-replay] button').count()) await fail('replay shows buttons that cannot work without JS');
+await nj.locator('[data-replay] .spec-toggle summary').first().click();
+await nj.locator('[data-replay] .spec').first().waitFor();
+await nj.goto(`${site}/playground`);
+await nj.getByRole('heading', { name: 'The playground needs JavaScript' }).waitFor();
+await nojs.close();
+
+// 11. Reduced motion: the replay does not autoplay; it shows the finished run.
+const calm = await browser.newContext({ reducedMotion: 'reduce' });
+const cp = await calm.newPage();
+await cp.goto(`${site}/`);
+await cp.locator('[data-replay]').scrollIntoViewIfNeeded();
+await cp.getByRole('button', { name: '↺ Replay' }).waitFor({ timeout: 10000 });
+if (!(await cp.locator('[data-replay] .reply').count())) await fail('reduced motion: replay is not on the final state');
+await calm.close();
+
+// 12. Every page fits a 375px phone without horizontal scroll.
+const phone = await browser.newPage({ viewport: { width: 375, height: 812 } });
+for (const path of ['/', '/use-cases', '/playground', '/docs/']) {
+  await phone.goto(`${site}${path}`);
+  await phone.waitForLoadState('networkidle');
+  const over = await phone.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  if (over > 1) await fail(`${path}: ${over}px horizontal overflow at 375px`);
+}
+await phone.goto(`${site}/`);
+await phone.screenshot({ path: `${outDir}/home-375.png`, fullPage: true });
 
 console.log(JSON.stringify({ errors }));
 await browser.close();

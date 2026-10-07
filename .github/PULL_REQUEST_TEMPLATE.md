@@ -39,6 +39,18 @@ Fixes #
 
 For UI or CLI changes.
 
+## UI checklist (site, playground, console)
+
+Skip if the PR touches no UI. Rules: [`design/README.md`](../design/README.md).
+
+- [ ] Screenshots at 1280px and 375px wide, no horizontal scroll at 375
+- [ ] Loading, empty and error states shown; unknown values render `—`
+- [ ] `python scripts/check_contrast.py` passes; no orange text in `--accent` (use `--accent-text`)
+- [ ] Nothing under 11px; touch targets 44px on a coarse pointer
+- [ ] Keyboard path works with a visible focus ring
+- [ ] Works without JS, or says why it can't
+- [ ] No new colours, radii or sizes outside `design/tokens.css`
+
 ## Anything reviewers should look at closely
 
 Call out tricky bits, deliberate trade-offs, and the parts you're least

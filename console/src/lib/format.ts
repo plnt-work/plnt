@@ -3,8 +3,8 @@ import clsx from "clsx";
 export const cx = clsx;
 
 export const inputClass =
-  "h-8 w-full rounded-md border border-line bg-panel px-2.5 text-[13px] outline-none " +
-  "placeholder:text-muted focus:border-accent";
+  "h-8 w-full rounded-md border border-line bg-panel px-2.5 text-[13px] " +
+  "placeholder:text-muted focus:border-accent focus-visible:outline-offset-0";
 
 export function fmtTime(ts: number | null | undefined): string {
   if (!ts) return "—";
